@@ -1,0 +1,12 @@
+syntax: glob
+
+*.bak
+*.pyc
+*.egg-info
+
+pymontecarlo/testdata/settings.cfg
+
+syntax: regexp
+^lib
+^dist
+^build
