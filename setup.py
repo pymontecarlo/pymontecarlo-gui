@@ -60,7 +60,6 @@ def find_version(*file_paths):
 
 packages = find_packages(exclude=('pymontecarlo.util.dist*',))
 namespace_packages = ['pymontecarlo',
-                      'pymontecarlo.program',
                       'pymontecarlo.ui']
 requirements = ['pyparsing', 'numpy', 'h5py', 'matplotlib', 'PySide',
                 'pyxray', 'Pillow', 'latexcodec']
@@ -166,7 +165,7 @@ if has_cx_freeze:
     options.update({"build_exe": build_exe_options})
 
 setup(name="pyMonteCarlo-GUI",
-      version=find_version('pymontecarlo', '__init__.py'),
+      version=find_version('pymontecarlo', 'ui', 'gui', 'main.py'),
       url='http://pymontecarlo.bitbucket.org',
       description="Python interface for Monte Carlo simulation programs",
       author="Hendrix Demers and Philippe T. Pinard",
