@@ -34,7 +34,7 @@ matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import \
     (FigureCanvasQTAgg as FigureCanvas,
-     NavigationToolbar2QTAgg as NavigationToolbar)
+     NavigationToolbar2QT as NavigationToolbar)
 
 # Local modules.
 from pymontecarlo.settings import get_settings
