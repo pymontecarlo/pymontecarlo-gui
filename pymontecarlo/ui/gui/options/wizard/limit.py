@@ -22,11 +22,11 @@ __license__ = "GPL v3"
 from operator import attrgetter, methodcaller
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QDialog, QDialogButtonBox, QTableView, QToolBar, QPushButton, QComboBox,
      QFormLayout, QHeaderView, QWidget, QSizePolicy, QHBoxLayout, QMessageBox,
      QItemDelegate)
-from PySide.QtCore import \
+from qtpy.QtCore import \
     Qt, QModelIndex, QAbstractTableModel, QAbstractListModel
 
 # Local modules.
@@ -51,7 +51,7 @@ class _LimitDialog(QDialog):
 
         # Layouts
         layout = QFormLayout()
-        layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow) # Fix for Mac OS
+        layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow) # Fix for Mac OS
         layout.addRow(self._wdg_limit)
         layout.addRow(buttons)
         self.setLayout(layout)
@@ -102,11 +102,11 @@ class LimitWizardPage(_ExpandableOptionsWizardPage):
             if limit_class not in self._limits_text:
                 raise ValueError('No text defined for limit: %s' % limit_class)
             self._limits.append(limit_class)
-            self.reset()
+            self.modelReset.emit()
 
         def remove(self, limit_class):
             self._limits.remove(limit_class)
-            self.reset()
+            self.modelReset.emit()
 
         def limitClass(self, index):
             return self._limits[index]
@@ -242,7 +242,7 @@ class LimitWizardPage(_ExpandableOptionsWizardPage):
         self._tbl_limit.setModel(tbl_model)
         self._tbl_limit.setItemDelegate(self._LimitTableDelegate())
         header = self._tbl_limit.horizontalHeader()
-        header.setResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.Stretch)
         header.hide()
         policy = self._tbl_limit.sizePolicy()
         policy.setVerticalStretch(True)

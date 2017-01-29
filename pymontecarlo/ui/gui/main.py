@@ -25,15 +25,15 @@ import logging
 import platform
 
 # Third party modules.
-from PySide.QtGui import \
-    (QMainWindow, QMdiArea, QTreeWidget, QAction, QKeySequence, QDockWidget,
+from qtpy.QtGui import QKeySequence
+from qtpy.QtWidgets import \
+    (QMainWindow, QMdiArea, QTreeWidget, QAction, QDockWidget,
      QProgressDialog, QApplication, QTreeWidgetItem, QMenu, QMdiSubWindow,
      QScrollArea, QFileDialog, QMessageBox)
-from PySide.QtCore import Qt, QPoint, QSize
+from qtpy.QtCore import Qt, QPoint, QSize
 
 import matplotlib
-matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4'] = 'PySide'
+matplotlib.use('Qt5Agg')
 
 # Local modules.
 from pymontecarlo.ui.gui.controller import Controller
@@ -1473,7 +1473,7 @@ def _setup(argv):
     dirpath = os.path.join(os.path.expanduser('~'), '.pymontecarlo')
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
-    
+
     # Redirect stdout and stderr when frozen
     if getattr(sys, 'frozen', False):
         ## Note: Important since warnings required sys.stderr not be None
@@ -1507,10 +1507,10 @@ def _setup(argv):
     logging.info('processor = %s', platform.processor())
 
     # Catch all exceptions
-    def _excepthook(exc_type, exc_obj, exc_tb):
-        messagebox.exception(None, exc_obj)
-        sys.__excepthook__(exc_type, exc_obj, exc_tb)
-    sys.excepthook = _excepthook
+#    def _excepthook(exc_type, exc_obj, exc_tb):
+#        messagebox.exception(None, exc_obj)
+#        sys.__excepthook__(exc_type, exc_obj, exc_tb)
+#    sys.excepthook = _excepthook
 
     # Output sys.path
     logging.info("sys.path = %s", sys.path)

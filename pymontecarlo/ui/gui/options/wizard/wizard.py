@@ -22,7 +22,7 @@ __license__ = "GPL v3"
 import copy
 
 # Third party modules.
-from PySide.QtGui import QWizard
+from qtpy.QtWidgets import QWizard
 
 # Local modules.
 from pymontecarlo.options.options import Options
@@ -48,7 +48,7 @@ class OptionsWizard(QWizard):
             self.setWindowTitle("Create new options")
         else:
             self.setWindowTitle("Modify options")
-        self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
+        self.setWizardStyle(QWizard.ClassicStyle)
 
         # Variables
         if options is None:
@@ -75,7 +75,7 @@ class OptionsWizard(QWizard):
 
 def __run():
     import sys
-    from PySide.QtGui import QApplication
+    from qtpy.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
 

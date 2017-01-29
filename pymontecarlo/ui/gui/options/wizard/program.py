@@ -22,7 +22,7 @@ __license__ = "GPL v3"
 from operator import methodcaller, attrgetter
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     QCheckBox, QPushButton, QSizePolicy, QSpacerItem, QHBoxLayout
 
 # Local modules.

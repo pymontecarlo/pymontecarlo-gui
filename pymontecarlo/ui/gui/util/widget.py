@@ -24,10 +24,10 @@ import re
 import math
 
 # Third party modules.
-from PySide.QtGui import \
-    (QWidget, QLineEdit, QPushButton, QHBoxLayout, QFileDialog, QComboBox,
-     QValidator)
-from PySide.QtCore import Signal
+from qtpy.QtGui import QValidator
+from qtpy.QtWidgets import \
+    QWidget, QLineEdit, QPushButton, QHBoxLayout, QFileDialog, QComboBox
+from qtpy.QtCore import Signal
 
 import numpy as np
 
@@ -179,12 +179,12 @@ class NumericalLineEdit(QLineEdit):
             try:
                 value = float(text)
             except:
-                return QValidator.Intermediate
+                return QValidator.Intermediate, text, pos
 
             if self.validator() is None:
-                return QValidator.Acceptable
+                return QValidator.Acceptable, text, pos
 
-            return self.validator().validate(value)
+            return self.validator().validate(value), text, pos
 
         def fixup(self, text):
             return text
@@ -258,12 +258,12 @@ class MultiNumericalLineEdit(QLineEdit):
             try:
                 values = MultiNumericalLineEdit._parse_text(text)
             except:
-                return QValidator.Intermediate
+                return QValidator.Intermediate, text, pos
 
             if self.validator() is None:
-                return QValidator.Acceptable
+                return QValidator.Acceptable, text, pos
 
-            return self.validator().validate(values)
+            return self.validator().validate(values), text, pos
 
         def fixup(self, text):
             return text

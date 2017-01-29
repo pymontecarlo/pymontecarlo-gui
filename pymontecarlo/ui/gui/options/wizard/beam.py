@@ -22,7 +22,7 @@ __license__ = "GPL v3"
 from operator import attrgetter
 
 # Third party modules.
-from PySide.QtGui import QComboBox, QStackedWidget
+from qtpy.QtWidgets import QComboBox, QStackedWidget
 
 
 # Local modules.

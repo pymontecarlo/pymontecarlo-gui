@@ -24,7 +24,7 @@ from itertools import product
 from operator import itemgetter, methodcaller
 
 # Third party modules.
-from PySide.QtGui import QCheckBox, QHBoxLayout, QFormLayout, QLabel
+from qtpy.QtWidgets import QCheckBox, QHBoxLayout, QFormLayout, QLabel
 
 import numpy as np
 
@@ -134,7 +134,7 @@ class OriginWidget(_ParameterWidget):
         layout = QFormLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         layout.addRow(self._lbl_x, self._txt_x)
         layout.addRow(self._lbl_y, self._txt_y)
         layout.addRow(self._lbl_z, self._txt_z)
@@ -226,7 +226,7 @@ class DirectionWidget(_ParameterWidget):
         layout = QFormLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         layout.addRow(self._lbl_u, self._txt_u)
         layout.addRow(self._lbl_v, self._txt_v)
         layout.addRow(self._lbl_w, self._txt_w)

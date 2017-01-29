@@ -21,8 +21,8 @@ __license__ = "GPL v3"
 # Standard library modules.
 
 # Third party modules.
-from PySide.QtGui import QWidget, QTableView, QHeaderView, QVBoxLayout
-from PySide.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
+from qtpy.QtWidgets import QWidget, QTableView, QHeaderView, QVBoxLayout
+from qtpy.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
 
 # Local modules.
 
@@ -147,11 +147,11 @@ class ModelTableWidget(QWidget):
         self._tbl_models = QTableView()
         self._tbl_models.setModel(model)
         header = self._tbl_models.horizontalHeader()
-        header.setResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.Stretch)
         policy = self._tbl_models.sizePolicy()
         policy.setVerticalStretch(True)
         self._tbl_models.setSizePolicy(policy)
-        self._tbl_models.setSelectionMode(QTableView.SelectionMode.MultiSelection)
+        self._tbl_models.setSelectionMode(QTableView.MultiSelection)
 
         # Layouts
         layout = QVBoxLayout()

@@ -23,12 +23,13 @@ from operator import methodcaller
 from itertools import product
 
 # Third party modules.
-from PySide.QtGui import \
-    (QDialog, QLineEdit, QCheckBox, QRegExpValidator,
+from qtpy.QtGui import QValidator, QRegExpValidator
+from qtpy.QtWidgets import \
+    (QDialog, QLineEdit, QCheckBox,
      QVBoxLayout, QLabel, QDialogButtonBox, QTableView, QItemDelegate,
-     QHeaderView, QGridLayout, QToolBar, QAction, QMessageBox, QValidator,
+     QHeaderView, QGridLayout, QToolBar, QAction, QMessageBox,
      QWidget, QSizePolicy, QListView, QGroupBox, QPushButton, QHBoxLayout)
-from PySide.QtCore import Qt, QRegExp, QAbstractTableModel, QModelIndex
+from qtpy.QtCore import Qt, QRegExp, QAbstractTableModel, QModelIndex
 
 import pyxray.element_properties as ep
 
@@ -262,7 +263,7 @@ class MaterialDialog(QDialog):
         self._tbl_composition.setModel(model)
         self._tbl_composition.setItemDelegate(_CompositionDelegate())
         header = self._tbl_composition.horizontalHeader()
-        header.setResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.Stretch)
         header.setStyleSheet('color: blue')
 
         self._tlb_composition = QToolBar()
@@ -683,7 +684,7 @@ class MaterialListWidget(_ParameterWidget):
         # Widgets
         self._lst_materials = QListView()
         self._lst_materials.setModel(model)
-        self._lst_materials.setSelectionMode(QListView.SelectionMode.MultiSelection)
+        self._lst_materials.setSelectionMode(QListView.MultiSelection)
 
         self._tlb_materials = QToolBar()
         spacer = QWidget()
@@ -837,7 +838,7 @@ def get_dialog_class(clasz):
 
 def __run():
     import sys
-    from PySide.QtGui import QApplication
+    from qtpy.QtWidgets import QApplication
 
     material = Material({5: 0.5, 6: 0.5}, absorption_energy_eV={ELECTRON: 60.0})
 

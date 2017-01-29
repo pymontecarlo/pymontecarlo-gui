@@ -36,4 +36,4 @@ def get_widget_class(group, clasz):
         raise ValueError("%i widgets found for %s" % (len(entry_points), name))
 
     entry_point = entry_points[0]
-    return entry_point.load()
+    return entry_point.resolve()

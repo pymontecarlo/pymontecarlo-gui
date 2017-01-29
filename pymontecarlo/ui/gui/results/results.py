@@ -24,15 +24,14 @@ import csv
 import sys
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QWidget, QVBoxLayout, QFormLayout, QSplitter, QToolBar, QLabel,
      QHBoxLayout, QSizePolicy, QToolBox, QApplication, QFileDialog, QAction)
-from PySide.QtCore import Qt, Signal
+from qtpy.QtCore import Qt, Signal
 
 import matplotlib
-matplotlib.use('Qt4Agg')
-matplotlib.rcParams['backend.qt4'] = 'PySide'
-from matplotlib.backends.backend_qt4agg import \
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import \
     (FigureCanvasQTAgg as FigureCanvas,
      NavigationToolbar2QT as NavigationToolbar)
 
@@ -62,7 +61,7 @@ class _BaseResultToolItem(QWidget):
     def _initUI(self):
         layout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         return layout
 
     def options(self):
@@ -256,7 +255,10 @@ class _FigureResultMixin(_SaveableResultMixin):
         toolbar.insertAction(act_save, act_copy)
 
         # Signals
-        act_save.triggered.disconnect(toolbar.save_figure)
+        try:
+            act_save.triggered.disconnect(toolbar.save_figure)
+        except TypeError:
+            pass
         act_save.triggered.connect(self.save)
 
         act_copy.triggered.connect(self.copy)

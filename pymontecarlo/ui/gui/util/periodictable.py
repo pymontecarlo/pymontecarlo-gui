@@ -15,11 +15,12 @@
 import math
 
 # Third party modules.
-from PySide.QtGui import \
-    (QWidget, QDialog, QPushButton, QPainter, QGridLayout, QColor, QFont,
+from qtpy.QtGui import QPainter, QColor, QFont
+from qtpy.QtWidgets import \
+    (QWidget, QDialog, QPushButton, QGridLayout,
      QLabel, QSizePolicy, QButtonGroup, QDialogButtonBox, QVBoxLayout,
      QMessageBox)
-from PySide.QtCore import Qt, Signal
+from qtpy.QtCore import Qt, Signal
 
 import six
 
@@ -60,7 +61,7 @@ class ElementPushButton(QPushButton):
         font.setWeight(QFont.Normal)
         qp.setFont(font)
 
-        qp.drawText(event.rect().translated(1, 1), str(self._atomic_number))
+        qp.drawText(event.rect().translated(1, 1), 0, str(self._atomic_number))
 
         qp.end()
 
@@ -340,7 +341,7 @@ class PeriodicTableDialog(QDialog):
 
 def run():
     import sys
-    from PySide.QtGui import QApplication
+    from qtpy.QtWidgets import QApplication
 
     def selection():
         print('hello')

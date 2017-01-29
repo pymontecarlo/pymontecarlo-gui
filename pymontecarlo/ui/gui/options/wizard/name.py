@@ -21,8 +21,9 @@ __license__ = "GPL v3"
 # Standard library modules.
 
 # Third party modules.
-from PySide.QtGui import QLineEdit, QRegExpValidator
-from PySide.QtCore import QRegExp
+from qtpy.QtWidgets import QLineEdit
+from qtpy.QtGui import QRegExpValidator
+from qtpy.QtCore import QRegExp
 
 # Local modules.
 from pymontecarlo.ui.gui.options.wizard.options import _OptionsWizardPage

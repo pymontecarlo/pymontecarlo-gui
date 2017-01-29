@@ -20,7 +20,7 @@ except ImportError:
     from io import StringIO
 
 # Third party modules.
-from PySide.QtGui import QMessageBox
+from qtpy.QtWidgets import QMessageBox
 
 # Local modules.
 
@@ -37,7 +37,7 @@ def exception(parent, ex, buttons=QMessageBox.Ok,
         exc_traceback = sys.exc_info()[2]
     traceback.print_tb(exc_traceback, file=tb)
 
-    msgbox = QMessageBox(QMessageBox.Icon.Critical, title, message, buttons, parent)
+    msgbox = QMessageBox(QMessageBox.Critical, title, message, buttons, parent)
     msgbox.setDefaultButton(defaultButton)
     msgbox.setDetailedText(tb.getvalue())
     msgbox.exec_()

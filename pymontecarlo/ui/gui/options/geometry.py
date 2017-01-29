@@ -23,10 +23,11 @@ from operator import attrgetter, methodcaller
 from collections import namedtuple
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtGui import QValidator
+from qtpy.QtWidgets import \
     (QLabel, QItemDelegate, QAction, QTableView, QToolBar, QHeaderView, QWidget,
-     QSizePolicy, QVBoxLayout, QMessageBox, QValidator, QHBoxLayout)
-from PySide.QtCore import Qt, QAbstractTableModel, QModelIndex
+     QSizePolicy, QVBoxLayout, QMessageBox, QHBoxLayout)
+from qtpy.QtCore import Qt, QAbstractTableModel, QModelIndex
 
 import numpy as np
 
@@ -228,7 +229,7 @@ class LayerListWidget(_ParameterWidget):
         self._tbl_layers.setModel(model)
         self._tbl_layers.setItemDelegate(_LayerDelegate())
         header = self._tbl_layers.horizontalHeader()
-        header.setResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.Stretch)
         header.setStyleSheet('color: blue')
 
         self._tlb_layers = QToolBar()

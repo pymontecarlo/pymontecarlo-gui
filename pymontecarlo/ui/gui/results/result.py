@@ -22,10 +22,10 @@ __license__ = "GPL v3"
 import sys
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QLabel, QVBoxLayout, QCheckBox, QComboBox, QFormLayout,
      QGroupBox, QTableView, QHeaderView, QLineEdit)
-from PySide.QtCore import Qt, QAbstractTableModel, QAbstractListModel
+from qtpy.QtCore import Qt, QAbstractTableModel, QAbstractListModel
 
 import numpy as np
 
@@ -400,11 +400,11 @@ class _PhotonIntensityResultTableModel(QAbstractTableModel):
 
     def setShowUncertainty(self, state):
         self._show_uncertainty = state
-        self.reset()
+        self.modelReset.emit()
 
     def setFactor(self, factor):
         self._factor = factor
-        self.reset()
+        self.modelReset.emit()
 
 class PhotonIntensityResultWidget(_SaveableResultWidget):
 
@@ -417,7 +417,7 @@ class PhotonIntensityResultWidget(_SaveableResultWidget):
         self._table.setModel(model)
         header = self._table.horizontalHeader()
         for i in range(1, 9):
-            header.setResizeMode(i, QHeaderView.Stretch)
+            header.setSectionResizeMode(i, QHeaderView.Stretch)
 
         # Layouts
         layout = _SaveableResultWidget._initUI(self)
@@ -498,7 +498,7 @@ class TimeResultWidget(_SaveableResultWidget):
 
         sublayout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         sublayout.addRow('Total time of the simulation', self._txt_time)
         sublayout.addRow('Average time of one trajectory', self._txt_speed)
         layout.addLayout(sublayout)
@@ -536,7 +536,7 @@ class ElectronFractionResultWidget(_SaveableResultWidget):
 
         sublayout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         sublayout.addRow('Absorbed fraction', self._txt_absorbed)
         sublayout.addRow('Backscattered fraction', self._txt_backscattered)
         sublayout.addRow('Transmitted fraction', self._txt_transmitted)
@@ -564,7 +564,7 @@ class ShowersStatisticsResultWidget(_SaveableResultWidget):
 
         sublayout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         sublayout.addRow('Number of showers', self._txt_showers)
         layout.addLayout(sublayout)
 

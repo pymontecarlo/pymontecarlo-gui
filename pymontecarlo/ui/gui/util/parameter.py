@@ -23,9 +23,10 @@ import sys
 import logging
 
 # Third party modules.
-from PySide.QtGui import \
-    QWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QValidator
-from PySide.QtCore import Signal
+from qtpy.QtGui import QValidator
+from qtpy.QtWidgets import \
+    QWidget, QHBoxLayout, QVBoxLayout, QFormLayout
+from qtpy.QtCore import Signal
 
 import numpy as np
 
@@ -106,7 +107,7 @@ class _ParameterizedClassWidget(QWidget):
     def _initUI(self):
         layout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         return layout
 
     def _iter_parameter_widgets(self):

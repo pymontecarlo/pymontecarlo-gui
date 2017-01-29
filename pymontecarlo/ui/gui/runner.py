@@ -29,12 +29,13 @@ except AttributeError:
 from operator import methodcaller
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtGui import QKeySequence
+from qtpy.QtWidgets import \
     (QDialog, QSpinBox, QPushButton, QListView, QFileDialog, QVBoxLayout,
      QLabel, QGridLayout, QSizePolicy, QToolBar, QWidget, QProgressDialog,
      QHBoxLayout, QCheckBox, QMessageBox, QTableView, QHeaderView,
-     QItemDelegate, QKeySequence, QComboBox, QDialogButtonBox, QApplication)
-from PySide.QtCore import \
+     QItemDelegate, QComboBox, QDialogButtonBox, QApplication)
+from qtpy.QtCore import \
     (Qt, QAbstractItemModel, QModelIndex, QAbstractListModel,
      QAbstractTableModel, QTimer, QRect, Signal)
 
@@ -132,7 +133,7 @@ class _OptionsModelMixin(object):
         self.removeRows(0, self.rowCount())
 
     def resetOptions(self, options):
-        index = self._list_options.index(options)
+        index = self.index(self._list_options.index(options), 1)
         self.dataChanged.emit(index, index)
 
     def options(self, index):
@@ -334,7 +335,7 @@ class RunnerDialog(QDialog):
         self._lbl_available = QLabel('Available')
         self._lst_available = QListView()
         self._lst_available.setModel(_AvailableOptionsListModel())
-        self._lst_available.setSelectionMode(QListView.SelectionMode.MultiSelection)
+        self._lst_available.setSelectionMode(QListView.MultiSelection)
 
         tlb_available = QToolBar()
         spacer = QWidget()
@@ -358,14 +359,14 @@ class RunnerDialog(QDialog):
         self._tbl_options = QTableView()
         self._tbl_options.setModel(_StateOptionsTableModel())
         self._tbl_options.setItemDelegate(_StateOptionsItemDelegate())
-        self._tbl_options.setSelectionMode(QListView.SelectionMode.NoSelection)
+        self._tbl_options.setSelectionMode(QListView.NoSelection)
         self._tbl_options.setColumnWidth(1, 60)
         self._tbl_options.setColumnWidth(2, 80)
         header = self._tbl_options.horizontalHeader()
-        header.setResizeMode(0, QHeaderView.Interactive)
-        header.setResizeMode(1, QHeaderView.Fixed)
-        header.setResizeMode(2, QHeaderView.Fixed)
-        header.setResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.Interactive)
+        header.setSectionResizeMode(1, QHeaderView.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
 
         self._btn_start = QPushButton(getIcon("media-playback-start"), "Start")
 
@@ -471,7 +472,7 @@ class RunnerDialog(QDialog):
         messagebox.exception(self, ex)
 
     def _onRunningTimer(self):
-        self._tbl_options.model().reset()
+        self._tbl_options.model().modelReset.emit()
 
     def _onOpen(self):
         settings = get_settings()
@@ -612,7 +613,7 @@ class RunnerDialog(QDialog):
 
     def _onResultsError(self, results, ex):
         logging.debug('runner: resultsError')
-        self._tbl_options.model().reset()
+        self._tbl_options.model().modelReset.emit()
 
     def closeEvent(self, event):
         if self.is_running():

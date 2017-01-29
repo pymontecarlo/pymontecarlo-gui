@@ -23,9 +23,9 @@ import sys
 from operator import attrgetter
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     QWizardPage, QVBoxLayout, QFormLayout, QHBoxLayout, QLabel, QFrame
-from PySide.QtCore import Qt, Signal
+from qtpy.QtCore import Qt, Signal
 
 from pkg_resources import iter_entry_points
 
@@ -69,7 +69,7 @@ class _OptionsWizardPage(QWizardPage):
     def _initUI(self):
         layout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         return layout
 
     def options(self):
@@ -121,7 +121,7 @@ class _ExpandableOptionsWizardPage(_OptionsWizardPage):
     def _iter_widgets(self, entry_point_group, converter_attr):
         allwidgets = {}
         for entry_point in iter_entry_points(entry_point_group):
-            allwidgets[entry_point.name] = entry_point.load()
+            allwidgets[entry_point.name] = entry_point.resolve()
 
         widget_classes = {}
         programs = {}

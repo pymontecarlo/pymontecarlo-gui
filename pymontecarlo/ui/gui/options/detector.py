@@ -24,10 +24,10 @@ from itertools import product
 from operator import itemgetter
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QHBoxLayout, QLabel, QCheckBox, QWidget, QTabWidget, QVBoxLayout,
      QRadioButton, QFormLayout)
-from PySide.QtCore import Qt
+from qtpy.QtCore import Qt
 
 import numpy as np
 
@@ -47,9 +47,9 @@ from pymontecarlo.options.detector import \
      BackscatteredElectronPolarAngularDetector, TransmittedElectronPolarAngularDetector,
      BackscatteredElectronAzimuthalAngularDetector, TransmittedElectronAzimuthalAngularDetector,
      BackscatteredElectronRadialDetector,
-     PhotonSpectrumDetector, PhotonDepthDetector, PhiZDetector, 
-     PhotonRadialDetector, PhotonEmissionMapDetector, PhotonIntensityDetector, 
-     TimeDetector, ElectronFractionDetector, ShowersStatisticsDetector, 
+     PhotonSpectrumDetector, PhotonDepthDetector, PhiZDetector,
+     PhotonRadialDetector, PhotonEmissionMapDetector, PhotonIntensityDetector,
+     TimeDetector, ElectronFractionDetector, ShowersStatisticsDetector,
      TrajectoryDetector)
 
 from pymontecarlo.util.parameter import AngleParameter, range_validator
@@ -227,7 +227,7 @@ class _DelimitedDetectorWidget(_DetectorWidget):
         sublayout = QFormLayout()
         sublayout.setContentsMargins(10, 0, 0, 0)
         if sys.platform == 'darwin': # Fix for Mac OS
-            sublayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            sublayout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         sublayout.addRow(self._lbl_elevation, self._txt_elevation)
         sublayout.addRow(self._lbl_azimuth, self._txt_azimuth)
         layout.addRow(sublayout)
@@ -237,7 +237,7 @@ class _DelimitedDetectorWidget(_DetectorWidget):
         sublayout = QFormLayout()
         sublayout.setContentsMargins(10, 0, 0, 0)
         if sys.platform == 'darwin': # Fix for Mac OS
-            sublayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            sublayout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         sublayout.addRow(self._lbl_takeoffangle, self._txt_takeoffangle)
         sublayout.addRow(self._lbl_opening, self._txt_opening)
         layout.addRow(sublayout)

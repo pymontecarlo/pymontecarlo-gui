@@ -22,8 +22,8 @@ __license__ = "GPL v3"
 import warnings
 
 # Third party modules.
-from PySide.QtGui import QTableView, QHeaderView, QFrame, QHBoxLayout
-from PySide.QtCore import Qt, QAbstractTableModel
+from qtpy.QtWidgets import QTableView, QHeaderView, QFrame, QHBoxLayout
+from qtpy.QtCore import Qt, QAbstractTableModel
 
 # Local modules.
 from pymontecarlo.ui.gui.options.wizard.options import \
@@ -103,7 +103,7 @@ class WarningWizardPage(_OptionsWizardPage):
         self._tbl_warnings = QTableView()
         self._tbl_warnings.setModel(self._WarningTableModel())
         header = self._tbl_warnings.horizontalHeader()
-        header.setResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         policy = self._tbl_warnings.sizePolicy()
         policy.setVerticalStretch(True)
         self._tbl_warnings.setSizePolicy(policy)

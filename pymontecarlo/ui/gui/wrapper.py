@@ -22,7 +22,7 @@ __license__ = "GPL v3"
 import time
 
 # Third party modules.
-from PySide.QtCore import Signal, QThread
+from qtpy.QtCore import Signal, QThread
 
 # Local modules.
 from pymontecarlo.fileformat.options.options import OptionsReader, OptionsWriter

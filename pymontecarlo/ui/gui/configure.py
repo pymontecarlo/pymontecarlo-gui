@@ -22,12 +22,13 @@ __license__ = "GPL v3"
 import os
 import sys
 from operator import attrgetter
+import logging
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QDialog, QDialogButtonBox, QHBoxLayout, QVBoxLayout, QLabel, QComboBox,
      QPushButton, QListView, QStackedWidget, QWidget, QMessageBox, QFileDialog)
-from PySide.QtCore import Qt, QAbstractListModel
+from qtpy.QtCore import Qt, QAbstractListModel
 
 # Local modules.
 from pymontecarlo.settings import get_settings
@@ -58,11 +59,12 @@ class _ProgramListModel(QAbstractListModel):
 
     def add(self, program):
         self._programs.append(program)
-        self.reset()
+        self.modelReset.emit()
 
     def remove(self, program):
-        self._programs.remove(program)
-        self.reset()
+        if program in self._programs:
+            self._programs.remove(program)
+        self.modelReset.emit()
 
     def program(self, index):
         return self._programs[index]
@@ -84,6 +86,7 @@ class ConfigureDialog(QDialog):
             try:
                 gui = settings.get_program_gui(program)
             except:
+                logging.exception("Error loading program {0}".format(program.name))
                 continue
             self._widgets[program] = gui.create_configure_panel()
 
@@ -269,7 +272,7 @@ class ConfigureDialog(QDialog):
                 self.activateProgram(program)
 
 def __run():
-    from PySide.QtGui import QApplication
+    from qtpy.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
 

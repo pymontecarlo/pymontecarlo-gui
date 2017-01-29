@@ -26,10 +26,10 @@ from operator import methodcaller
 from collections import OrderedDict
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QComboBox, QListView, QDialog, QFormLayout, QDialogButtonBox, QAction,
      QToolBar, QWidget, QSizePolicy, QLineEdit, QMessageBox, QCheckBox)
-from PySide.QtCore import Qt, QAbstractListModel
+from qtpy.QtCore import Qt, QAbstractListModel
 
 import numpy as np
 
@@ -137,7 +137,7 @@ class _SeriesDialog(QDialog):
         # Layouts
         layout = QFormLayout()
         if sys.platform == 'darwin': # Fix for Mac OS
-            layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         layout.addRow('Name', self._txt_name)
         for name, combobox in self._cb_parameters.items():
             layout.addRow(name, combobox)
@@ -247,19 +247,19 @@ class _SeriesModel(QAbstractListModel):
 
         def addSeries(self, series):
             self._list_series.append(series)
-            self.reset()
+            self.modelReset.emit()
 
         def removeSeries(self, index):
             self._list_series.pop(index)
-            self.reset()
+            self.modelReset.emit()
 
         def clearSeries(self):
             self._list_series.clear()
-            self.reset()
+            self.modelReset.emit()
 
         def updateSeries(self, index, series):
             self._list_series[index] = series
-            self.reset()
+            self.modelReset.emit()
 
         def series(self, index):
             return self._list_series[index]
@@ -617,7 +617,7 @@ class SummaryWidget(_FigureResultMixin, _BaseResultWidget):
         return self._results
 
 def __run():
-    from PySide.QtGui import QMainWindow, QApplication
+    from qtpy.QtWidgets import QMainWindow, QApplication
     from pymontecarlo.options.options import Options
     from pymontecarlo.results.results import Results
     from pymontecarlo.options.detector import \

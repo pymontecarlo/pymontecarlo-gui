@@ -22,10 +22,10 @@ __license__ = "GPL v3"
 from operator import attrgetter
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtWidgets import \
     (QComboBox, QToolBar, QPushButton, QSizePolicy, QWidget, QHBoxLayout,
      QMessageBox)
-from PySide.QtCore import Qt, QAbstractListModel
+from qtpy.QtCore import Qt, QAbstractListModel
 
 # Local modules.
 from pymontecarlo.ui.gui.options.model import ModelTableWidget
@@ -98,7 +98,7 @@ class ModelWizardPage(_ExpandableOptionsWizardPage):
 
         def setModelType(self, model_type):
             self._model_type = model_type
-            self.reset()
+            self.modelReset.emit()
 
         def model(self, index):
             return self._models[self._model_type][index]
@@ -107,11 +107,11 @@ class ModelWizardPage(_ExpandableOptionsWizardPage):
             if model not in self._models_text:
                 raise ValueError('No text defined for model: %s' % model)
             self._models[model.type].append(model)
-            self.reset()
+            self.modelReset.emit()
 
         def remove(self, model):
             self._models[model.type].remove(model)
-            self.reset()
+            self.modelReset.emit()
 
     def __init__(self, options, parent=None):
         _ExpandableOptionsWizardPage.__init__(self, options, parent)

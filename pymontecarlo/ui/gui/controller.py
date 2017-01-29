@@ -23,7 +23,7 @@ import uuid
 import logging
 
 # Third party modules.
-from PySide.QtCore import Qt, QObject, Signal
+from qtpy.QtCore import Qt, QObject, Signal
 
 # Local modules.
 from pymontecarlo.options.options import Options

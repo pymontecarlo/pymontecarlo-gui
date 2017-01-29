@@ -21,7 +21,7 @@ __license__ = "GPL v3"
 # Standard library modules.
 
 # Third party modules.
-from PySide.QtGui import QFormLayout
+from qtpy.QtWidgets import QFormLayout
 
 # Local modules.
 
@@ -32,9 +32,9 @@ def merge_formlayout(layout1, layout2):
     Merge *layout2* in *layout1*.
     """
     for row in range(layout2.rowCount()):
-        label = layout2.itemAt(row, QFormLayout.ItemRole.LabelRole)
-        field = layout2.itemAt(row, QFormLayout.ItemRole.FieldRole)
-        span = layout2.itemAt(row, QFormLayout.ItemRole.SpanningRole)
+        label = layout2.itemAt(row, QFormLayout.LabelRole)
+        field = layout2.itemAt(row, QFormLayout.FieldRole)
+        span = layout2.itemAt(row, QFormLayout.SpanningRole)
 
         if label and field:
             layout1.addRow(label.widget(), field.widget())

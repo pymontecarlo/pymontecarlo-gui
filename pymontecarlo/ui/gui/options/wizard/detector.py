@@ -22,11 +22,12 @@ __license__ = "GPL v3"
 from operator import attrgetter, methodcaller
 
 # Third party modules.
-from PySide.QtGui import \
+from qtpy.QtGui import QRegExpValidator
+from qtpy.QtWidgets import \
     (QHBoxLayout, QComboBox, QTableView, QToolBar, QPushButton, QItemDelegate,
-     QLineEdit, QRegExpValidator, QWidget, QSizePolicy, QMessageBox,
+     QLineEdit, QWidget, QSizePolicy, QMessageBox,
      QHeaderView, QDialog, QFormLayout, QDialogButtonBox)
-from PySide.QtCore import \
+from qtpy.QtCore import \
     Qt, QAbstractTableModel, QModelIndex, QRegExp, QAbstractListModel
 
 import numpy as np
@@ -59,7 +60,7 @@ class _DetectorDialog(QDialog):
 
         # Layouts
         layout = QFormLayout()
-        layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow) # Fix for Mac OS
+        layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow) # Fix for Mac OS
         layout.addRow('Key', self._txt_key)
         layout.addRow(self._wdg_detector)
         layout.addRow(buttons)
@@ -328,7 +329,7 @@ class DetectorWizardPage(_ExpandableOptionsWizardPage):
         self._tbl_detector.setModel(tbl_model)
         self._tbl_detector.setItemDelegate(self._DetectorTableDelegate())
         header = self._tbl_detector.horizontalHeader()
-        header.setResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
         policy = self._tbl_detector.sizePolicy()
         policy.setVerticalStretch(True)
         self._tbl_detector.setSizePolicy(policy)

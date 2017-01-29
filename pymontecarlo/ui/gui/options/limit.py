@@ -21,7 +21,7 @@ __license__ = "GPL v3"
 # Standard library modules.
 
 # Third party modules.
-from PySide.QtGui import QLabel, QWidget, QVBoxLayout, QTabWidget
+from qtpy.QtWidgets import QLabel, QWidget, QVBoxLayout, QTabWidget
 
 # Local modules.
 from pymontecarlo.ui.gui.util.parameter import \

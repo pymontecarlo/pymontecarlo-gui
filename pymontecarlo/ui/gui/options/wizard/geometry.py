@@ -22,7 +22,7 @@ __license__ = "GPL v3"
 from operator import attrgetter
 
 # Third party modules.
-from PySide.QtGui import QComboBox, QSizePolicy, QStackedWidget
+from qtpy.QtWidgets import QComboBox, QSizePolicy, QStackedWidget
 
 # Local modules.
 from pymontecarlo.ui.gui.options.wizard.options import \
