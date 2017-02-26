@@ -1,75 +1,59 @@
 #!/usr/bin/env python
 """
-================================================================================
-:mod:`periodictable` -- Periodic table of element dialog
-================================================================================
-
-.. module:: periodictable
-   :synopsis: Periodic table of element dialog
-
-.. inheritance-diagram:: pyhmsa.ui.gui.util.periodictable
-
+Periodic table of element dialog
 """
 
 # Standard library modules.
 import math
 
 # Third party modules.
-from qtpy.QtGui import QPainter, QColor, QFont
-from qtpy.QtWidgets import \
-    (QWidget, QDialog, QPushButton, QGridLayout,
-     QLabel, QSizePolicy, QButtonGroup, QDialogButtonBox, QVBoxLayout,
-     QMessageBox)
-from qtpy.QtCore import Qt, Signal
+from qtpy import QtCore, QtWidgets, QtGui
 
-import six
+import pyxray
 
 # Local modules.
-import pyxray.element_properties as ep
 
 # Globals and constants variables.
 
-class ElementPushButton(QPushButton):
+class ElementPushButton(QtWidgets.QPushButton):
 
     def __init__(self, atomic_number, parent=None):
-        QPushButton.__init__(self, parent)
+        super().__init__(parent)
         self.setFixedSize(40, 40)
 
         self._atomic_number = atomic_number
-        self._symbol = ep.symbol(atomic_number)
+        self._symbol = pyxray.element_symbol(atomic_number)
 
         self.setText(self._symbol)
 
         font = self.font()
-        font.setWeight(QFont.Bold)
+        font.setWeight(QtGui.QFont.Bold)
         self.setFont(font)
 
-        self.setSizePolicy(QSizePolicy.MinimumExpanding,
-                           QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                           QtWidgets.QSizePolicy.MinimumExpanding)
 
         self.setDefault(False)
         self.setAutoDefault(False)
 
     def paintEvent(self, event):
-        QPushButton.paintEvent(self, event)
+        super().paintEvent(event)
 
-        qp = QPainter()
+        qp = QtGui.QPainter()
         qp.begin(self)
 
         font = qp.font()
         font.setPixelSize(8)
-        font.setWeight(QFont.Normal)
+        font.setWeight(QtGui.QFont.Normal)
         qp.setFont(font)
 
         qp.drawText(event.rect().translated(1, 1), 0, str(self._atomic_number))
 
         qp.end()
 
-    @property
-    def atomic_number(self):
+    def atomicNumber(self):
         return self._atomic_number
 
-    @property
     def symbol(self):
         return self._symbol
 
@@ -98,16 +82,16 @@ _ELEMENT_POSITIONS = \
      118: (6, 17)}
 
 def _category_color_function(z):
-    ALKALI_METALS = QColor(204, 153, 204)
-    ALKALI_EARTH_METALS = QColor(0, 255, 255)
-    NON_METALS = QColor(0, 204, 102)
-    TRANSITION_METALS = QColor(102, 255, 153)
-    OTHER_METALS = QColor(153, 51, 204)
-    HALOGENS = QColor(255, 204, 0)
-    INERT_GAS = QColor(204, 0, 0)
-    LANTHANIDES = QColor(102, 0, 255)
-    ACTINIDES = QColor(102, 102, 255)
-    METALLOIDS = QColor(80, 150, 150)
+    ALKALI_METALS = QtGui.QColor(204, 153, 204)
+    ALKALI_EARTH_METALS = QtGui.QColor(0, 255, 255)
+    NON_METALS = QtGui.QColor(0, 204, 102)
+    TRANSITION_METALS = QtGui.QColor(102, 255, 153)
+    OTHER_METALS = QtGui.QColor(153, 51, 204)
+    HALOGENS = QtGui.QColor(255, 204, 0)
+    INERT_GAS = QtGui.QColor(204, 0, 0)
+    LANTHANIDES = QtGui.QColor(102, 0, 255)
+    ACTINIDES = QtGui.QColor(102, 102, 255)
+    METALLOIDS = QtGui.QColor(80, 150, 150)
 
     if z in [1]:
         return NON_METALS
@@ -158,17 +142,17 @@ def _calculate_brightness(color):
                          color.green() ** 2 * .691 + \
                          color.blue() ** 2 * .068))
 
-class PeriodicTableWidget(QWidget):
+class PeriodicTableWidget(QtWidgets.QWidget):
 
-    selectionChanged = Signal()
+    selectionChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        QWidget.__init__(self, parent)
+        super().__init__(parent)
 
         # Widgets, layouts and signals
-        self._group = QButtonGroup()
+        self._group = QtWidgets.QButtonGroup()
 
-        layout = QGridLayout()
+        layout = QtWidgets.QGridLayout()
         layout.setSpacing(0)
 
         for i in range(18):
@@ -186,11 +170,11 @@ class PeriodicTableWidget(QWidget):
             self._group.addButton(widget, z)
 
         ## Labels
-        layout.addWidget(QLabel(''), 7, 0) # Dummy
-        layout.addWidget(QLabel('*'), 5, 2, Qt.AlignCenter)
-        layout.addWidget(QLabel('*'), 8, 2, Qt.AlignCenter)
-        layout.addWidget(QLabel('**'), 6, 2, Qt.AlignCenter)
-        layout.addWidget(QLabel('**'), 9, 2, Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel(''), 7, 0) # Dummy
+        layout.addWidget(QtWidgets.QLabel('*'), 5, 2, QtCore.Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel('*'), 8, 2, QtCore.Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel('**'), 6, 2, QtCore.Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel('**'), 9, 2, QtCore.Qt.AlignCenter)
 
         for row in [0, 1, 2, 3, 4, 5, 6, 8, 9]:
             layout.setRowStretch(row, 1)
@@ -198,10 +182,13 @@ class PeriodicTableWidget(QWidget):
         self.setLayout(layout)
 
         # Signals
-        self._group.buttonClicked.connect(self.selectionChanged)
+        self._group.buttonClicked.connect(self._on_button_clicked)
 
         # Default
         self.setColorFunction(_category_color_function)
+
+    def _on_button_clicked(self, button):
+        self.selectionChanged.emit(button.atomicNumber())
 
     def setColorFunction(self, func):
         if not callable(func):
@@ -235,7 +222,7 @@ class PeriodicTableWidget(QWidget):
             self.selectionChanged.emit()
             return
 
-        if isinstance(selection, (int, six.string_types)):
+        if isinstance(selection, (int, str)):
             selection = [selection]
 
         if not self.isMultipleSelection() and len(selection) > 1:
@@ -244,8 +231,8 @@ class PeriodicTableWidget(QWidget):
         _uncheckedAll()
 
         for z in selection:
-            if isinstance(z, six.string_types):
-                z = ep.atomic_number(z.strip())
+            if isinstance(z, str):
+                z = pyxray.element_atomic_number(z.strip())
             self._group.button(z).setChecked(True)
 
         self.selectionChanged.emit()
@@ -267,19 +254,19 @@ class PeriodicTableWidget(QWidget):
     def selectionSymbol(self):
         selection = self.selection()
         if self.isMultipleSelection():
-            return frozenset(map(ep.symbol, selection))
+            return frozenset(map(pyxray.element_symbol, selection))
         else:
             if selection is None:
                 return None
             else:
-                return ep.symbol(selection)
+                return pyxray.element_symbol(selection)
 
-class PeriodicTableDialog(QDialog):
+class PeriodicTableDialog(QtWidgets.QDialog):
 
-    selectionChanged = Signal()
+    selectionChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        QDialog.__init__(self, parent)
+        super().__init__(parent)
         self.setWindowTitle('Periodic table')
 
         # Variables
@@ -288,27 +275,28 @@ class PeriodicTableDialog(QDialog):
         # Widgets
         self._wdg_table = PeriodicTableWidget()
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
+                                             QtWidgets.QDialogButtonBox.Cancel)
 
         # Layouts
-        layout = QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self._wdg_table)
         layout.addWidget(buttons)
         self.setLayout(layout)
 
         # Signals
         self._wdg_table.selectionChanged.connect(self.selectionChanged)
-        buttons.accepted.connect(self._onOk)
-        buttons.rejected.connect(self._onCancel)
+        buttons.accepted.connect(self._on_ok)
+        buttons.rejected.connect(self._on_cancel)
 
-    def _onOk(self):
+    def _on_ok(self):
         if self.isRequiresSelection() and not self._wdg_table.selection():
-            QMessageBox.critical(self, self.windowTitle(),
-                                 'Please select one element')
+            QtWidgets.QMessageBox.critical(self, self.windowTitle(),
+                                           'Please select one element')
             return
         self.accept()
 
-    def _onCancel(self):
+    def _on_cancel(self):
         self.setSelection(None)
         self.reject()
 
@@ -340,13 +328,10 @@ class PeriodicTableDialog(QDialog):
         return self._required_selection
 
 def run():
-    import sys
-    from qtpy.QtWidgets import QApplication
+    def selection(atomic_number, *args):
+        print(atomic_number)
 
-    def selection():
-        print('hello')
-
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication([])
     dialog = PeriodicTableDialog(None)
     dialog.selectionChanged.connect(selection)
     dialog.exec_()
