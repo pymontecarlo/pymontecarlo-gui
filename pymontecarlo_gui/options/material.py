@@ -51,7 +51,7 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
         return QtGui.QValidator.Acceptable, input, pos
 
-class _MaterialWidget(QtWidgets.QWidget):
+class MaterialWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -59,7 +59,7 @@ class _MaterialWidget(QtWidgets.QWidget):
     def materials(self):
         raise NotImplementedError
 
-class MaterialPureWidget(_MaterialWidget):
+class MaterialPureWidget(MaterialWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -80,7 +80,7 @@ class MaterialPureWidget(_MaterialWidget):
             materials.append(Material.pure(z))
         return tuple(materials)
 
-class MaterialFormulaWidget(_MaterialWidget):
+class MaterialFormulaWidget(MaterialWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -138,7 +138,7 @@ class MaterialFormulaWidget(_MaterialWidget):
         except:
             return (DEFAULT_MATERIAL,)
 
-class MaterialAdvancedWidget(_MaterialWidget):
+class MaterialAdvancedWidget(MaterialWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
