@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import functools
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -13,7 +14,7 @@ from pymontecarlo.program.validator import Validator
 from pymontecarlo_gui.options.composition import CompositionTableWidget
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 import pymontecarlo_gui.widgets.messagebox as messagebox
-from pymontecarlo_gui.widgets.periodictable import PeriodicTableDialog
+from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 
 # Globals and constants variables.
 DEFAULT_MATERIAL = Material('Untitled', {}, 0.0)
@@ -52,23 +53,92 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
 class _MaterialWidget(QtWidgets.QWidget):
 
-    materialChanged = QtCore.Signal(Material)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def materials(self):
+        raise NotImplementedError
+
+class MaterialPureWidget(_MaterialWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
-    def _on_changed(self, *args):
-        self.materialChanged.emit(self.material())
+        # Widgets
+        self.wdg_periodic_table = PeriodicTableWidget()
+        self.wdg_periodic_table.setMultipleSelection(True)
 
-    def material(self):
-        raise NotImplementedError
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.wdg_periodic_table)
+        self.setLayout(layout)
 
-    def setMaterial(self, material):
-        raise NotImplementedError
+    def materials(self):
+        materials = []
+        for z in self.wdg_periodic_table.selection():
+            materials.append(Material.pure(z))
+        return tuple(materials)
 
-class MaterialWidget(_MaterialWidget):
+class MaterialFormulaWidget(_MaterialWidget):
 
-    materialChanged = QtCore.Signal(Material)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Widgets
+        self.txt_formula = ColoredLineEdit()
+        validator = FormulaValidator()
+        self.txt_formula.setValidator(validator)
+        self.txt_formula.textChanged.emit('')
+
+        self.txt_density = ColoredLineEdit('0')
+        validator = QtGui.QDoubleValidator(0.0, float('inf'),
+                                           Material.DENSITY_SIGNIFICANT_DIGITS + 3)
+        self.txt_density.setValidator(validator)
+        self.txt_density.setEnabled(False)
+
+        self.chk_density_user = QtWidgets.QCheckBox('user defined')
+        self.chk_density_user.setChecked(False)
+
+        # Layouts
+        layout = QtWidgets.QGridLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QtWidgets.QLabel("Formula"), 0, 0)
+        layout.addWidget(self.txt_formula, 0, 1)
+        layout.addWidget(QtWidgets.QLabel("Density (g/cm<sup>3</sup>)"), 1, 0)
+        layout.addWidget(self.txt_density, 1, 1)
+        layout.addWidget(self.chk_density_user, 1, 2)
+        self.setLayout(layout)
+
+        # Signals
+        self.txt_formula.textChanged.connect(self._on_formula_changed)
+        self.chk_density_user.stateChanged.connect(self._on_density_user_changed)
+
+    def _on_formula_changed(self, *args):
+        try:
+            formula = self.txt_formula.text()
+            composition = from_formula(formula)
+            density_kg_per_m3 = calculate_density_kg_per_m3(composition)
+        except:
+            pass
+        else:
+            decimals = self.txt_density.validator().decimals()
+            fmt = '{{:.{}f}}'.format(decimals)
+            text = fmt.format(density_kg_per_m3 / 1e3)
+            self.txt_density.setText(text)
+
+    def _on_density_user_changed(self, *args):
+        self.txt_density.setEnabled(self.chk_density_user.isChecked())
+
+    def materials(self):
+        try:
+            formula = self.txt_formula.text()
+            density_kg_per_m3 = float(self.txt_density.text()) * 1e3
+            return (Material.from_formula(formula, density_kg_per_m3),)
+        except:
+            return (DEFAULT_MATERIAL,)
+
+class MaterialAdvancedWidget(_MaterialWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -108,11 +178,8 @@ class MaterialWidget(_MaterialWidget):
         self.setLayout(layout)
 
         # Signals
-        self.txt_name.textChanged.connect(self._on_changed)
         self.chk_name_auto.stateChanged.connect(self._on_name_auto_changed)
-        self.txt_density.textChanged.connect(self._on_changed)
         self.chk_density_user.stateChanged.connect(self._on_density_user_changed)
-        self.tbl_composition.compositionChanged.connect(self._on_changed)
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
     def _on_name_auto_changed(self, *args):
@@ -141,14 +208,7 @@ class MaterialWidget(_MaterialWidget):
                 text = fmt.format(density_kg_per_m3 / 1e3)
                 self.txt_density.setText(text)
 
-    def setMaterial(self, material):
-        self.chk_name_auto.setChecked(False)
-        self.txt_name.setText(material.name)
-        self.tbl_composition.setComposition(material.composition)
-        self.chk_density_user.setChecked(True)
-        self.txt_density.setText(str(material.density_g_per_cm3))
-
-    def material(self):
+    def materials(self):
         try:
             composition = self.tbl_composition.composition()
 
@@ -162,82 +222,28 @@ class MaterialWidget(_MaterialWidget):
             else:
                 density_kg_per_m3 = calculate_density_kg_per_m3(composition)
 
-            return Material(name, composition, density_kg_per_m3)
+            return (Material(name, composition, density_kg_per_m3),)
         except:
-            return DEFAULT_MATERIAL
-
-class MaterialFormulaWidget(_MaterialWidget):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Widgets
-        self.txt_formula = ColoredLineEdit()
-        validator = FormulaValidator()
-        self.txt_formula.setValidator(validator)
-        self.txt_formula.textChanged.emit('')
-
-        self.txt_density = ColoredLineEdit('0')
-        validator = QtGui.QDoubleValidator(0.0, float('inf'),
-                                           Material.DENSITY_SIGNIFICANT_DIGITS + 3)
-        self.txt_density.setValidator(validator)
-        self.txt_density.setEnabled(False)
-
-        self.chk_density_user = QtWidgets.QCheckBox('user defined')
-        self.chk_density_user.setChecked(False)
-
-        # Layouts
-        layout = QtWidgets.QGridLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QtWidgets.QLabel("Formula"), 0, 0)
-        layout.addWidget(self.txt_formula, 0, 1)
-        layout.addWidget(QtWidgets.QLabel("Density (g/cm<sup>3</sup>)"), 1, 0)
-        layout.addWidget(self.txt_density, 1, 1)
-        layout.addWidget(self.chk_density_user, 1, 2)
-        self.setLayout(layout)
-
-        # Signals
-        self.txt_formula.textChanged.connect(self._on_changed)
-        self.txt_formula.textChanged.connect(self._on_formula_changed)
-        self.txt_density.textChanged.connect(self._on_changed)
-        self.chk_density_user.stateChanged.connect(self._on_density_user_changed)
-
-    def _on_formula_changed(self, *args):
-        try:
-            formula = self.txt_formula.text()
-            composition = from_formula(formula)
-            density_kg_per_m3 = calculate_density_kg_per_m3(composition)
-        except:
-            pass
-        else:
-            decimals = self.txt_density.validator().decimals()
-            fmt = '{{:.{}f}}'.format(decimals)
-            text = fmt.format(density_kg_per_m3 / 1e3)
-            self.txt_density.setText(text)
-
-    def _on_density_user_changed(self, *args):
-        self.txt_density.setEnabled(self.chk_density_user.isChecked())
-
-    def material(self):
-        try:
-            formula = self.txt_formula.text()
-            density_kg_per_m3 = float(self.txt_density.text()) * 1e3
-            return Material.from_formula(formula, density_kg_per_m3)
-        except:
-            return DEFAULT_MATERIAL
+            return (DEFAULT_MATERIAL,)
 
     def setMaterial(self, material):
-        self.txt_formula.setText(generate_name(material.composition))
+        self.chk_name_auto.setChecked(False)
+        self.txt_name.setText(material.name)
+        self.tbl_composition.setComposition(material.composition)
+        self.chk_density_user.setChecked(True)
         self.txt_density.setText(str(material.density_g_per_cm3))
 
-class _MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
+class MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
 
-    def __init__(self, parent=None):
+    def __init__(self, material_widget_class, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Material')
 
+        # Variables
+        self._materials = []
+
         # Widgets
-        self.wdg_material = self._init_widget()
+        self.wdg_material = material_widget_class()
 
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
                                              QtWidgets.QDialogButtonBox.Cancel)
@@ -257,34 +263,22 @@ class _MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
 
     def _on_ok(self):
         try:
-            material = self.material()
-            material = self.validator().validate_material(material, None)
+            self._materials.clear()
+            for material in self.wdg_material.materials():
+                material = self.validator().validate_material(material, None)
+                self._materials.append(material)
         except Exception as ex:
             messagebox.exception(self, ex)
             return
 
-        self.setMaterial(material)
         self.accept()
 
     def _on_cancel(self):
-        self.setMaterial(DEFAULT_MATERIAL)
+        self._materials.clear()
         self.reject()
 
-    def material(self):
-        return self.wdg_material.material()
-
-    def setMaterial(self, material):
-        self.wdg_material.setMaterial(material)
-
-class MaterialDialog(_MaterialDialog):
-
-    def _init_widget(self):
-        return MaterialWidget()
-
-class MaterialFormulaDialog(_MaterialDialog):
-
-    def _init_widget(self):
-        return MaterialFormulaWidget()
+    def materials(self):
+        return self._materials
 
 class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
 
@@ -408,9 +402,9 @@ class MaterialToolbar(QtWidgets.QToolBar, MaterialValidatorMixin):
         self.table.model().modelReset.connect(self._on_data_changed)
         self.table.selectionModel().selectionChanged.connect(self._on_data_changed)
 
-        self.act_add_pure.triggered.connect(self._on_add_pure_material)
-        self.act_add_formula.triggered.connect(self._on_add_formula_material)
-        self.act_add_material.triggered.connect(self._on_add_material)
+        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget))
+        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget))
+        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget))
         self.act_remove.triggered.connect(self._on_remove_material)
         self.act_clear.triggered.connect(self._on_clear_materials)
 
@@ -424,40 +418,16 @@ class MaterialToolbar(QtWidgets.QToolBar, MaterialValidatorMixin):
         self.act_remove.setEnabled(has_rows and has_selection)
         self.act_clear.setEnabled(has_rows)
 
-    def _on_add_pure_material(self):
-        dialog = PeriodicTableDialog()
-        dialog.setWindowTitle('Add pure materials')
-        dialog.setMultipleSelection(True)
-        dialog.setRequiresSelection(True)
+    def _on_add_material(self, material_widget_class):
+        dialog = MaterialDialog(material_widget_class)
+        dialog.setWindowTitle('Add material')
+        dialog.setValidator(self.validator())
 
         if not dialog.exec_():
             return
 
-        for z in dialog.selection():
-            material = Material.pure(z)
+        for material in dialog.materials():
             self.table.model().addMaterial(material)
-
-    def _on_add_formula_material(self):
-        dialog = MaterialFormulaDialog()
-        dialog.setWindowTitle('Add material')
-        dialog.setValidator(self.validator())
-
-        if not dialog.exec_():
-            return
-
-        material = dialog.material()
-        self.table.model().addMaterial(material)
-
-    def _on_add_material(self):
-        dialog = MaterialDialog()
-        dialog.setWindowTitle('Add material')
-        dialog.setValidator(self.validator())
-
-        if not dialog.exec_():
-            return
-
-        material = dialog.material()
-        self.table.model().addMaterial(material)
 
     def _on_remove_material(self):
         selection_model = self.table.selectionModel()
@@ -501,17 +471,20 @@ class MaterialListWidget(QtWidgets.QWidget, MaterialValidatorMixin):
         row = index.row()
         material = self.material(row)
 
-        dialog = MaterialDialog()
+        dialog = MaterialDialog(MaterialAdvancedWidget)
         dialog.setWindowTitle('Edit material')
         dialog.setValidator(self.validator())
-        dialog.setMaterial(material)
-        dialog.setValidator(self.validator())
+        dialog.wdg_material.setMaterial(material)
 
         if not dialog.exec_():
             return
 
-        material = dialog.material()
-        self.table.model().updateMaterial(row, material)
+        materials = dialog.materials()
+        if not materials:
+            return
+
+        assert len(materials) == 1
+        self.table.model().updateMaterial(row, materials[0])
 
     def addMaterial(self, material):
         self.table.model().addMaterial(material)
