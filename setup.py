@@ -1,17 +1,8 @@
 #!/usr/bin/env python
 
-# Script information for the file.
-__author__ = "Philippe T. Pinard"
-__email__ = "philippe.pinard@gmail.com"
-__version__ = "0.1"
-__copyright__ = "Copyright (c) 2013 Philippe T. Pinard"
-__license__ = "GPL v3"
-
 # Standard library modules.
 import os
 import sys
-import codecs
-import re
 from distutils.cmd import Command
 from distutils import log, sysconfig, dir_util, archive_util
 from distutils.command.build import show_compilers
@@ -23,33 +14,10 @@ import requests_download
 import progressbar
 
 # Local modules.
-from pymontecarlo.util.dist.command.clean import clean
-from pymontecarlo.util.dist.command.check import check
+import versioneer
 
 # Globals and constants variables.
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
-
-def find_version(*file_paths):
-    """
-    Read the version number from a source file.
-
-    .. note::
-
-       Why read it, and not import?
-       see https://groups.google.com/d/topic/pypa-dev/0PkjVpcxTzQ/discussion
-    """
-    # Open in Latin-1 so that we avoid encoding errors.
-    # Use codecs.open for Python 2 compatibility
-    with codecs.open(os.path.join(BASEDIR, *file_paths), 'r', 'latin1') as f:
-        version_file = f.read()
-
-    # The version line must have the form
-    # __version__ = 'ver'
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
 
 class bdist_windows(Command):
 
@@ -260,90 +228,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             zipfilepath = os.path.join(self.dist_dir, fullname)
             archive_util.make_zipfile(zipfilepath, workdir)
 
-packages = find_packages(exclude=('pymontecarlo.util.dist*',))
-namespace_packages = ['pymontecarlo',
-                      'pymontecarlo.ui']
-requirements = ['pyparsing',
-                'numpy==1.11.2+mkl',
-                'h5py==2.6.0',
-                'matplotlib==1.5.3',
-                'PyQt5==5.7.1',
-                'pyxray==0.1',
-                'Pillow==3.4.2',
-                'latexcodec',
-                'qtpy',
-                'pymontecarlo',
-                'pymontecarlo-winxray==0.1.0']
+with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
+    LONG_DESCRIPTION = fp.read()
 
-gui_executables = {'pymontecarlo': 'pymontecarlo.ui.gui.main:run'}
+PACKAGES = find_packages()
+PACKAGE_DATA = {}
 
-entry_points = {'pymontecarlo.ui.gui.options.material':
-                    ['Material = pymontecarlo.ui.gui.options.material:MaterialDialog'],
-                'pymontecarlo.ui.gui.options.beam':
-                    ['PencilBeam = pymontecarlo.ui.gui.options.beam:PencilBeamWidget',
-                    'GaussianBeam = pymontecarlo.ui.gui.options.beam:GaussianBeamWidget', ],
-                'pymontecarlo.ui.gui.options.geometry':
-                    ['Substrate = pymontecarlo.ui.gui.options.geometry:SubstrateWidget',
-                     'Inclusion = pymontecarlo.ui.gui.options.geometry:InclusionWidget',
-                     'HorizontalLayers = pymontecarlo.ui.gui.options.geometry:HorizontalLayersWidget',
-                     'VerticalLayers = pymontecarlo.ui.gui.options.geometry:VerticalLayersWidget',
-                     'Sphere = pymontecarlo.ui.gui.options.geometry:SphereWidget'],
-                'pymontecarlo.ui.gui.options.detector':
-                    ['BackscatteredElectronEnergyDetector = pymontecarlo.ui.gui.options.detector:BackscatteredElectronEnergyDetectorWidget',
-                     'TransmittedElectronEnergyDetector = pymontecarlo.ui.gui.options.detector:TransmittedElectronEnergyDetectorWidget',
-                     'BackscatteredElectronPolarAngularDetector = pymontecarlo.ui.gui.options.detector:BackscatteredElectronPolarAngularDetectorWidget',
-                     'TransmittedElectronPolarAngularDetector = pymontecarlo.ui.gui.options.detector:TransmittedElectronPolarAngularDetectorWidget',
-                     'BackscatteredElectronAzimuthalAngularDetector = pymontecarlo.ui.gui.options.detector:BackscatteredElectronAzimuthalAngularDetectorWidget',
-                     'TransmittedElectronAzimuthalAngularDetector = pymontecarlo.ui.gui.options.detector:TransmittedElectronAzimuthalAngularDetectorWidget',
-                     'BackscatteredElectronRadialDetector = pymontecarlo.ui.gui.options.detector:BackscatteredElectronRadialDetectorWidget',
-                     'PhotonSpectrumDetector = pymontecarlo.ui.gui.options.detector:PhotonSpectrumDetectorWidget',
-                     'PhotonDepthDetector = pymontecarlo.ui.gui.options.detector:PhotonDepthDetectorWidget',
-                     'PhiZDetector = pymontecarlo.ui.gui.options.detector:PhiZDetectorWidget',
-                     'PhotonRadialDetector = pymontecarlo.ui.gui.options.detector:PhotonRadialDetectorWidget',
-                     'PhotonEmissionMapDetector = pymontecarlo.ui.gui.options.detector:PhotonEmissionMapDetectorWidget',
-                     'PhotonIntensityDetector = pymontecarlo.ui.gui.options.detector:PhotonIntensityDetectorWidget',
-                     'TimeDetector = pymontecarlo.ui.gui.options.detector:TimeDetectorWidget',
-                     'ElectronFractionDetector = pymontecarlo.ui.gui.options.detector:ElectronFractionDetectorWidget',
-                     'ShowersStatisticsDetector = pymontecarlo.ui.gui.options.detector:ShowersStatisticsDetectorWidget',
-                     'TrajectoryDetector = pymontecarlo.ui.gui.options.detector:TrajectoryDetectorWidget', ],
-                'pymontecarlo.ui.gui.options.limit':
-                    ['TimeLimit = pymontecarlo.ui.gui.options.limit:TimeLimitWidget',
-                     'ShowersLimit = pymontecarlo.ui.gui.options.limit:ShowersLimitWidget',
-#                     'UncertaintyLimit = pymontecarlo.ui.gui.options.limit:UncertaintyLimitWidget '
-                    ],
-                'pymontecarlo.ui.gui.results.result':
-                    [
-                     'BackscatteredElectronEnergyResult = pymontecarlo.ui.gui.results.result:BackscatteredElectronEnergyResultWidget',
-                     'TransmittedElectronEnergyResult = pymontecarlo.ui.gui.results.result:TransmittedElectronEnergyResultWidget',
-                     'BackscatteredElectronPolarAngularResult = pymontecarlo.ui.gui.results.result:BackscatteredElectronPolarAngularResultWidget',
-                     'TransmittedElectronPolarAngularResult = pymontecarlo.ui.gui.results.result:TransmittedElectronPolarAngularResultWidget',
-                     'BackscatteredElectronAzimuthalAngularResult = pymontecarlo.ui.gui.results.result:BackscatteredElectronAzimuthalAngularResultWidget',
-                     'TransmittedElectronAzimuthalAngularResult = pymontecarlo.ui.gui.results.result:TransmittedElectronAzimuthalAngularResultWidget',
-                     'BackscatteredElectronRadialResult = pymontecarlo.ui.gui.results.result:BackscatteredElectronRadialResultWidget',
-                     'PhotonSpectrumResult = pymontecarlo.ui.gui.results.result:PhotonSpectrumResultWidget',
-                     'PhotonDepthResult = pymontecarlo.ui.gui.results.result:PhotonDepthResultWidget',
-                     'PhiZResult = pymontecarlo.ui.gui.results.result:PhiZResultWidget',
-                     'PhotonRadialResult = pymontecarlo.ui.gui.results.result:PhotonRadialResultWidget',
-#                     'PhotonEmissionMapResult = pymontecarlo.ui.gui.results.result:PhotonEmissionMapResultWidget',
-                     'PhotonIntensityResult = pymontecarlo.ui.gui.results.result:PhotonIntensityResultWidget',
-                     'TimeResult = pymontecarlo.ui.gui.results.result:TimeResultWidget',
-                     'ElectronFractionResult = pymontecarlo.ui.gui.results.result:ElectronFractionResultWidget',
-                     'ShowersStatisticsResult = pymontecarlo.ui.gui.results.result:ShowersStatisticsResultWidget',
-                     'TrajectoryResult = pymontecarlo.ui.gui.results.result:TrajectoryResultWidget',
-                     ]
+SETUP_REQUIRES = ['setuptools', 'progressbar2', 'requests_download']
+INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy']
+TESTS_REQUIRE = ['nose', 'coverage']
+EXTRAS_REQUIRE = {}
+
+CMDCLASS = versioneer.get_cmdclass()
+CMDCLASS['bdist_windows'] = bdist_windows
+
+ENTRY_POINTS = {'gui_scripts':
+                ['pymontecarlo = pymontecarlo_gui.__main__:main'],
                 }
 
-entry_points['gui_scripts'] = \
-    ['%s = %s' % item for item in gui_executables.items()]
-
-executables = []
-distclass = None
-cmdclass = {'clean': clean, "check": check, 'bdist_windows': bdist_windows}
-options = {}
-
 setup(name="pyMonteCarlo-GUI",
-      version=find_version('pymontecarlo', 'ui', 'gui', 'main.py'),
-      url='http://pymontecarlo.bitbucket.org',
+      version=versioneer.get_version(),
+      url='https://github.com/pymontecarlo',
       description="Python interface for Monte Carlo simulation programs",
       author="Hendrix Demers and Philippe T. Pinard",
       author_email="hendrix.demers@mail.mcgill.ca and philippe.pinard@gmail.com",
@@ -357,19 +262,17 @@ setup(name="pyMonteCarlo-GUI",
                    'Topic :: Scientific/Engineering',
                    'Topic :: Scientific/Engineering :: Physics'],
 
-      packages=packages,
-      namespace_packages=namespace_packages,
+      packages=PACKAGES,
+      package_data=PACKAGE_DATA,
 
-      distclass=distclass,
-      cmdclass=cmdclass,
+      setup_requires=SETUP_REQUIRES,
+      install_requires=INSTALL_REQUIRES,
+      tests_require=TESTS_REQUIRE,
+      extras_require=EXTRAS_REQUIRE,
 
-      setup_requires=['nose', 'requests', 'requests-download', 'progressbar2'],
-      install_requires=requirements,
+      cmdclass=CMDCLASS,
 
-      entry_points=entry_points,
-      executables=executables,
-
-      options=options,
+      entry_points=ENTRY_POINTS,
 
       test_suite='nose.collector',
 )
