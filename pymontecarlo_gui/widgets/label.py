@@ -23,8 +23,9 @@ class LabelIcon(QtWidgets.QWidget):
         # Layouts
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.lbl_icon)
-        layout.addWidget(self.lbl_text)
+        layout.addWidget(self.lbl_icon, 0, QtCore.Qt.AlignTop)
+        layout.addWidget(self.lbl_text, 1, QtCore.Qt.AlignLeft)
+        layout.addStretch()
         self.setLayout(layout)
 
     def text(self):
