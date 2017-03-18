@@ -23,8 +23,8 @@ class LabelIcon(QtWidgets.QWidget):
         # Layouts
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.lbl_icon, 0, QtCore.Qt.AlignTop)
-        layout.addWidget(self.lbl_text, 1, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.lbl_icon, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
+        layout.addWidget(self.lbl_text, 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         layout.addStretch()
         self.setLayout(layout)
 
@@ -36,3 +36,8 @@ class LabelIcon(QtWidgets.QWidget):
 
     def setIcon(self, icon):
         self.lbl_icon.setPixmap(icon.pixmap(QtCore.QSize(16, 16)))
+
+    def setVerticalAlignment(self, alignment):
+        layout = self.layout()
+        layout.itemAt(0).setAlignment(alignment | QtCore.Qt.AlignHCenter)
+        layout.itemAt(1).setAlignment(alignment | QtCore.Qt.AlignLeft)
