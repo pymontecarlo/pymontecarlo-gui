@@ -13,10 +13,12 @@ from qtpy import QtCore, QtGui, QtWidgets
 import pymontecarlo
 from pymontecarlo._settings import Settings
 from pymontecarlo.exceptions import ValidationError
+from pymontecarlo.program.configurator import FileType, DirectoryType
 
 from pymontecarlo_gui.widgets.util import clear_stackedwidget, create_group_box
 from pymontecarlo_gui.widgets.label import LabelIcon
 import pymontecarlo_gui.widgets.messagebox as messagebox
+from pymontecarlo_gui.widgets.browse import FileBrowseWidget, DirectoryBrowseWidget
 
 # Globals and constants variables.
 
@@ -41,14 +43,31 @@ class ProgramWidget(QtWidgets.QWidget):
         for action in actions:
             label = action.option_strings[0].replace('-', '').capitalize()
 
-            if action.type is None:
+            if action.type is FileType:
+                widget = FileBrowseWidget()
+
+                widget.pathChanged.connect(self._on_edited)
+
+                getfunc = lambda : widget.path()
+                setfunc = lambda value: widget.setPath(value)
+
+            elif action.type is DirectoryType:
+                widget = DirectoryBrowseWidget()
+
+                widget.pathChanged.connect(self._on_edited)
+
+                getfunc = lambda : widget.path()
+                setfunc = lambda value: widget.setPath(value)
+
+            else:
                 widget = QtWidgets.QLineEdit()
 
                 widget.textChanged.connect(self._on_edited)
 
                 getfunc = lambda : widget.text()
                 setfunc = lambda value: widget.setText(value)
-                self.widgets_functions[action.dest] = (getfunc, setfunc)
+
+            self.widgets_functions[action.dest] = (getfunc, setfunc)
 
             widget.setToolTip(action.help)
             lyt_action.addRow(label, widget)
