@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import math
 import locale
 from collections import OrderedDict
 
@@ -18,6 +19,9 @@ from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 
 # Globals and constants variables.
 MAX_Z = 99
+
+def tolerance_to_decimals(tolerance):
+    return math.ceil(abs(math.log10(tolerance)))
 
 class _ElementComboBox(QtWidgets.QWidget):
 
@@ -88,7 +92,7 @@ class FractionValidator(QtGui.QDoubleValidator):
     """
 
     def __init__(self):
-        super().__init__(0.0, 100.0, Material.WEIGHT_FRACTION_SIGNIFICANT_DIGITS)
+        super().__init__(0.0, 100.0, Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE)
 
     def validate(self, input, pos):
         if input.strip() == '?':
@@ -120,8 +124,8 @@ class CompositionModel(QtCore.QAbstractTableModel):
 
         row = index.row()
         column = index.column()
-        decimals = Material.WEIGHT_FRACTION_SIGNIFICANT_DIGITS
-        fmt = '{{:.{:d}f}}'.format(max(0, decimals - 2))
+        tolerance = Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE
+        fmt = '{{:.{:d}f}}'.format(max(0, tolerance_to_decimals(tolerance) - 2))
 
         if row < len(self._composition):
             z = list(self._composition.keys())[row]
@@ -180,7 +184,7 @@ class CompositionModel(QtCore.QAbstractTableModel):
                 return font
 
             elif role == QtCore.Qt.BackgroundRole:
-                if round(total_wf, decimals) != 1.0:
+                if not math.isclose(total_wf, 1.0, abs_tol=tolerance):
                     brush = QtGui.QBrush()
                     brush.setColor(QtGui.QColor(255, 192, 203))
                     brush.setStyle(QtCore.Qt.SolidPattern)
@@ -310,7 +314,8 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
             editor.setAtomicNumber(value)
 
         elif column == 1:
-            fmt = '{{:.{}f}}'.format(Material.WEIGHT_FRACTION_SIGNIFICANT_DIGITS - 2)
+            decimals = tolerance_to_decimals(Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE) - 2
+            fmt = '{{:.{}f}}'.format(decimals)
             if value == '?':
                 editor.setText(value)
             else:
@@ -409,6 +414,7 @@ class CompositionTableWidget(QtWidgets.QWidget):
 
         self.lbl_info = LabelIcon('Use "?" to balance composition',
                                   QtGui.QIcon.fromTheme("dialog-information"))
+        self.lbl_info.setVerticalAlignment(QtCore.Qt.AlignCenter)
 
         # Layouts
         lyt_bottom = QtWidgets.QHBoxLayout()
