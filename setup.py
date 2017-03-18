@@ -10,8 +10,16 @@ import zipfile
 
 # Third party modules.
 from setuptools import setup, find_packages
-import requests_download
-import progressbar
+
+try:
+    import requests_download
+except ImportError:
+    requests_download = None
+
+try:
+    import progressbar
+except ImportError:
+    progressbar = None
 
 # Local modules.
 import versioneer
@@ -103,6 +111,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             self.dist_dir = "dist"
 
     def download_file(self, url, filepath):
+        if not requests_download:
+            raise RuntimeError('Required package "requests_download"')
+        if not progressbar:
+            raise RuntimeError('Required package "progressbar2"')
         progress = progressbar.DataTransferBar()
         trackers = [requests_download.ProgressTracker(progress)]
         requests_download.download(url, filepath, trackers=trackers)
@@ -234,10 +246,8 @@ with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
 PACKAGES = find_packages()
 PACKAGE_DATA = {}
 
-SETUP_REQUIRES = ['setuptools', 'progressbar2', 'requests_download']
 INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy']
-TESTS_REQUIRE = ['nose', 'coverage']
-EXTRAS_REQUIRE = {}
+EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download']}
 
 CMDCLASS = versioneer.get_cmdclass()
 CMDCLASS['bdist_windows'] = bdist_windows
@@ -265,9 +275,7 @@ setup(name="pyMonteCarlo-GUI",
       packages=PACKAGES,
       package_data=PACKAGE_DATA,
 
-      setup_requires=SETUP_REQUIRES,
       install_requires=INSTALL_REQUIRES,
-      tests_require=TESTS_REQUIRE,
       extras_require=EXTRAS_REQUIRE,
 
       cmdclass=CMDCLASS,
