@@ -14,7 +14,7 @@ import pymontecarlo
 from pymontecarlo._settings import Settings
 from pymontecarlo.exceptions import ValidationError
 
-from pymontecarlo_gui.widgets.util import clear_stackedwidget
+from pymontecarlo_gui.widgets.util import clear_stackedwidget, create_group_box
 from pymontecarlo_gui.widgets.label import LabelIcon
 import pymontecarlo_gui.widgets.messagebox as messagebox
 
@@ -378,26 +378,14 @@ class PreferredWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Widgets
-        box_units = QtWidgets.QGroupBox('Units')
-
         self.wdg_units = PreferredUnitsWidget()
-
-        box_xrayline = QtWidgets.QGroupBox('X-ray line')
 
         self.wdg_xrayline = PreferredXrayLineWidget()
 
         # Layouts
-        lyt_units = QtWidgets.QVBoxLayout()
-        lyt_units.addWidget(self.wdg_units)
-        box_units.setLayout(lyt_units)
-
-        lyt_xrayline = QtWidgets.QVBoxLayout()
-        lyt_xrayline.addWidget(self.wdg_xrayline)
-        box_xrayline.setLayout(lyt_xrayline)
-
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(box_units)
-        layout.addWidget(box_xrayline)
+        layout.addWidget(create_group_box('Units', self.wdg_units))
+        layout.addWidget(create_group_box('X-ray line', self.wdg_xrayline))
         self.setLayout(layout)
 
     def units(self):
