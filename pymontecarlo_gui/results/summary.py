@@ -6,7 +6,7 @@ import functools
 import textwrap
 
 # Third party modules.
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 # Local modules.
 from pymontecarlo_gui.results.base import ResultSummaryWidget
@@ -117,6 +117,17 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
     def setColumnWidth(self, width):
         self._column_width = width
         self.layoutChanged.emit()
+
+    def toList(self, include_header=True):
+        out = []
+
+        if include_header:
+            out.append(self._columns)
+
+        for row in self._rows:
+            out.append([row.get(key, float('nan')) for key in self._columns])
+
+        return out
 
 class ResultClassListWidget(QtWidgets.QWidget):
 
@@ -230,10 +241,16 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
 
         self.lst_results = ResultClassListWidget()
 
+        self.tlb_export = QtWidgets.QToolBar()
+        self.tlb_export.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.act_copy = self.tlb_export.addAction(QtGui.QIcon.fromTheme('edit-copy'), 'Copy')
+        #self.act_save = self.tlb_export.addAction(QtGui.QIcon.fromTheme('document-save'), 'CSV')
+
         # Layouts
         lyt_right = QtWidgets.QVBoxLayout()
         lyt_right.addWidget(create_group_box('Options', self.chk_diff_options))
         lyt_right.addWidget(create_group_box('Results', self.lst_results))
+        lyt_right.addWidget(create_group_box('Export', self.tlb_export))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.wdg_table, 3)
@@ -242,7 +259,11 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
 
         # Signals
         self.chk_diff_options.stateChanged.connect(self._on_diff_options_changed)
+
         self.lst_results.selectionChanged.connect(self._on_result_class_changed)
+
+        self.act_copy.triggered.connect(self._on_copy)
+        #self.act_save.triggered.connect(self._on_save)
 
     def _on_diff_options_changed(self, state):
         answer = state == QtCore.Qt.Checked
@@ -251,6 +272,16 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
     def _on_result_class_changed(self):
         result_classes = self.lst_results.resultClasses()
         self.wdg_table.model().setResultClasses(result_classes)
+
+    def _on_copy(self):
+        rows = self.wdg_table.model().toList()
+        text = '\n'.join('\t'.join(map(str, row)) for row in rows)
+
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setText(text)
+
+#    def _on_save(self):
+#        pass
 
     def setProject(self, project):
         self.wdg_table.model().setProject(project)
