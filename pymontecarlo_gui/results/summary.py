@@ -39,8 +39,15 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
         if self._project is None:
             return
 
-        datarows = self._project.create_datarows(self._only_different_options,
-                                                 self._result_classes)
+        datarows_options = \
+            self._project.create_options_datarows(self._only_different_options)
+        datarows_results = \
+            self._project.create_results_datarows(self._result_classes)
+
+        datarows = []
+        for datarow_options, datarow_results in \
+                zip(datarows_options, datarows_results):
+            datarows.append(datarow_options | datarow_results)
 
         if not datarows:
             return
@@ -184,12 +191,7 @@ class ResultClassListWidget(QtWidgets.QWidget):
         self.act_unselectall.setEnabled(has_rows and checked > 0)
 
     def setProject(self, project):
-        classes = set()
-
-        for simulation in project.simulations:
-            classes.update(type(result) for result in simulation.results)
-
-        self.setResultClasses(classes)
+        self.setResultClasses(project.result_classes)
 
     def resultClasses(self):
         classes = []
