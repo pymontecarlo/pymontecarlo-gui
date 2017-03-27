@@ -475,7 +475,7 @@ class MaterialAbstractViewMixin(MaterialValidatorMixin):
         super().setValidator(validator)
         self._model().setValidator(validator)
 
-class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
+class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -586,7 +586,7 @@ def run():
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
-    table = MaterialListWidget()
+    table = MaterialsWidget()
 
     mainwindow = QtWidgets.QMainWindow()
     mainwindow.setCentralWidget(table)
