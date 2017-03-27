@@ -264,16 +264,15 @@ packages = find_packages(exclude=('pymontecarlo.util.dist*',))
 namespace_packages = ['pymontecarlo',
                       'pymontecarlo.ui']
 requirements = ['pyparsing',
-                'numpy==1.11.2+mkl',
-                'h5py==2.6.0',
-                'matplotlib==1.5.3',
-                'PyQt5==5.7.1',
-                'pyxray==0.1',
-                'Pillow==3.4.2',
+                'numpy',
+                'h5py',
+                'matplotlib',
+                'PyQt5',
+                'pyxray',
+                'Pillow',
                 'latexcodec',
                 'qtpy',
-                'pymontecarlo',
-                'pymontecarlo-winxray==0.1.0']
+                'pymontecarlo']
 
 gui_executables = {'pymontecarlo': 'pymontecarlo.ui.gui.main:run'}
 
