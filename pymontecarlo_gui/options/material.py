@@ -21,6 +21,8 @@ from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 DEFAULT_MATERIAL = Material('Untitled', {}, 0.0)
 DEFAULT_VALIDATOR = Validator()
 
+#--- Mix-ins
+
 class MaterialValidatorMixin:
 
     def validator(self):
@@ -34,6 +36,50 @@ class MaterialValidatorMixin:
         """
         assert hasattr(validator, 'validate_material')
         self._validator = validator
+
+class MaterialAbstractViewMixin(MaterialValidatorMixin):
+
+    def _model(self):
+        raise NotImplementedError
+
+    def addMaterial(self, material):
+        self._model().addMaterial(material)
+
+    def removeMaterial(self, material):
+        self._model().removeMaterial(material)
+
+    def takeMaterial(self, row):
+        model = self._model()
+        model.removeMaterial(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
+
+    def clear(self):
+        self._model().clearMaterials()
+
+    def materials(self):
+        return self._model().materials()
+
+    def setMaterials(self, materials):
+        self._model().setMaterials(materials)
+
+    def material(self, row):
+        return self._model().material(row)
+
+    def setValidator(self, validator):
+        super().setValidator(validator)
+        self._model().setValidator(validator)
+
+class MaterialVacuumMixin:
+
+    def allowVacuum(self):
+        return VACUUM in self.materials()
+
+    def setAllowVacuum(self, allow):
+        if allow:
+            self.addMaterial(VACUUM)
+        else:
+            self.removeMaterial(VACUUM)
+
+#--- Validators
 
 class FormulaValidator(QtGui.QRegExpValidator):
 
@@ -51,6 +97,8 @@ class FormulaValidator(QtGui.QRegExpValidator):
             return QtGui.QValidator.Intermediate, input, pos
 
         return QtGui.QValidator.Acceptable, input, pos
+
+#--- Widgets
 
 class MaterialWidget(QtWidgets.QWidget):
 
@@ -309,8 +357,10 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
             return QtCore.Qt.AlignCenter
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if not index.isValid() or \
-                not (0 <= index.row() < len(self._composition)):
+        if not index.isValid():
+            return False
+
+        if role != QtCore.Qt.EditRole:
             return False
 
         try:
@@ -327,17 +377,24 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
     def materials(self):
         return tuple(self._materials)
 
+    def _addMaterial(self, material):
+        material = self.validator().validate_material(material, None)
+        if material in self._materials:
+            return False
+        self._materials.append(material)
+        return True
+
     def setMaterials(self, materials):
         self._materials.clear()
-        self._materials.extend(materials)
+        for material in materials:
+            self._addMaterial(material)
         self.modelReset.emit()
 
     def addMaterial(self, material):
-        material = self.validator().validate_material(material, None)
-        if material in self._materials:
-            return
-        self._materials.append(material)
-        self.modelReset.emit()
+        added = self._addMaterial(material)
+        if added:
+            self.modelReset.emit()
+        return added
 
     def updateMaterial(self, row, material):
         self._materials[row] = material
@@ -345,9 +402,10 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
 
     def removeMaterial(self, material):
         if material not in self._materials:
-            return
+            return False
         self._materials.remove(material)
         self.modelReset.emit()
+        return False
 
     def clearMaterials(self):
         self._materials.clear()
@@ -444,37 +502,6 @@ class MaterialToolbar(QtWidgets.QToolBar, MaterialValidatorMixin):
         model = self.table.model()
         model.clearMaterials()
 
-class MaterialAbstractViewMixin(MaterialValidatorMixin):
-
-    def _model(self):
-        raise NotImplementedError
-
-    def addMaterial(self, material):
-        self._model().addMaterial(material)
-
-    def removeMaterial(self, material):
-        self._model().removeMaterial(material)
-
-    def takeMaterial(self, row):
-        model = self._model()
-        model.removeMaterial(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
-
-    def clear(self):
-        self._model().clearMaterials()
-
-    def materials(self):
-        return self._model().materials()
-
-    def setMaterials(self, materials):
-        self._model().setMaterials(materials)
-
-    def material(self, row):
-        return self._model().material(row)
-
-    def setValidator(self, validator):
-        super().setValidator(validator)
-        self._model().setValidator(validator)
-
 class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
     def __init__(self, parent=None):
@@ -525,7 +552,7 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         super().setValidator(validator)
         self.toolbar.setValidator(validator)
 
-class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin):
+class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin):
 
     currentMaterialChanged = QtCore.Signal(Material)
 
@@ -561,15 +588,6 @@ class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin):
     def _on_current_index_changed(self, index):
         self.currentMaterialChanged.emit(self.currentMaterial())
 
-    def allowVacuum(self):
-        return VACUUM in self.materials()
-
-    def setAllowVacuum(self, allow):
-        if allow:
-            self.addMaterial(VACUUM)
-        else:
-            self.removeMaterial(VACUUM)
-
     def currentMaterial(self):
         row = self.combobox.currentIndex()
         return self._model().material(row)
@@ -581,6 +599,107 @@ class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin):
         except ValueError:
             row = -1
         self.combobox.setCurrentIndex(row)
+
+class CheckableMaterialModel(MaterialModel):
+
+    def __init__(self):
+        super().__init__()
+
+        self._selection = []
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        if role == QtCore.Qt.CheckStateRole:
+            row = index.row()
+            return QtCore.Qt.Checked if self._selection[row] else QtCore.Qt.Unchecked
+
+        return super().data(index, role)
+
+    def flags(self, index):
+        return super().flags(index) | QtCore.Qt.ItemIsUserCheckable
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        if role == QtCore.Qt.CheckStateRole:
+            row = index.row()
+            self._selection[row] = value == QtCore.Qt.Checked
+
+            self.dataChanged.emit(index, index)
+            return True
+
+        return super().setData(index, value, role=role)
+
+    def _addMaterial(self, material):
+        if not super()._addMaterial(material):
+            return False
+        self._selection.append(False)
+        return True
+
+    def removeMaterial(self, material):
+        try:
+            row = self._materials.index(material)
+        except IndexError:
+            return False
+
+        if not super().removeMaterial(material):
+            return False
+
+        self._selection.pop(row)
+        return True
+
+    def clearMaterials(self):
+        super().clearMaterials()
+        self._selection.clear()
+
+    def selectedMaterials(self):
+        return tuple(m for m, s in zip(self._materials, self._selection) if s)
+
+    def setSelectedMaterials(self, materials):
+        for row in range(len(self._selection)):
+            self._selection[row] = False
+
+        for material in materials:
+            try:
+                row = self._materials.index(material)
+            except IndexError:
+                continue
+            self._selection[row] = True
+
+class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin):
+
+    selectionChanged = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Variables
+        model = CheckableMaterialModel()
+
+        # Widgets
+        self.listview = QtWidgets.QListView()
+        self.listview.setModel(model)
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.listview)
+        self.setLayout(layout)
+
+        # Signals
+        model.dataChanged.connect(self.selectionChanged)
+
+    def _model(self):
+        return self.listview.model()
+
+    def selectedMaterials(self):
+        return self._model().selectedMaterials()
+
+    def setSelectedMaterials(self, materials):
+        self._model().setSelectedMaterials(materials)
 
 def run():
     import sys
@@ -603,6 +722,8 @@ def run2():
     widget = MaterialComboBox()
     widget.addMaterial(material)
     widget.addMaterial(Material.pure(14))
+    widget.addMaterial(Material.pure(13))
+    widget.addMaterial(Material.pure(10))
     widget.setAllowVacuum(False)
     widget.setCurrentMaterial(material)
 
@@ -612,5 +733,27 @@ def run2():
 
     app.exec_()
 
+def run3():
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+
+    material = Material.pure(14)
+
+    widget = MaterialListWidget()
+    widget.addMaterial(material)
+    widget.addMaterial(Material.pure(14))
+    widget.addMaterial(Material.pure(13))
+    widget.addMaterial(Material.pure(10))
+    widget.setAllowVacuum(True)
+    #widget.setCurrentMaterial(material)
+
+    mainwindow = QtWidgets.QMainWindow()
+    mainwindow.setCentralWidget(widget)
+    mainwindow.show()
+
+    print(widget.selectedMaterials())
+
+    app.exec_()
+
 if __name__ == '__main__':
-    run()
+    run3()
