@@ -2,7 +2,7 @@
 
 # Standard library modules.
 import sys
-from math import pi
+import math
 
 # Third party modules.
 import matplotlib
@@ -33,9 +33,6 @@ IR = Material('Ir', {77: 1.}, 1.)
 PT = Material('Pt', {78: 1.}, 1.)
 
 class QtPlt (QDialog):
-
-    cos = 0
-    sin = 0
 
     def __init__ (self):
         QDialog.__init__ (self)
@@ -118,36 +115,32 @@ class QtPlt (QDialog):
     #     pass
 
     def plot(self):
-        deg2rad = lambda a: (a * 2. * pi) / 360.
+        tilt_rad = math.radians(self._slider_tilt_deg.value())
+        rotation_rad = math.radians(self._slider_rotation_deg.value())
 
-
-
-        tilt_rad = deg2rad(self._slider_tilt_deg.value())
-        rotation_rad = deg2rad(self._slider_rotation_deg.value())
-
-        layer = [Layer(RE, .1), Layer(OS, .15),
-                 Layer(IR, .2), Layer(PT, .05)]
+        layer = [Layer(RE, 10e-9), Layer(OS, 15e-9),
+                 Layer(IR, 20e-9), Layer(PT, 5e-9)]
 
         sample_cls = self._combo_sample.currentData()
 
         if sample_cls == SubstrateSample:
             sample = SubstrateSample(DS, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
         elif sample_cls == InclusionSample:
-            sample = InclusionSample(DS, AU, 0.5, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
+            sample = InclusionSample(DS, AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
         elif sample_cls == HorizontalLayerSample:
             sample = HorizontalLayerSample(DS, layer, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
         elif sample_cls == VerticalLayerSample:
             sample = VerticalLayerSample(DS, RG, layer, tilt_rad=tilt_rad,
                                          rotation_rad=rotation_rad)
         elif sample_cls == SphereSample:
-            sample = SphereSample(AU, 0.5, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
+            sample = SphereSample(AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
         else:
             sample = None
 
         beam_cls = self._combo_beam.currentData()
 
         if beam_cls == GaussianBeam:
-            beams = [GaussianBeam(42., 0.05)]
+            beams = [GaussianBeam(42., 5e-9)]
         else:
             beams = []
 
