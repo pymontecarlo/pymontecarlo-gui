@@ -14,6 +14,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, \
     QComboBox, QSlider, QRadioButton, QButtonGroup, QLabel
 
+from matplotlib_scalebar.scalebar import ScaleBar
+
 # Local modules.
 from pymontecarlo.options.material import Material
 from pymontecarlo.options.beam import GaussianBeam
@@ -161,7 +163,14 @@ class QtPlt (QDialog):
         self._figure.clf()
 
         ax = self._figure.add_subplot(111)
-        sf.draw(ax=ax)
+
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+
+        sf.draw(ax)
+
+        scalebar = ScaleBar(1.0, location='lower left')
+        ax.add_artist(scalebar)
 
         self._canvas.draw_idle()
 
