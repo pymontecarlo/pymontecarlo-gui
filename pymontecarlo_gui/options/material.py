@@ -17,6 +17,7 @@ from pymontecarlo_gui.widgets.lineedit import \
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field
+from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 
 # Globals and constants variables.
 DEFAULT_VALIDATOR = Validator()
@@ -258,6 +259,34 @@ class MaterialDensityField(Field):
         self._composition = composition.copy()
         self._update_density()
 
+class MaterialColorField(Field):
+
+    colorChanged = QtCore.Signal(QtGui.QColor)
+
+    def __init__(self):
+        super().__init__()
+
+        # Widgets
+        self._label = QtWidgets.QLabel('Color')
+
+        self._widget = ColorDialogButton()
+        self._widget.setColor(next(Material.COLOR_CYCLER))
+
+        # Signals
+        self._widget.colorChanged.connect(self.colorChanged)
+
+    def label(self):
+        return self._label
+
+    def widget(self):
+        return self._widget
+
+    def color(self):
+        return self._widget.rgba()
+
+    def setColor(self, color):
+        self._widget.setColor(color)
+
 class MaterialWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
@@ -297,11 +326,14 @@ class MaterialFormulaWidget(MaterialWidget):
 
         self.field_density = MaterialDensityField()
 
+        self.field_color = MaterialColorField()
+
         # Layouts
         layout = QtWidgets.QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.field_formula.addToGridLayout(layout, 0)
         self.field_density.addToGridLayout(layout, 1)
+        self.field_color.addToGridLayout(layout, 2)
         self.setLayout(layout)
 
         # Signals
@@ -318,7 +350,8 @@ class MaterialFormulaWidget(MaterialWidget):
         try:
             formula = self.field_formula.formula()
             density_kg_per_m3 = self.field_density.density_kg_per_m3()
-            return (Material.from_formula(formula, density_kg_per_m3),)
+            color = self.field_color.color()
+            return (Material.from_formula(formula, density_kg_per_m3, color),)
         except:
             return ()
 
@@ -332,12 +365,15 @@ class MaterialAdvancedWidget(MaterialWidget):
 
         self.field_density = MaterialDensityField()
 
+        self.field_color = MaterialColorField()
+
         self.tbl_composition = CompositionTableWidget()
 
         # Layouts
         lyt_top = QtWidgets.QGridLayout()
         self.field_name.addToGridLayout(lyt_top, 0)
         self.field_density.addToGridLayout(lyt_top, 1)
+        self.field_color.addToGridLayout(lyt_top, 2)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -362,7 +398,9 @@ class MaterialAdvancedWidget(MaterialWidget):
 
             density_kg_per_m3 = self.field_density.density_kg_per_m3()
 
-            return (Material(name, composition, density_kg_per_m3),)
+            color = self.field_color.color()
+
+            return (Material(name, composition, density_kg_per_m3, color),)
         except:
             return ()
 
@@ -370,6 +408,7 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.field_name.setName(material.name)
         self.tbl_composition.setComposition(material.composition)
         self.field_density.setDensity_kg_per_m3(material.density_kg_per_m3)
+        self.field_color.setColor(material.color)
 
 class MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
 
@@ -441,6 +480,9 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
+
+        elif role == QtCore.Qt.DecorationRole:
+            return check_color(material.color)
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         if not index.isValid():
@@ -842,4 +884,4 @@ def run3():
     app.exec_()
 
 if __name__ == '__main__':
-    run()
+    run3()
