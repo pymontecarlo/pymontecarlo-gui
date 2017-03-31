@@ -3,10 +3,12 @@
 # Standard library modules.
 import operator
 import functools
-import textwrap
 
 # Third party modules.
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
+from matplotlib import figure
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
+import matplotlib.pyplot as plt
 
 # Local modules.
 from pymontecarlo_gui.results.base import ResultSummaryWidget
@@ -14,7 +16,8 @@ from pymontecarlo_gui.widgets.util import create_group_box
 
 # Globals and constants variables.
 
-class ResultPlotModel(): #TODO implement Matplotlib
+class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
+
     def __init__(self, project=None):
         super().__init__()
 
@@ -30,11 +33,22 @@ class ResultPlotModel(): #TODO implement Matplotlib
         self._update_xaxis()
         self._update_yaxis()
 
+        # Widgets
+        self.figure = figure.Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.toolbar = NavigationToolbar2QT(self.canvas, self)
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
 
     def _update_xaxis(self):
         self._xaxis.clear()
 
-        if self._project is None or self._selected_option is None:
+        if self._project is None \
+                or self._selected_option is None:
             return
 
         datarows = \
@@ -43,30 +57,48 @@ class ResultPlotModel(): #TODO implement Matplotlib
         if not datarows:
             return
 
-        self._xaxis = [datarow.to_list([self._selected_option]) for datarow in datarows]
+        self._xaxis = \
+            [datarow.to_list([self._selected_option]) for datarow in datarows]
 
 
     def _update_yaxis(self):
         self._yaxis.clear()
 
-        if self._project is None or self._result_class is None or self._xray_lines == []:
+        if self._project is None \
+                or self._result_class is None \
+                or self._xray_lines == []:
             return
 
         datarows = \
-            self._project.create_results_datarows(self._result_class)
+            self._project.create_results_datarows([self._result_class])
 
         if not datarows:
             return
 
-        self._yaxis = [dict(datarow.to_list(self._xray_lines)) for datarow in datarows]
+        self._yaxis = \
+            [dict(datarow.to_list(self._xray_lines)) for datarow in datarows]
 
+    def _plot(self):
+        if self._xaxis == [] or self._yaxis == []:
+            return
+        # TODO plotting the axis with matplotlib
 
-    def project(self, project):
+    def xaxis(self):
+        return self._xaxis
+
+    def yaxis(self):
+        return self._yaxis
+
+    def project(self):
         return self._project
 
 
     def setProject(self, project):
         self._project = project
+        self._result_class = None
+        self._xray_lines = []
+        self._selected_option = None
+        self._plot()
 
 
     def resultClass(self):
@@ -75,6 +107,8 @@ class ResultPlotModel(): #TODO implement Matplotlib
 
     def setResultClass(self, result_class):
         self._result_class = result_class
+        self._xray_lines = []
+        self._plot()
 
 
     def xrayLines(self):
@@ -84,7 +118,7 @@ class ResultPlotModel(): #TODO implement Matplotlib
     def setXrayLines(self, xray_lines):
         self._xray_lines = xray_lines
         self._update_yaxis()
-        self.modelReset.emit()
+        self._plot()
 
 
     def selectedOption(self):
@@ -92,9 +126,9 @@ class ResultPlotModel(): #TODO implement Matplotlib
 
 
     def setSelectedOption(self, option):
-        self._only_different_options = option
+        self._selected_option = option
         self._update_xaxis()
-        self.modelReset.emit()
+        self._plot()
 
 
 class XrayLineListWidget(QtWidgets.QWidget):
@@ -155,13 +189,20 @@ class XrayLineListWidget(QtWidgets.QWidget):
         self.act_unselectall.setEnabled(has_rows and checked > 0)
 
     def setResultClass(self, resultclass=None):
-        lines = []
+        self.wdg_list.clear()
         if resultclass != None:
             datarow = self._project.create_results_datarows([resultclass])
             datarow_union = functools.reduce(operator.or_, datarow)
             lines = datarow_union.columns
+            for line in lines:
+                item = QtWidgets.QListWidgetItem(line)
+                item.setData(QtCore.Qt.UserRole, None)
+                item.setTextAlignment(QtCore.Qt.AlignLeft)
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                item.setCheckState(QtCore.Qt.Unchecked)
+                self.wdg_list.addItem(item)
 
-        self.setXrayLines(lines)
+        self._update_toolbar()
 
     def xrayLines(self):
         lines = []
@@ -174,22 +215,9 @@ class XrayLineListWidget(QtWidgets.QWidget):
 
         return lines
 
-    def setXrayLines(self, lines):
-        self.wdg_list.clear()
-
-        for line in lines:
-            item = QtWidgets.QListWidgetItem(line)
-            item.setData(QtCore.Qt.UserRole, None)
-            item.setTextAlignment(QtCore.Qt.AlignLeft)
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Unchecked)
-            self.wdg_list.addItem(item)
-
-        self._update_toolbar()
-
     def setProject(self, project):
         self._project = project
-        self.setResultClass([])
+        self.setResultClass(None)
 
 
 class XaxisComboBoxWidget(QtWidgets.QWidget):
@@ -215,21 +243,19 @@ class XaxisComboBoxWidget(QtWidgets.QWidget):
         self.selectionChanged.emit()
 
     def setProject(self, project):
+        self.cmbbx_xaxis.clear()
+        self.cmbbx_xaxis.addItem('--- choose option ---', None)
+
         datarow_options = project.create_options_datarows(True)
         datarow_union = functools.reduce(operator.or_, datarow_options)
         options = datarow_union.columns
-        self.setOptions(options)
+
+        for option in options:
+            self.cmbbx_xaxis.addItem(option, option)
 
     def currentOption(self):
         option = self.cmbbx_xaxis.currentData()
         return option
-
-    def setOptions(self, options):
-        self.cmbbx_xaxis.clear()
-        self.cmbbx_xaxis.addItem('--- choose option ---', None)
-
-        for option in options:
-            self.cmbbx_xaxis.addItem(option, option)
 
 
 class YaxisComboBoxWidget(QtWidgets.QWidget):
@@ -279,6 +305,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         super().__init__(parent)
 
         # Widgets
+        self.plot = ResultPlotWidget()
 
         self.cmbbx_xaxis = XaxisComboBoxWidget()
         self.cmbbx_yaxis = YaxisComboBoxWidget()
@@ -292,7 +319,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         lyt_right.addWidget(create_group_box('X-ray line', self.lst_xray_line))
 
         layout = QtWidgets.QHBoxLayout()
-        #layout.addWidget(self.wdg_table, 3)
+        layout.addWidget(self.plot, 3)
         layout.addLayout(lyt_right, 1)
         self.setLayout(layout)
 
@@ -303,19 +330,23 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         self.lst_xray_line.selectionChanged.connect(self._on_xray_line_changed)
 
     def _on_xaxis_changed(self):
-        pass
+        option = self.cmbbx_xaxis.currentOption()
+        self.plot.setSelectedOption(option)
 
     def _on_yaxis_changed(self):
         clasz = self.cmbbx_yaxis.currentResultClass()
         self.lst_xray_line.setResultClass(clasz)
+        self.plot.setResultClass(clasz)
 
     def _on_xray_line_changed(self):
-        pass
+        lines = self.lst_xray_line.xrayLines()
+        self.plot.setXrayLines(lines)
 
     def setProject(self, project):
         self.cmbbx_xaxis.setProject(project)
         self.cmbbx_yaxis.setProject(project)
         self.lst_xray_line.setProject(project)
+        self.plot.setProject(project)
 
 
 def run():
