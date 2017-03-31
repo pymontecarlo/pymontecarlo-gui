@@ -64,6 +64,9 @@ class ColoredFloatLineEdit(QtWidgets.QWidget):
         else:
             self.setStyleSheet("background: pink")
 
+    def clear(self):
+        self.wdg_lineedit.clear()
+
     def value(self):
         try:
             return locale.atof(self.wdg_lineedit.text())
@@ -71,8 +74,8 @@ class ColoredFloatLineEdit(QtWidgets.QWidget):
             return float('nan')
 
     def setValue(self, value):
-        fmt = '{{:.{}f}}'.format(self.decimals())
-        self.wdg_lineedit.setText(fmt.format(value))
+        fmt = '%.{}f'.format(self.decimals())
+        self.wdg_lineedit.setText(locale.format(fmt, value))
 
     def range(self):
         return self.wdg_lineedit.validator().range()
