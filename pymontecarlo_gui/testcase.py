@@ -4,7 +4,7 @@
 import unittest
 
 # Third party modules.
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtTest, QtCore
 
 # Local modules.
 
@@ -29,3 +29,7 @@ class TestCase(unittest.TestCase):
         '''Deletes the reference owned by self'''
         del self.app
         super().tearDown()
+
+    def checkBoxClick(self, checkbox):
+        QtTest.QTest.mouseClick(checkbox, QtCore.Qt.LeftButton,
+                                pos=QtCore.QPoint(2, checkbox.height() / 2))

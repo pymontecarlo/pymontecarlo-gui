@@ -64,6 +64,14 @@ class ColoredFloatLineEdit(QtWidgets.QWidget):
         else:
             self.setStyleSheet("background: pink")
 
+    def keyPressEvent(self, event):
+        super().keyPressEvent(event)
+        self.wdg_lineedit.keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        super().keyReleaseEvent(event)
+        self.wdg_lineedit.keyReleaseEvent(event)
+
     def clear(self):
         self.wdg_lineedit.clear()
 

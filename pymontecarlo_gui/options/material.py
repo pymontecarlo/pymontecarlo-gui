@@ -348,12 +348,6 @@ class MaterialAdvancedWidget(MaterialWidget):
         # Signals
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
-    def _on_name_auto_changed(self, *args):
-        self.txt_name.setEnabled(not self.chk_name_auto.isChecked())
-
-    def _on_density_user_changed(self, *args):
-        self.txt_density.setEnabled(self.chk_density_user.isChecked())
-
     def _on_composition_changed(self, composition):
         self.field_name.setComposition(composition)
         self.field_density.setComposition(composition)
@@ -361,8 +355,13 @@ class MaterialAdvancedWidget(MaterialWidget):
     def materials(self):
         try:
             name = self.field_name.name()
+
             composition = self.tbl_composition.composition()
+            if not composition:
+                return ()
+
             density_kg_per_m3 = self.field_density.density_kg_per_m3()
+
             return (Material(name, composition, density_kg_per_m3),)
         except:
             return ()
