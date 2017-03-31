@@ -144,7 +144,7 @@ def _calculate_brightness(color):
 
 class PeriodicTableWidget(QtWidgets.QWidget):
 
-    selectionChanged = QtCore.Signal(int)
+    selectionChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -188,7 +188,7 @@ class PeriodicTableWidget(QtWidgets.QWidget):
         self.setColorFunction(_category_color_function)
 
     def _on_button_clicked(self, button):
-        self.selectionChanged.emit(button.atomicNumber())
+        self.selectionChanged.emit()
 
     def setColorFunction(self, func):
         if not callable(func):
