@@ -19,7 +19,6 @@ from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field
 
 # Globals and constants variables.
-DEFAULT_MATERIAL = Material('Untitled', {}, 0.0)
 DEFAULT_VALIDATOR = Validator()
 
 #--- Mix-ins
@@ -132,13 +131,10 @@ class MaterialNameField(Field):
         if not self._suffix.isChecked():
             return
 
-        if not self._composition:
-            return
-
         try:
             name = generate_name(self._composition)
         except:
-            return
+            name = ''
 
         self.setName(name, user_modified=False)
 
@@ -231,13 +227,10 @@ class MaterialDensityField(Field):
         if self._suffix.isChecked():
             return
 
-        if not self._composition:
-            return
-
         try:
             density_kg_per_m3 = calculate_density_kg_per_m3(self._composition)
         except:
-            return
+            density_kg_per_m3 = 0.0
 
         self.setDensity_kg_per_m3(density_kg_per_m3, user_modified=False)
 
@@ -318,7 +311,7 @@ class MaterialFormulaWidget(MaterialWidget):
         try:
             composition = from_formula(formula)
         except:
-            return
+            composition = {}
         self.field_density.setComposition(composition)
 
     def materials(self):
@@ -327,7 +320,7 @@ class MaterialFormulaWidget(MaterialWidget):
             density_kg_per_m3 = self.field_density.density_kg_per_m3()
             return (Material.from_formula(formula, density_kg_per_m3),)
         except:
-            return (DEFAULT_MATERIAL,)
+            return ()
 
 class MaterialAdvancedWidget(MaterialWidget):
 
@@ -372,7 +365,7 @@ class MaterialAdvancedWidget(MaterialWidget):
             density_kg_per_m3 = self.field_density.density_kg_per_m3()
             return (Material(name, composition, density_kg_per_m3),)
         except:
-            return (DEFAULT_MATERIAL,)
+            return ()
 
     def setMaterial(self, material):
         self.field_name.setName(material.name)
