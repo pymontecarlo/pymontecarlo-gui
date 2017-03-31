@@ -16,6 +16,7 @@ from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
+from pymontecarlo_gui.widgets.field import Field
 
 # Globals and constants variables.
 DEFAULT_MATERIAL = Material('Untitled', {}, 0.0)
@@ -100,6 +101,170 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
 #--- Widgets
 
+class MaterialNameField(Field):
+
+    nameChanged = QtCore.Signal(str)
+
+    def __init__(self):
+        super().__init__()
+
+        # Variables
+        self._composition = {}
+
+        # Widgets
+        self._label = QtWidgets.QLabel("Name")
+
+        self._widget = ColoredLineEdit()
+        self._widget.setEnabled(False)
+        self._widget.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"^(?!\s*$).+")))
+
+        self._suffix = QtWidgets.QCheckBox('auto')
+        self._suffix.setChecked(True)
+
+        # Signals
+        self._suffix.stateChanged.connect(self._on_auto_changed)
+
+    def _on_auto_changed(self, *args):
+        self._widget.setEnabled(not self._suffix.isChecked())
+        self._update_name()
+
+    def _update_name(self):
+        if not self._suffix.isChecked():
+            return
+
+        if not self._composition:
+            return
+
+        try:
+            name = generate_name(self._composition)
+        except:
+            return
+
+        self.setName(name, user_modified=False)
+
+    def label(self):
+        return self._label
+
+    def widget(self):
+        return self._widget
+
+    def suffix(self):
+        return self._suffix
+
+    def name(self):
+        return self._widget.text()
+
+    def setName(self, name, user_modified=True):
+        self._widget.setText(name)
+        self._suffix.setChecked(not user_modified)
+        self.nameChanged.emit(name)
+
+    def composition(self):
+        return self._composition
+
+    def setComposition(self, composition):
+        self._composition = composition.copy()
+        self._update_name()
+
+class MaterialFormulaField(Field):
+
+    formulaChanged = QtCore.Signal(str)
+
+    def __init__(self):
+        super().__init__()
+
+        # Widgets
+        self._label = QtWidgets.QLabel("Formula")
+
+        self._widget = ColoredLineEdit()
+        self._widget.setValidator(FormulaValidator())
+        self._widget.textChanged.emit('')
+
+        # Signals
+        self._widget.textChanged.connect(self._on_text_changed)
+
+    def _on_text_changed(self):
+        self.formulaChanged.emit(self.formula())
+
+    def label(self):
+        return self._label
+
+    def widget(self):
+        return self._widget
+
+    def formula(self):
+        return self._widget.text()
+
+    def setFormula(self, formula):
+        self._widget.setText(formula)
+
+class MaterialDensityField(Field):
+
+    densityChanged = QtCore.Signal(float)
+
+    def __init__(self):
+        super().__init__()
+
+        # Variables
+        self._composition = {}
+
+        # Widgets
+        self._label = QtWidgets.QLabel("Density (g/cm<sup>3</sup>)")
+
+        self._widget = ColoredFloatLineEdit()
+        self._widget.setRange(0.0, float('inf'))
+        self._widget.setDecimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3 + 3)
+        self._widget.setValue(0.0)
+        self._widget.setEnabled(False)
+
+        self._suffix = QtWidgets.QCheckBox('user defined')
+        self._suffix.setChecked(False)
+
+        # Signals
+        self._suffix.stateChanged.connect(self._on_user_defined_changed)
+
+    def _on_user_defined_changed(self, *args):
+        self._widget.setEnabled(self._suffix.isChecked())
+        self._update_density()
+
+    def _update_density(self):
+        if self._suffix.isChecked():
+            return
+
+        if not self._composition:
+            return
+
+        try:
+            density_kg_per_m3 = calculate_density_kg_per_m3(self._composition)
+        except:
+            return
+
+        self.setDensity_kg_per_m3(density_kg_per_m3, user_modified=False)
+
+    def label(self):
+        return self._label
+
+    def widget(self):
+        return self._widget
+
+    def suffix(self):
+        return self._suffix
+
+    def density_kg_per_m3(self):
+        return self._widget.value() * 1e3
+
+    def setDensity_kg_per_m3(self, density_kg_per_m3, user_modified=True):
+        self._widget.setValue(density_kg_per_m3 / 1e3)
+        self._suffix.setChecked(user_modified)
+        self.densityChanged.emit(density_kg_per_m3)
+
+    def composition(self):
+        return self._composition
+
+    def setComposition(self, composition):
+        self._composition = composition.copy()
+        self._update_density()
+
 class MaterialWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
@@ -135,60 +300,31 @@ class MaterialFormulaWidget(MaterialWidget):
         super().__init__(parent)
 
         # Widgets
-        self.txt_formula = ColoredLineEdit()
-        validator = FormulaValidator()
-        self.txt_formula.setValidator(validator)
-        self.txt_formula.textChanged.emit('')
+        self.field_formula = MaterialFormulaField()
 
-        self.txt_density = ColoredFloatLineEdit()
-        self.txt_density.setRange(0.0, float('inf'))
-        self.txt_density.setDecimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3 + 3)
-        self.txt_density.setValue(0.0)
-        self.txt_density.setEnabled(False)
-
-        self.chk_density_user = QtWidgets.QCheckBox('user defined')
-        self.chk_density_user.setChecked(False)
+        self.field_density = MaterialDensityField()
 
         # Layouts
         layout = QtWidgets.QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QtWidgets.QLabel("Formula"), 0, 0)
-        layout.addWidget(self.txt_formula, 0, 1)
-        layout.addWidget(QtWidgets.QLabel("Density (g/cm<sup>3</sup>)"), 1, 0)
-        layout.addWidget(self.txt_density, 1, 1)
-        layout.addWidget(self.chk_density_user, 1, 2)
+        self.field_formula.addToGridLayout(layout, 0)
+        self.field_density.addToGridLayout(layout, 1)
         self.setLayout(layout)
 
         # Signals
-        self.txt_formula.textChanged.connect(self._on_formula_changed)
-        self.chk_density_user.stateChanged.connect(self._on_density_user_changed)
+        self.field_formula.formulaChanged.connect(self._on_formula_changed)
 
-    def _on_formula_changed(self, *args):
-        if self.chk_density_user.isChecked():
-            return
-
+    def _on_formula_changed(self, formula):
         try:
-            formula = self.txt_formula.text()
             composition = from_formula(formula)
-            density_kg_per_m3 = calculate_density_kg_per_m3(composition)
         except:
-            pass
-        else:
-            self.txt_density.setValue(density_kg_per_m3 / 1e3)
-
-    def _on_density_user_changed(self, *args):
-        self.txt_density.setEnabled(self.chk_density_user.isChecked())
+            return
+        self.field_density.setComposition(composition)
 
     def materials(self):
         try:
-            formula = self.txt_formula.text()
-
-            if self.chk_density_user.isChecked():
-                density_kg_per_m3 = self.txt_density.value() * 1e3
-            else:
-                composition = from_formula(formula)
-                density_kg_per_m3 = calculate_density_kg_per_m3(composition)
-
+            formula = self.field_formula.formula()
+            density_kg_per_m3 = self.field_density.density_kg_per_m3()
             return (Material.from_formula(formula, density_kg_per_m3),)
         except:
             return (DEFAULT_MATERIAL,)
@@ -199,32 +335,16 @@ class MaterialAdvancedWidget(MaterialWidget):
         super().__init__(parent)
 
         # Widgets
-        self.txt_name = ColoredLineEdit()
-        self.txt_name.setEnabled(False)
-        self.txt_name.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"^(?!\s*$).+")))
+        self.field_name = MaterialNameField()
 
-        self.chk_name_auto = QtWidgets.QCheckBox('auto')
-        self.chk_name_auto.setChecked(True)
-
-        self.txt_density = ColoredFloatLineEdit()
-        self.txt_density.setRange(0.0, float('inf'))
-        self.txt_density.setDecimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3 + 3)
-        self.txt_density.setValue(0.0)
-        self.txt_density.setEnabled(False)
-
-        self.chk_density_user = QtWidgets.QCheckBox('user defined')
-        self.chk_density_user.setChecked(False)
+        self.field_density = MaterialDensityField()
 
         self.tbl_composition = CompositionTableWidget()
 
         # Layouts
         lyt_top = QtWidgets.QGridLayout()
-        lyt_top.addWidget(QtWidgets.QLabel("Name"), 0, 0)
-        lyt_top.addWidget(self.txt_name, 0, 1)
-        lyt_top.addWidget(self.chk_name_auto, 0, 2)
-        lyt_top.addWidget(QtWidgets.QLabel("Density (g/cm<sup>3</sup>)"), 1, 0)
-        lyt_top.addWidget(self.txt_density, 1, 1)
-        lyt_top.addWidget(self.chk_density_user, 1, 2)
+        self.field_name.addToGridLayout(lyt_top, 0)
+        self.field_density.addToGridLayout(lyt_top, 1)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -233,8 +353,6 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.setLayout(layout)
 
         # Signals
-        self.chk_name_auto.stateChanged.connect(self._on_name_auto_changed)
-        self.chk_density_user.stateChanged.connect(self._on_density_user_changed)
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
     def _on_name_auto_changed(self, *args):
@@ -244,46 +362,22 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.txt_density.setEnabled(self.chk_density_user.isChecked())
 
     def _on_composition_changed(self, composition):
-        if self.chk_name_auto.isChecked():
-            try:
-                name = generate_name(composition)
-            except:
-                pass
-            else:
-                self.txt_name.setText(name)
-
-        if not self.chk_density_user.isChecked():
-            try:
-                density_kg_per_m3 = calculate_density_kg_per_m3(composition)
-            except:
-                pass
-            else:
-                self.txt_density.setValue(density_kg_per_m3 / 1e3)
+        self.field_name.setComposition(composition)
+        self.field_density.setComposition(composition)
 
     def materials(self):
         try:
+            name = self.field_name.name()
             composition = self.tbl_composition.composition()
-
-            if self.chk_name_auto.isChecked():
-                name = generate_name(composition)
-            else:
-                name = self.txt_name.text()
-
-            if self.chk_density_user.isChecked():
-                density_kg_per_m3 = self.txt_density.value() * 1e3
-            else:
-                density_kg_per_m3 = calculate_density_kg_per_m3(composition)
-
+            density_kg_per_m3 = self.field_density.density_kg_per_m3()
             return (Material(name, composition, density_kg_per_m3),)
         except:
             return (DEFAULT_MATERIAL,)
 
     def setMaterial(self, material):
-        self.chk_name_auto.setChecked(False)
-        self.txt_name.setText(material.name)
+        self.field_name.setName(material.name)
         self.tbl_composition.setComposition(material.composition)
-        self.chk_density_user.setChecked(True)
-        self.txt_density.setValue(material.density_g_per_cm3)
+        self.field_density.setDensity_kg_per_m3(material.density_kg_per_m3)
 
 class MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
 
@@ -756,4 +850,4 @@ def run3():
     app.exec_()
 
 if __name__ == '__main__':
-    run3()
+    run()
