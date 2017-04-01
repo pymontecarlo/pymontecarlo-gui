@@ -19,7 +19,7 @@ from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.util.validate import Validable
+from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
 
 # Globals and constants variables.
 MAX_Z = 99
@@ -193,7 +193,7 @@ class CompositionModel(QtCore.QAbstractTableModel, Validable):
             elif role == QtCore.Qt.BackgroundRole:
                 if not self.isValid():
                     brush = QtGui.QBrush()
-                    brush.setColor(QtGui.QColor(255, 192, 203))
+                    brush.setColor(QtGui.QColor(INVALID_COLOR))
                     brush.setStyle(QtCore.Qt.SolidPattern)
                     return brush
 
