@@ -110,11 +110,18 @@ class MaterialField(GroupField):
     def setMaterials(self, materials):
         self._widget.setSelectedMaterials(materials)
 
+    def availableMaterials(self):
+        return self._widget.materials()
+
+    def setAvailableMaterials(self, materials):
+        self._widget.setMaterials(materials)
+
 class SampleWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
+    @abc.abstractmethod
     def samples(self):
         """
         Returns a :class:`list` of :class:`Sample`.

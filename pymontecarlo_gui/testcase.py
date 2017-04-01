@@ -7,6 +7,7 @@ import unittest
 from qtpy import QtWidgets, QtTest, QtCore
 
 # Local modules.
+from pymontecarlo.options.material import Material
 
 # Globals and constants variables.
 
@@ -51,3 +52,8 @@ class TestCase(unittest.TestCase):
         receiver = MockReceiver()
         signal.connect(receiver.signalReceived)
         return receiver
+
+    def create_materials(self):
+        return [Material.pure(13),
+                Material.from_formula('Al2O3'),
+                Material('foo', {29: 0.5, 28: 0.5}, 2.0)]
