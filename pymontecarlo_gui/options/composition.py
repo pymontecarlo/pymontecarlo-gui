@@ -4,6 +4,7 @@
 import math
 import locale
 from collections import OrderedDict
+import abc
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -17,11 +18,12 @@ from pymontecarlo.options.material import Material
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
+from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 MAX_Z = 99
 
-class _ElementComboBox(QtWidgets.QWidget):
+class _ElementComboBox(QtWidgets.QWidget, metaclass=QABCMeta):
 
     elementChanged = QtCore.Signal(int)
 
@@ -44,6 +46,7 @@ class _ElementComboBox(QtWidgets.QWidget):
         # Signal
         self.combobox.currentIndexChanged.connect(self._on_index_changed)
 
+    @abc.abstractmethod
     def _get_item_text(self, atomic_number):
         raise NotImplementedError
 

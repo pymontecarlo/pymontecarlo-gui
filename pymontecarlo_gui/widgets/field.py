@@ -7,10 +7,11 @@ import abc
 from qtpy import QtWidgets, QtCore
 
 # Local modules.
+from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class Field(QtCore.QObject):
+class Field(QtCore.QObject, metaclass=QABCMeta):
 
     @abc.abstractmethod
     def label(self):
@@ -30,3 +31,4 @@ class Field(QtCore.QObject):
         suffix = self.suffix()
         if suffix is not None:
             layout.addWidget(suffix, row, start_column + 2)
+

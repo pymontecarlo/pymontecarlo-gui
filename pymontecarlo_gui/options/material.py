@@ -2,6 +2,7 @@
 
 # Standard library modules.
 import functools
+import abc
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -19,6 +20,7 @@ from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
+from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 DEFAULT_VALIDATOR = Validator()
@@ -39,8 +41,9 @@ class MaterialValidatorMixin:
         assert hasattr(validator, 'validate_material')
         self._validator = validator
 
-class MaterialAbstractViewMixin(MaterialValidatorMixin):
+class MaterialAbstractViewMixin(MaterialValidatorMixin, metaclass=QABCMeta):
 
+    @abc.abstractmethod
     def _model(self):
         raise NotImplementedError
 
@@ -288,11 +291,12 @@ class MaterialColorField(Field):
     def setColor(self, color):
         self._widget.setColor(color)
 
-class MaterialWidget(QtWidgets.QWidget):
+class MaterialWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
+    @abc.abstractmethod
     def materials(self):
         raise NotImplementedError
 

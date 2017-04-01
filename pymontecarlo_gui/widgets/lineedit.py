@@ -4,6 +4,7 @@
 import re
 import math
 import locale
+import abc
 
 # Third party modules.
 from qtpy import QtWidgets, QtGui, QtCore
@@ -11,12 +12,14 @@ from qtpy import QtWidgets, QtGui, QtCore
 import numpy as np
 
 # Local modules.
+from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class DoubleValidatorAdapterMixin:
+class DoubleValidatorAdapterMixin(metaclass=QABCMeta):
 
-    def _get_get_double_validator(self): #pragma: no cover
+    @abc.abstractmethod
+    def _get_double_validator(self): #pragma: no cover
         raise NotImplementedError
 
     def bottom(self):
@@ -43,8 +46,9 @@ class DoubleValidatorAdapterMixin:
     def setTop(self, top):
         self._get_double_validator().setTop(top)
 
-class LineEditAdapterMixin:
+class LineEditAdapterMixin(metaclass=QABCMeta):
 
+    @abc.abstractmethod
     def _get_lineedit(self): #pragma: no cover
         raise NotImplementedError
 

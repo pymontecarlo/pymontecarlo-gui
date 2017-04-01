@@ -2,16 +2,18 @@
 
 # Standard library modules.
 import os
+import abc
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
 import pymontecarlo_gui.widgets.messagebox as messagebox
+from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class _BrowseWidget(QtWidgets.QWidget):
+class _BrowseWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
     pathChanged = QtCore.Signal(str)
 
@@ -37,9 +39,11 @@ class _BrowseWidget(QtWidgets.QWidget):
         # Signal
         btn_browse.released.connect(self._onBrowse)
 
+    @abc.abstractmethod
     def _showDialog(self, basedir):
         raise NotImplementedError
 
+    @abc.abstractmethod
     def _validatePath(self, path):
         raise NotImplementedError
 
