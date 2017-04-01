@@ -18,6 +18,7 @@ import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
+from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
 # Globals and constants variables.
 DEFAULT_VALIDATOR = Validator()
@@ -209,8 +210,8 @@ class MaterialDensityField(Field):
         self._label = QtWidgets.QLabel("Density (g/cm<sup>3</sup>)")
 
         self._widget = ColoredFloatLineEdit()
-        self._widget.setRange(0.0, float('inf'))
-        self._widget.setDecimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3 + 3)
+        decimals = tolerance_to_decimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3) + 3
+        self._widget.setRange(0.0, float('inf'), decimals)
         self._widget.setValue(0.0)
         self._widget.setEnabled(False)
 
@@ -884,4 +885,4 @@ def run3(): #pragma: no cover
     app.exec_()
 
 if __name__ == '__main__': #pragma: no cover
-    run3()
+    run()

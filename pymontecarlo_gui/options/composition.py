@@ -16,12 +16,10 @@ from pymontecarlo.options.material import Material
 
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
+from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
 # Globals and constants variables.
 MAX_Z = 99
-
-def tolerance_to_decimals(tolerance):
-    return math.ceil(abs(math.log10(tolerance)))
 
 class _ElementComboBox(QtWidgets.QWidget):
 
