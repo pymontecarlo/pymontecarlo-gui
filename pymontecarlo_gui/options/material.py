@@ -548,24 +548,15 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         self.dataChanged.emit(index, index)
         return True
 
-    def materials(self):
-        return tuple(self._materials)
-
-    def _addMaterial(self, material):
+    def _add_material(self, material):
         material = self.validator().validate_material(material, None)
         if material in self._materials:
             return False
         self._materials.append(material)
         return True
 
-    def setMaterials(self, materials):
-        self.clearMaterials()
-        for material in materials:
-            self._addMaterial(material)
-        self.modelReset.emit()
-
     def addMaterial(self, material):
-        added = self._addMaterial(material)
+        added = self._add_material(material)
         if added:
             self.modelReset.emit()
         return added
@@ -591,14 +582,23 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
     def material(self, row):
         return self._materials[row]
 
+    def materials(self):
+        return tuple(self._materials)
+
+    def setMaterials(self, materials):
+        self.clearMaterials()
+        for material in materials:
+            self._add_material(material)
+        self.modelReset.emit()
+
 class MaterialToolbar(QtWidgets.QToolBar):
 
-    def __init__(self, table, parent=None):
+    def __init__(self, listview, parent=None):
         super().__init__(parent)
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
         # Variables
-        self.table = table
+        self.listview = listview
 
         # Actions
         self.act_add_pure = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Pure")
@@ -632,8 +632,8 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.addWidget(tool_clear)
 
         # Signals
-        self.table.model().modelReset.connect(self._on_data_changed)
-        self.table.selectionModel().selectionChanged.connect(self._on_data_changed)
+        self.listview.model().modelReset.connect(self._on_data_changed)
+        self.listview.selectionModel().selectionChanged.connect(self._on_data_changed)
 
         self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget))
         self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget))
@@ -642,10 +642,10 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.act_clear.triggered.connect(self._on_clear_materials)
 
     def _on_data_changed(self):
-        model = self.table.model()
+        model = self.listview.model()
         has_rows = model.hasMaterials()
 
-        selection_model = self.table.selectionModel()
+        selection_model = self.listview.selectionModel()
         has_selection = selection_model.hasSelection()
 
         self.act_remove.setEnabled(has_rows and has_selection)
@@ -659,20 +659,20 @@ class MaterialToolbar(QtWidgets.QToolBar):
             return
 
         for material in dialog.materials():
-            self.table.model().addMaterial(material)
+            self.listview.model().addMaterial(material)
 
     def _on_remove_material(self):
-        selection_model = self.table.selectionModel()
+        selection_model = self.listview.selectionModel()
         if not selection_model.hasSelection():
             return
 
         indexes = selection_model.selectedIndexes()
-        model = self.table.model()
+        model = self.listview.model()
         for row in reversed([index.row() for index in indexes]):
             model.removeMaterial(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
 
     def _on_clear_materials(self):
-        model = self.table.model()
+        model = self.listview.model()
         model.clearMaterials()
 
 class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
@@ -684,23 +684,23 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         model = MaterialModel()
 
         # Widgets
-        self.table = QtWidgets.QListView()
-        self.table.setModel(model)
+        self.listview = QtWidgets.QListView()
+        self.listview.setModel(model)
 
-        self.toolbar = MaterialToolbar(self.table)
+        self.toolbar = MaterialToolbar(self.listview)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.table)
+        layout.addWidget(self.listview)
         layout.addWidget(self.toolbar, 0, QtCore.Qt.AlignRight)
         self.setLayout(layout)
 
         # Signals
-        self.table.doubleClicked.connect(self._on_double_clicked)
+        self.listview.doubleClicked.connect(self._on_double_clicked)
 
     def _get_model(self):
-        return self.table.model()
+        return self.listview.model()
 
     def _on_double_clicked(self, index):
         row = index.row()
@@ -720,7 +720,9 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         assert len(materials) == 1
         self._get_model().updateMaterial(row, materials[0])
 
-class MaterialComboBox(QtWidgets.QWidget, MaterialVacuumMixin):
+class MaterialComboBox(QtWidgets.QWidget,
+                       MaterialAbstractViewMixin,
+                       MaterialVacuumMixin):
 
     currentMaterialChanged = QtCore.Signal(Material)
 
@@ -801,8 +803,8 @@ class CheckableMaterialModel(MaterialModel):
 
         return super().setData(index, value, role=role)
 
-    def _addMaterial(self, material):
-        if not super()._addMaterial(material):
+    def _add_material(self, material):
+        if not super()._add_material(material):
             return False
         self._selection.append(False)
         return True
@@ -912,10 +914,10 @@ def run(): #pragma: no cover
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
-    table = MaterialsWidget()
+    widget = MaterialsWidget()
 
     mainwindow = QtWidgets.QMainWindow()
-    mainwindow.setCentralWidget(table)
+    mainwindow.setCentralWidget(widget)
     mainwindow.show()
 
     app.exec_()
