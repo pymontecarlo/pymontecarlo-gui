@@ -518,7 +518,7 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         return True
 
     def setMaterials(self, materials):
-        self._materials.clear()
+        self.clearMaterials()
         for material in materials:
             self._addMaterial(material)
         self.modelReset.emit()
@@ -538,7 +538,7 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
             return False
         self._materials.remove(material)
         self.modelReset.emit()
-        return False
+        return True
 
     def clearMaterials(self):
         self._materials.clear()
@@ -785,8 +785,15 @@ class CheckableMaterialModel(MaterialModel):
         return True
 
     def clearMaterials(self):
-        super().clearMaterials()
         self._selection.clear()
+        super().clearMaterials()
+
+    def setMaterials(self, materials):
+        selected_materials = self.selectedMaterials()
+
+        super().setMaterials(materials)
+
+        self.setSelectedMaterials(selected_materials)
 
     def selectedMaterials(self):
         return tuple(m for m, s in zip(self._materials, self._selection) if s)

@@ -12,7 +12,7 @@ from qtpy import QtCore, QtTest, QtGui
 from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.options.material import \
     (FormulaValidator, MaterialPureWidget, MaterialFormulaWidget,
-     MaterialAdvancedWidget)
+     MaterialAdvancedWidget, MaterialListWidget)
 from pymontecarlo.options.material import Material
 from pymontecarlo.options.composition import generate_name, calculate_density_kg_per_m3
 
@@ -189,6 +189,45 @@ class TestMaterialAdvancedWidget(TestCase):
 
         self.assertEqual(1, len(materials))
         self.assertEqual(material, materials[0])
+
+class TestMaterialListWidget(TestCase):
+
+    def setUp(self):
+        super().setUp()
+
+        self.wdg = MaterialListWidget()
+        self.wdg.setMaterials(self.create_materials())
+
+    def testselectedMaterials(self):
+        self.assertEqual(0, len(self.wdg.selectedMaterials()))
+
+    def testselectedMaterials_single(self):
+        material = self.wdg.material(0)
+        self.wdg.setSelectedMaterials([material])
+
+        selected_materials = self.wdg.selectedMaterials()
+        self.assertEqual(1, len(selected_materials))
+        self.assertIn(material, selected_materials)
+
+    def testselectedMaterials_remove(self):
+        material = self.wdg.material(0)
+        self.wdg.setSelectedMaterials([material])
+
+        self.wdg.removeMaterial(material)
+        self.assertEqual(2, len(self.wdg.materials()))
+        self.assertEqual(0, len(self.wdg.selectedMaterials()))
+
+    def testselectedMaterials_add(self):
+        material = self.wdg.material(0)
+        self.wdg.setSelectedMaterials([material])
+
+        newmaterial = Material.pure(28)
+        self.wdg.addMaterial(newmaterial)
+        self.assertIn(newmaterial, self.wdg.materials())
+
+        selected_materials = self.wdg.selectedMaterials()
+        self.assertEqual(1, len(selected_materials))
+        self.assertIn(material, selected_materials)
 
 if __name__ == '__main__': #pragma: no cover
     logging.getLogger().setLevel(logging.DEBUG)
