@@ -15,12 +15,13 @@ from pymontecarlo.program.validator import Validator
 from pymontecarlo_gui.options.composition import CompositionTableWidget
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
-import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import LabelField
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.util.validate import \
+    Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 DEFAULT_VALIDATOR = Validator()
@@ -34,14 +35,7 @@ class MaterialValidatorMixin:
             self._validator = DEFAULT_VALIDATOR
         return self._validator
 
-    def setValidator(self, validator):
-        """
-        Sets pyMonteCarlo's validator.
-        """
-        assert hasattr(validator, 'validate_material')
-        self._validator = validator
-
-class MaterialAbstractViewMixin(MaterialValidatorMixin, metaclass=QABCMeta):
+class MaterialAbstractViewMixin(metaclass=QABCMeta):
 
     @abc.abstractmethod
     def _get_model(self):
@@ -68,10 +62,6 @@ class MaterialAbstractViewMixin(MaterialValidatorMixin, metaclass=QABCMeta):
 
     def material(self, row):
         return self._get_model().material(row)
-
-    def setValidator(self, validator):
-        super().setValidator(validator)
-        self._get_model().setValidator(validator)
 
 class MaterialVacuumMixin:
 
@@ -126,6 +116,7 @@ class MaterialNameField(LabelField):
         self._suffix.setChecked(True)
 
         # Signals
+        self._widget.textChanged.connect(self.nameChanged)
         self._suffix.stateChanged.connect(self._on_auto_changed)
 
     def _on_auto_changed(self, *args):
@@ -222,6 +213,7 @@ class MaterialDensityField(LabelField):
         self._suffix.setChecked(False)
 
         # Signals
+        self._widget.valueChanged.connect(self.densityChanged)
         self._suffix.stateChanged.connect(self._on_user_defined_changed)
 
     def _on_user_defined_changed(self, *args):
@@ -291,10 +283,33 @@ class MaterialColorField(LabelField):
     def setColor(self, color):
         self._widget.setColor(color)
 
-class MaterialWidget(QtWidgets.QWidget, metaclass=QABCMeta):
+class MaterialWidget(QtWidgets.QWidget, Validable, MaterialValidatorMixin,
+                     metaclass=QABCMeta):
+
+    materialsChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+    def isValid(self):
+        if not super().isValid():
+            return False
+
+        try:
+            materials = self.materials()
+        except:
+            return False
+
+        if not materials:
+            return False
+
+        try:
+            for material in materials:
+                material = self.validator().validate_material(material, None)
+        except Exception:
+            return False
+
+        return True
 
     @abc.abstractmethod
     def materials(self):
@@ -314,6 +329,12 @@ class MaterialPureWidget(MaterialWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.wdg_periodic_table)
         self.setLayout(layout)
+
+        # Signals
+        self.wdg_periodic_table.selectionChanged.connect(self.materialsChanged)
+
+    def isValid(self):
+        return super().isValid() and bool(self.wdg_periodic_table.selection())
 
     def materials(self):
         materials = []
@@ -343,6 +364,9 @@ class MaterialFormulaWidget(MaterialWidget):
 
         # Signals
         self.field_formula.formulaChanged.connect(self._on_formula_changed)
+        self.field_formula.formulaChanged.connect(self.materialsChanged)
+        self.field_density.densityChanged.connect(self.materialsChanged)
+        self.field_color.colorChanged.connect(self.materialsChanged)
 
     def _on_formula_changed(self, formula):
         try:
@@ -350,6 +374,12 @@ class MaterialFormulaWidget(MaterialWidget):
         except:
             composition = {}
         self.field_density.setComposition(composition)
+
+    def isValid(self):
+        return super().isValid() and \
+            self.field_formula.isValid() and \
+            self.field_density.isValid() and \
+            self.field_color.isValid()
 
     def materials(self):
         try:
@@ -387,11 +417,22 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.setLayout(layout)
 
         # Signals
+        self.field_name.nameChanged.connect(self.materialsChanged)
+        self.field_density.densityChanged.connect(self.materialsChanged)
+        self.field_color.colorChanged.connect(self.materialsChanged)
+        self.tbl_composition.compositionChanged.connect(self.materialsChanged)
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
     def _on_composition_changed(self, composition):
         self.field_name.setComposition(composition)
         self.field_density.setComposition(composition)
+
+    def isValid(self):
+        return super().isValid() and \
+            self.field_name.isValid() and \
+            self.field_density.isValid() and \
+            self.field_color.isValid() and \
+            self.tbl_composition.isValid()
 
     def materials(self):
         try:
@@ -415,7 +456,7 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.field_density.setDensity_kg_per_m3(material.density_kg_per_m3)
         self.field_color.setColor(material.color)
 
-class MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
+class MaterialDialog(QtWidgets.QDialog):
 
     def __init__(self, material_widget_class, parent=None):
         super().__init__(parent)
@@ -427,34 +468,34 @@ class MaterialDialog(QtWidgets.QDialog, MaterialValidatorMixin):
         # Widgets
         self.wdg_material = material_widget_class()
 
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
-                                             QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
+                                                  QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.wdg_material)
-        layout.addWidget(buttons)
+        layout.addWidget(self.buttons)
         self.setLayout(layout)
 
         # Signals
-        buttons.accepted.connect(self._on_ok)
-        buttons.rejected.connect(self._on_cancel)
+        self.buttons.accepted.connect(self._on_ok)
+        self.buttons.rejected.connect(self._on_cancel)
+
+        self.wdg_material.materialsChanged.connect(self._on_materials_changed)
 
     def _on_ok(self):
-        try:
-            self._materials.clear()
-            for material in self.wdg_material.materials():
-                material = self.validator().validate_material(material, None)
-                self._materials.append(material)
-        except Exception as ex:
-            messagebox.exception(self, ex)
-            return
-
+        self._materials.clear()
+        self._materials.extend(self.wdg_material.materials())
         self.accept()
 
     def _on_cancel(self):
         self._materials.clear()
         self.reject()
+
+    def _on_materials_changed(self):
+        valid = self.wdg_material.isValid()
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(valid)
 
     def materials(self):
         return self._materials
@@ -550,7 +591,7 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
     def material(self, row):
         return self._materials[row]
 
-class MaterialToolbar(QtWidgets.QToolBar, MaterialValidatorMixin):
+class MaterialToolbar(QtWidgets.QToolBar):
 
     def __init__(self, table, parent=None):
         super().__init__(parent)
@@ -613,7 +654,6 @@ class MaterialToolbar(QtWidgets.QToolBar, MaterialValidatorMixin):
     def _on_add_material(self, material_widget_class):
         dialog = MaterialDialog(material_widget_class)
         dialog.setWindowTitle('Add material')
-        dialog.setValidator(self.validator())
 
         if not dialog.exec_():
             return
@@ -668,7 +708,6 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
         dialog = MaterialDialog(MaterialAdvancedWidget)
         dialog.setWindowTitle('Edit material')
-        dialog.setValidator(self.validator())
         dialog.wdg_material.setMaterial(material)
 
         if not dialog.exec_():
@@ -681,11 +720,7 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         assert len(materials) == 1
         self._get_model().updateMaterial(row, materials[0])
 
-    def setValidator(self, validator):
-        super().setValidator(validator)
-        self.toolbar.setValidator(validator)
-
-class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin):
+class MaterialComboBox(QtWidgets.QWidget, MaterialVacuumMixin):
 
     currentMaterialChanged = QtCore.Signal(Material)
 
@@ -814,7 +849,8 @@ class CheckableMaterialModel(MaterialModel):
 
 class MaterialListWidget(QtWidgets.QWidget,
                          MaterialAbstractViewMixin,
-                         MaterialVacuumMixin):
+                         MaterialVacuumMixin,
+                         Validable):
 
     selectionChanged = QtCore.Signal(tuple)
 
@@ -824,10 +860,12 @@ class MaterialListWidget(QtWidgets.QWidget,
         # Variables
         model = CheckableMaterialModel()
 
+        self._requires_selection = False
+
         # Widgets
         self.listview = QtWidgets.QListView()
         self.listview.setModel(model)
-        self.listview.setStyleSheet("background: pink")
+        self.listview.setStyleSheet(INVALID_BACKGROUND_STYLESHEET)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
@@ -839,23 +877,36 @@ class MaterialListWidget(QtWidgets.QWidget,
         model.dataChanged.connect(self._on_data_changed)
 
     def _on_data_changed(self, *args):
-        selected_materials = self.selectedMaterials()
-
-        if selected_materials or not self.isEnabled():
-            self.listview.setStyleSheet("background: none")
+        if self.isValid() or not self.isEnabled():
+            self.listview.setStyleSheet(VALID_BACKGROUND_STYLESHEET)
         else:
-            self.listview.setStyleSheet("background: pink")
+            self.listview.setStyleSheet(INVALID_BACKGROUND_STYLESHEET)
 
-        self.selectionChanged.emit(selected_materials)
+        self.selectionChanged.emit(self.selectedMaterials())
 
     def _get_model(self):
         return self.listview.model()
+
+    def isValid(self):
+        if not super().isValid():
+            return False
+
+        if not self._requires_selection:
+            return True
+
+        return bool(self.selectedMaterials())
 
     def selectedMaterials(self):
         return self._get_model().selectedMaterials()
 
     def setSelectedMaterials(self, materials):
         self._get_model().setSelectedMaterials(materials)
+
+    def requiresSelection(self):
+        return self._requires_selection
+
+    def setRequiresSelection(self, answer):
+        self._requires_selection = answer
 
 def run(): #pragma: no cover
     import sys
@@ -906,8 +957,6 @@ def run3(): #pragma: no cover
     mainwindow = QtWidgets.QMainWindow()
     mainwindow.setCentralWidget(widget)
     mainwindow.show()
-
-    print(widget.selectedMaterials())
 
     app.exec_()
 

@@ -13,6 +13,8 @@ import numpy as np
 
 # Local modules.
 from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.util.validate import \
+    Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 
@@ -64,7 +66,7 @@ class LineEditAdapterMixin(metaclass=QABCMeta):
     def hasAcceptableInput(self):
         return self._get_lineedit().hasAcceptableInput()
 
-class ColoredLineEdit(QtWidgets.QLineEdit):
+class ColoredLineEdit(QtWidgets.QLineEdit, Validable):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -74,9 +76,12 @@ class ColoredLineEdit(QtWidgets.QLineEdit):
 
     def _on_text_changed(self, text):
         if self.hasAcceptableInput() or not self.isEnabled():
-            self.setStyleSheet("background: none")
+            self.setStyleSheet(VALID_BACKGROUND_STYLESHEET)
         else:
-            self.setStyleSheet("background: pink")
+            self.setStyleSheet(INVALID_BACKGROUND_STYLESHEET)
+
+    def isValid(self):
+        return super().isValid() and self.hasAcceptableInput()
 
     def setEnabled(self, enabled):
         super().setEnabled(enabled)
@@ -88,7 +93,8 @@ class ColoredLineEdit(QtWidgets.QLineEdit):
 
 class ColoredFloatLineEdit(QtWidgets.QWidget,
                            LineEditAdapterMixin,
-                           DoubleValidatorAdapterMixin):
+                           DoubleValidatorAdapterMixin,
+                           Validable):
 
     valueChanged = QtCore.Signal(float)
 
@@ -129,6 +135,20 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
 
     def _get_lineedit(self):
         return self.lineedit
+
+    def isValid(self):
+        if not super().isValid():
+            return False
+
+        if not self.lineedit.isValid():
+            return False
+
+        try:
+            locale.atof(self.lineedit.text())
+        except:
+            return False
+
+        return True
 
     def value(self):
         try:
@@ -210,7 +230,8 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
 
 class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
                                 LineEditAdapterMixin,
-                                DoubleValidatorAdapterMixin):
+                                DoubleValidatorAdapterMixin,
+                                Validable):
 
     valuesChanged = QtCore.Signal(tuple)
 
@@ -251,6 +272,20 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
 
     def _get_lineedit(self):
         return self.lineedit
+
+    def isValid(self):
+        if not super().isValid():
+            return False
+
+        if not self.lineedit.isValid():
+            return False
+
+        try:
+            parse_multifloat_text(self.lineedit.text())
+        except:
+            return False
+
+        return True
 
     def values(self):
         try:

@@ -12,6 +12,8 @@ from qtpy import QtTest, QtGui
 from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit, ColoredMultiFloatLineEdit
+from pymontecarlo_gui.util.validate import \
+    VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 
@@ -25,7 +27,7 @@ class TestColoredLineEdit(TestCase):
 
     def testinitial_state(self):
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
 
         wdg = ColoredLineEdit()
         self.assertTrue(wdg.hasAcceptableInput())
@@ -34,22 +36,22 @@ class TestColoredLineEdit(TestCase):
     def testsetText(self):
         self.wdg.setText('33')
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
 
         self.wdg.setText('0')
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
 
     def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertEqual('3', self.wdg.text())
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
 
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertEqual('33', self.wdg.text())
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
 
 class TestColoredFloatLineEdit(TestCase):
 
@@ -62,22 +64,22 @@ class TestColoredFloatLineEdit(TestCase):
     def testsetValue(self):
         self.wdg.setValue(33)
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         self.wdg.setValue(0)
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
     def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertAlmostEqual(3.0, self.wdg.value(), 4)
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertAlmostEqual(33.0, self.wdg.value(), 4)
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
     def testvalueChanged_setValue(self):
         receiver = self.connectSignal(self.wdg.valueChanged)
@@ -110,16 +112,16 @@ class TestColoredMultiFloatLineEdit(TestCase):
     def testsetValues(self):
         self.wdg.setValues([12.0, 45.0])
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         self.wdg.setValues([0.0, 12.0, 45.0])
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
     def testsetValues_decimals(self):
         self.wdg.setValues([12.0, 45.123456])
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         values = self.wdg.values()
         self.assertEqual(2, len(values))
@@ -129,7 +131,7 @@ class TestColoredMultiFloatLineEdit(TestCase):
     def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
+        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         values = self.wdg.values()
         self.assertEqual(1, len(values))
@@ -137,7 +139,7 @@ class TestColoredMultiFloatLineEdit(TestCase):
 
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         values = self.wdg.values()
         self.assertEqual(1, len(values))
@@ -145,7 +147,7 @@ class TestColoredMultiFloatLineEdit(TestCase):
 
         QtTest.QTest.keyClicks(self.wdg, ';12.0')
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         values = self.wdg.values()
         self.assertEqual(2, len(values))
@@ -154,7 +156,7 @@ class TestColoredMultiFloatLineEdit(TestCase):
 
         QtTest.QTest.keyClicks(self.wdg, ';20:40:10')
         self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
         values = self.wdg.values()
         self.assertEqual(4, len(values))

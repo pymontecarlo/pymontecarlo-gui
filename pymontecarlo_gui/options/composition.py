@@ -19,6 +19,7 @@ from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.util.validate import Validable
 
 # Globals and constants variables.
 MAX_Z = 99
@@ -100,7 +101,7 @@ class FractionValidator(QtGui.QDoubleValidator):
             return QtGui.QValidator.Acceptable, input, pos
         return super().validate(input, pos)
 
-class CompositionModel(QtCore.QAbstractTableModel):
+class CompositionModel(QtCore.QAbstractTableModel, Validable):
 
     def __init__(self, composition=None):
         super().__init__()
@@ -112,6 +113,11 @@ class CompositionModel(QtCore.QAbstractTableModel):
 
     def _update_composition_atomic(self):
         self._composition_atomic = to_atomic(self.composition())
+
+    def isValid(self):
+        total_wf = sum(self.composition().values())
+        tolerance = Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE
+        return math.isclose(total_wf, 1.0, abs_tol=tolerance)
 
     def rowCount(self, parent=None):
         return len(self._composition) + 1
@@ -185,7 +191,7 @@ class CompositionModel(QtCore.QAbstractTableModel):
                 return font
 
             elif role == QtCore.Qt.BackgroundRole:
-                if not math.isclose(total_wf, 1.0, abs_tol=tolerance):
+                if not self.isValid():
                     brush = QtGui.QBrush()
                     brush.setColor(QtGui.QColor(255, 192, 203))
                     brush.setStyle(QtCore.Qt.SolidPattern)
@@ -391,7 +397,7 @@ class CompositionToolBar(QtWidgets.QToolBar):
         model = self.table.model()
         model.clearElements()
 
-class CompositionTableWidget(QtWidgets.QWidget):
+class CompositionTableWidget(QtWidgets.QWidget, Validable):
 
     compositionChanged = QtCore.Signal(dict)
 
@@ -435,6 +441,9 @@ class CompositionTableWidget(QtWidgets.QWidget):
 
     def _on_changed(self, *args, **kwargs):
         self.compositionChanged.emit(self.composition())
+
+    def isValid(self):
+        return self.table.model().isValid()
 
     def composition(self):
         return self.table.model().composition()

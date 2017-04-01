@@ -7,16 +7,27 @@ import abc
 from qtpy import QtWidgets, QtCore
 
 # Local modules.
+from pymontecarlo_gui.util.validate import Validable
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 
 # Globals and constants variables.
 
-class Field(QtCore.QObject, metaclass=QABCMeta):
+class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
     @abc.abstractmethod
     def widget(self):
         return QtWidgets.QWidget()
+
+    def isValid(self):
+        if not super().isValid():
+            return False
+
+        widget = self.widget()
+        if isinstance(widget, Validable) and not widget.isValid():
+            return False
+
+        return True
 
     @abc.abstractmethod
     def addToGridLayout(self, layout, row, start_column=0):

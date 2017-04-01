@@ -16,6 +16,7 @@ from pymontecarlo_gui.widgets.field import LabelField, GroupField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.util.validate import Validable
 from pymontecarlo_gui.options.material import MaterialListWidget
 
 # Globals and constants variables.
@@ -150,10 +151,13 @@ class DiameterField(LabelField):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-class SampleWidget(QtWidgets.QWidget, metaclass=QABCMeta):
+class SampleWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+    def isValid(self):
+        return super().isValid() and bool(self.samples())
 
     @abc.abstractmethod
     def samples(self):
