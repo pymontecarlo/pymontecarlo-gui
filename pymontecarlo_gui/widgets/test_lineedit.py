@@ -40,7 +40,7 @@ class TestColoredLineEdit(TestCase):
         self.assertFalse(self.wdg.hasAcceptableInput())
         self.assertEqual('background: pink', self.wdg.styleSheet())
 
-    def testenter_text(self):
+    def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertEqual('3', self.wdg.text())
         self.assertFalse(self.wdg.hasAcceptableInput())
@@ -68,7 +68,7 @@ class TestColoredFloatLineEdit(TestCase):
         self.assertFalse(self.wdg.hasAcceptableInput())
         self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
 
-    def testenter_text(self):
+    def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertAlmostEqual(3.0, self.wdg.value(), 4)
         self.assertFalse(self.wdg.hasAcceptableInput())
@@ -78,6 +78,20 @@ class TestColoredFloatLineEdit(TestCase):
         self.assertAlmostEqual(33.0, self.wdg.value(), 4)
         self.assertTrue(self.wdg.hasAcceptableInput())
         self.assertEqual('background: none', self.wdg.lineedit.styleSheet())
+
+    def testvalueChanged_setValue(self):
+        receiver = self.connectSignal(self.wdg.valueChanged)
+        self.wdg.setValue(33)
+
+        self.assertTrue(receiver.wasCalled())
+        self.assertAlmostEqual(33.0, receiver.args[0], 4)
+
+    def testvalueChanged_keyClicks(self):
+        receiver = self.connectSignal(self.wdg.valueChanged)
+        QtTest.QTest.keyClicks(self.wdg, '33')
+
+        self.assertTrue(receiver.wasCalled(2))
+        self.assertAlmostEqual(33.0, receiver.args[0], 4)
 
 class TestColoredMultiFloatLineEdit(TestCase):
 
@@ -106,7 +120,7 @@ class TestColoredMultiFloatLineEdit(TestCase):
         self.assertAlmostEqual(12.0, values[0], 4)
         self.assertAlmostEqual(45.12, values[1], 4)
 
-    def testenter_text(self):
+    def testkeyClicks(self):
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertFalse(self.wdg.hasAcceptableInput())
         self.assertEqual('background: pink', self.wdg.lineedit.styleSheet())
@@ -142,6 +156,20 @@ class TestColoredMultiFloatLineEdit(TestCase):
         self.assertAlmostEqual(20.0, values[1], 4)
         self.assertAlmostEqual(30.0, values[2], 4)
         self.assertAlmostEqual(33.0, values[3], 4)
+
+    def testvalueChanged_setValue(self):
+        receiver = self.connectSignal(self.wdg.valuesChanged)
+        self.wdg.setValues([33])
+
+        self.assertTrue(receiver.wasCalled())
+        self.assertAlmostEqual(33.0, receiver.args[0][0], 4)
+
+    def testvalueChanged_keyClicks(self):
+        receiver = self.connectSignal(self.wdg.valuesChanged)
+        QtTest.QTest.keyClicks(self.wdg, '33')
+
+        self.assertTrue(receiver.wasCalled(2))
+        self.assertAlmostEqual(33.0, receiver.args[0][0], 4)
 
 if __name__ == '__main__': #pragma: no cover
     logging.getLogger().setLevel(logging.DEBUG)

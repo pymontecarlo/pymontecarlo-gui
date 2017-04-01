@@ -91,6 +91,8 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
                            LineEditAdapterMixin,
                            DoubleValidatorAdapterMixin):
 
+    valueChanged = QtCore.Signal(float)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -103,6 +105,12 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.lineedit)
         self.setLayout(layout)
+
+        # Signals
+        self.lineedit.textChanged.connect(self._on_text_changed)
+
+    def _on_text_changed(self, *args):
+        self.valueChanged.emit(self.value())
 
     def _get_double_validator(self):
         return self.lineedit.validator()
@@ -149,7 +157,7 @@ def parse_multifloat_text(text):
         else:
             values.extend(np.arange(start, stop, step))
 
-    return sorted(set(values))
+    return tuple(sorted(set(values)))
 
 class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
 
@@ -187,6 +195,8 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
                                 LineEditAdapterMixin,
                                 DoubleValidatorAdapterMixin):
 
+    valuesChanged = QtCore.Signal(tuple)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -199,6 +209,12 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.lineedit)
         self.setLayout(layout)
+
+        # Signals
+        self.lineedit.textChanged.connect(self._on_text_changed)
+
+    def _on_text_changed(self, *args):
+        self.valuesChanged.emit(self.values())
 
     def _get_double_validator(self):
         return self.lineedit.validator()
