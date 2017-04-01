@@ -37,19 +37,19 @@ class _BrowseWidget(QtWidgets.QWidget, metaclass=QABCMeta):
         self.setLayout(layout)
 
         # Signal
-        btn_browse.released.connect(self._onBrowse)
+        btn_browse.released.connect(self._on_browse)
 
     @abc.abstractmethod
-    def _showDialog(self, basedir):
+    def _show_dialog(self, basedir):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _validatePath(self, path):
+    def _validate_path(self, path):
         raise NotImplementedError
 
-    def _onBrowse(self):
+    def _on_browse(self):
         oldpath = self.path()
-        newpath = self._showDialog(self.baseDir())
+        newpath = self._show_dialog(self.baseDir())
 
         if not newpath and not oldpath:
             return
@@ -86,7 +86,7 @@ class _BrowseWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
         path = os.path.abspath(path)
 
-        self._validatePath(path)
+        self._validate_path(path)
 
         self._txt_path.setText(path)
         self._txt_path.setCursorPosition(0)
@@ -113,12 +113,12 @@ class FileBrowseWidget(_BrowseWidget):
         # Variables
         self._namefilters = []
 
-    def _showDialog(self, basedir):
+    def _show_dialog(self, basedir):
         title = "Browse file"
         filter = ';;'.join(self.nameFilters())
         return QtWidgets.QFileDialog.getOpenFileName(self, title, basedir, filter)[0]
 
-    def _validatePath(self, path):
+    def _validate_path(self, path):
         if os.path.splitext(path)[1] != '.app' and not os.path.isfile(path):
             raise ValueError('%s is not a file' % path)
 
@@ -135,10 +135,10 @@ class FileBrowseWidget(_BrowseWidget):
 
 class DirectoryBrowseWidget(_BrowseWidget):
 
-    def _showDialog(self, basedir):
+    def _show_dialog(self, basedir):
         title = "Browse directory"
         return QtWidgets.QFileDialog.getExistingDirectory(self, title, basedir)
 
-    def _validatePath(self, path):
+    def _validate_path(self, path):
         if not os.path.isdir(path):
             raise ValueError('%s is not a directory' % path)
