@@ -44,34 +44,34 @@ class MaterialValidatorMixin:
 class MaterialAbstractViewMixin(MaterialValidatorMixin, metaclass=QABCMeta):
 
     @abc.abstractmethod
-    def _model(self):
+    def _get_model(self):
         raise NotImplementedError
 
     def addMaterial(self, material):
-        self._model().addMaterial(material)
+        self._get_model().addMaterial(material)
 
     def removeMaterial(self, material):
-        self._model().removeMaterial(material)
+        self._get_model().removeMaterial(material)
 
     def takeMaterial(self, row):
-        model = self._model()
+        model = self._get_model()
         model.removeMaterial(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
 
     def clear(self):
-        self._model().clearMaterials()
+        self._get_model().clearMaterials()
 
     def materials(self):
-        return self._model().materials()
+        return self._get_model().materials()
 
     def setMaterials(self, materials):
-        self._model().setMaterials(materials)
+        self._get_model().setMaterials(materials)
 
     def material(self, row):
-        return self._model().material(row)
+        return self._get_model().material(row)
 
     def setValidator(self, validator):
         super().setValidator(validator)
-        self._model().setValidator(validator)
+        self._get_model().setValidator(validator)
 
 class MaterialVacuumMixin:
 
@@ -659,7 +659,7 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         # Signals
         self.table.doubleClicked.connect(self._on_double_clicked)
 
-    def _model(self):
+    def _get_model(self):
         return self.table.model()
 
     def _on_double_clicked(self, index):
@@ -679,7 +679,7 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
             return
 
         assert len(materials) == 1
-        self._model().updateMaterial(row, materials[0])
+        self._get_model().updateMaterial(row, materials[0])
 
     def setValidator(self, validator):
         super().setValidator(validator)
@@ -711,7 +711,7 @@ class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVac
         model.modelReset.connect(self._on_model_reset)
         self.combobox.currentIndexChanged.connect(self._on_current_index_changed)
 
-    def _model(self):
+    def _get_model(self):
         return self.combobox.model()
 
     def _on_model_reset(self, *args):
@@ -723,7 +723,7 @@ class MaterialComboBox(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVac
 
     def currentMaterial(self):
         row = self.combobox.currentIndex()
-        return self._model().material(row)
+        return self._get_model().material(row)
 
     def setCurrentMaterial(self, material):
         materials = self.materials()
@@ -802,7 +802,12 @@ class CheckableMaterialModel(MaterialModel):
                 continue
             self._selection[row] = True
 
-class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin):
+        self.dataChanged.emit(self.createIndex(0, 0),
+                              self.createIndex(len(self._materials), 0))
+
+class MaterialListWidget(QtWidgets.QWidget,
+                         MaterialAbstractViewMixin,
+                         MaterialVacuumMixin):
 
     selectionChanged = QtCore.Signal(tuple)
 
@@ -815,6 +820,7 @@ class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialV
         # Widgets
         self.listview = QtWidgets.QListView()
         self.listview.setModel(model)
+        self.listview.setStyleSheet("background: pink")
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
@@ -826,16 +832,23 @@ class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialV
         model.dataChanged.connect(self._on_data_changed)
 
     def _on_data_changed(self, *args):
-        self.selectionChanged.emit(self.selectedMaterials())
+        selected_materials = self.selectedMaterials()
 
-    def _model(self):
+        if selected_materials or not self.isEnabled():
+            self.listview.setStyleSheet("background: none")
+        else:
+            self.listview.setStyleSheet("background: pink")
+
+        self.selectionChanged.emit(selected_materials)
+
+    def _get_model(self):
         return self.listview.model()
 
     def selectedMaterials(self):
-        return self._model().selectedMaterials()
+        return self._get_model().selectedMaterials()
 
     def setSelectedMaterials(self, materials):
-        self._model().setSelectedMaterials(materials)
+        self._get_model().setSelectedMaterials(materials)
 
 def run(): #pragma: no cover
     import sys
@@ -881,7 +894,7 @@ def run3(): #pragma: no cover
     widget.addMaterial(Material.pure(13))
     widget.addMaterial(Material.pure(10))
     widget.setAllowVacuum(True)
-    #widget.setCurrentMaterial(material)
+    widget.setSelectedMaterials([material])
 
     mainwindow = QtWidgets.QMainWindow()
     mainwindow.setCentralWidget(widget)
@@ -892,4 +905,4 @@ def run3(): #pragma: no cover
     app.exec_()
 
 if __name__ == '__main__': #pragma: no cover
-    run()
+    run3()
