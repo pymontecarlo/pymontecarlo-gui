@@ -93,6 +93,12 @@ class TestColoredFloatLineEdit(TestCase):
         self.assertTrue(receiver.wasCalled(2))
         self.assertAlmostEqual(33.0, receiver.args[0], 4)
 
+    def testtoolTip(self):
+        self.assertEqual('Value must be between [10.00, 50.00]', self.wdg.toolTip())
+
+        self.wdg.setBottom(0.0)
+        self.assertEqual('Value must be between [0.00, 50.00]', self.wdg.toolTip())
+
 class TestColoredMultiFloatLineEdit(TestCase):
 
     def setUp(self):
@@ -170,6 +176,12 @@ class TestColoredMultiFloatLineEdit(TestCase):
 
         self.assertTrue(receiver.wasCalled(2))
         self.assertAlmostEqual(33.0, receiver.args[0][0], 4)
+
+    def testtoolTip(self):
+        self.assertEqual('Value(s) must be between [10.00, 50.00]', self.wdg.toolTip())
+
+        self.wdg.setBottom(0.0)
+        self.assertEqual('Value(s) must be between [0.00, 50.00]', self.wdg.toolTip())
 
 if __name__ == '__main__': #pragma: no cover
     logging.getLogger().setLevel(logging.DEBUG)

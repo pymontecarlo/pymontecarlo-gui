@@ -99,6 +99,7 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         # Widgets
         self.lineedit = ColoredLineEdit()
         self.lineedit.setValidator(QtGui.QDoubleValidator())
+        self._update_tooltip()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
@@ -108,9 +109,21 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
 
         # Signals
         self.lineedit.textChanged.connect(self._on_text_changed)
+        self.lineedit.validator().changed.connect(self._on_validator_changed)
+
+    def _update_tooltip(self):
+        fmt = '%.{}f'.format(self.decimals())
+        tooltip = 'Value must be between [{}, {}]' \
+            .format(locale.format(fmt, self.bottom()),
+                    locale.format(fmt, self.top()))
+        self.lineedit.setToolTip(tooltip)
+        self.setToolTip(tooltip)
 
     def _on_text_changed(self, *args):
         self.valueChanged.emit(self.value())
+
+    def _on_validator_changed(self, *args):
+        self._update_tooltip()
 
     def _get_double_validator(self):
         return self.lineedit.validator()
@@ -164,9 +177,14 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
     def __init__(self):
         super().__init__()
 
+        # Variables
         expr = QtCore.QRegExp(r'^[\de\-.,+:;]+$')
         self.validator_text = QtGui.QRegExpValidator(expr)
         self.validator_value = QtGui.QDoubleValidator()
+
+        # Signals
+        self.validator_text.changed.connect(self.changed)
+        self.validator_value.changed.connect(self.changed)
 
     def validate(self, input, pos):
         if not input:
@@ -203,6 +221,7 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         # Widgets
         self.lineedit = ColoredLineEdit()
         self.lineedit.setValidator(MultiFloatValidator())
+        self._update_tooltip()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
@@ -212,9 +231,21 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
 
         # Signals
         self.lineedit.textChanged.connect(self._on_text_changed)
+        self.lineedit.validator().changed.connect(self._on_validator_changed)
+
+    def _update_tooltip(self):
+        fmt = '%.{}f'.format(self.decimals())
+        tooltip = 'Value(s) must be between [{}, {}]' \
+            .format(locale.format(fmt, self.bottom()),
+                    locale.format(fmt, self.top()))
+        self.lineedit.setToolTip(tooltip)
+        self.setToolTip(tooltip)
 
     def _on_text_changed(self, *args):
         self.valuesChanged.emit(self.values())
+
+    def _on_validator_changed(self, *args):
+        self._update_tooltip()
 
     def _get_double_validator(self):
         return self.lineedit.validator()
