@@ -8,6 +8,7 @@ from qtpy import QtWidgets
 # Local modules.
 from pymontecarlo.options.sample.substrate import SubstrateSampleBuilder
 
+from pymontecarlo_gui.widgets.field import FieldLayout
 from pymontecarlo_gui.options.sample.base import \
     SampleWidget, TiltField, RotationField, MaterialField
 
@@ -26,10 +27,10 @@ class SubstrateSampleWidget(SampleWidget):
         self.field_rotation = RotationField()
 
         # Layouts
-        layout = QtWidgets.QGridLayout()
-        self.field_material.addToGridLayout(layout, 0)
-        self.field_tilt.addToGridLayout(layout, 1)
-        self.field_rotation.addToGridLayout(layout, 2)
+        layout = FieldLayout()
+        layout.addField(self.field_material)
+        layout.addField(self.field_tilt)
+        layout.addField(self.field_rotation)
         self.setLayout(layout)
 
     def setAvailableMaterials(self, materials):

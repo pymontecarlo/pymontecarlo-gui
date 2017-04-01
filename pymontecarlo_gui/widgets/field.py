@@ -16,6 +16,10 @@ from pymontecarlo_gui.widgets.groupbox import create_group_box
 class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
     @abc.abstractmethod
+    def _add_to_layout(self, layout, row):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def widget(self):
         return QtWidgets.QWidget()
 
@@ -29,11 +33,22 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
         return True
 
-    @abc.abstractmethod
-    def addToGridLayout(self, layout, row, start_column=0):
-        raise NotImplementedError
-
 class LabelField(Field):
+
+    def _add_to_layout(self, layout, row):
+        suffix = self.suffix()
+        has_suffix = suffix is not None
+
+        # Label
+        layout.addWidget(self.label(), row, 0)
+
+        # Widget
+        colspan = 1 if has_suffix else 2
+        layout.addWidget(self.widget(), row, 1, 1, colspan)
+
+        # Suffix
+        if has_suffix:
+            layout.addWidget(suffix, row, 2)
 
     @abc.abstractmethod
     def label(self):
@@ -42,30 +57,21 @@ class LabelField(Field):
     def suffix(self):
         return None
 
-    def addToGridLayout(self, layout, row, start_column=0):
-        suffix = self.suffix()
-        has_suffix = suffix is not None
-
-        # Label
-        layout.addWidget(self.label(), row, start_column)
-
-        # Widget
-        colspan = 1 if has_suffix else 2
-        layout.addWidget(self.widget(), row, start_column + 1, 1, colspan)
-
-        # Suffix
-        if has_suffix:
-            layout.addWidget(suffix, row, start_column + 2)
-
 class GroupField(Field):
 
     def _create_group_box(self):
         return create_group_box(self.title(), self.widget())
 
+    def _add_to_layout(self, layout, row):
+        groupbox = self._create_group_box()
+        layout.addWidget(groupbox, row, 0, 1, 3)
+
     @abc.abstractmethod
     def title(self):
         return ''
 
-    def addToGridLayout(self, layout, row, start_column=0):
-        groupbox = self._create_group_box()
-        layout.addWidget(groupbox, row, start_column, 1, 3)
+class FieldLayout(QtWidgets.QGridLayout):
+
+    def addField(self, field):
+        row = self.rowCount()
+        field._add_to_layout(self, row)

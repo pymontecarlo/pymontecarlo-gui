@@ -16,7 +16,7 @@ from pymontecarlo_gui.options.composition import CompositionTableWidget
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
-from pymontecarlo_gui.widgets.field import LabelField
+from pymontecarlo_gui.widgets.field import LabelField, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
@@ -355,11 +355,11 @@ class MaterialFormulaWidget(MaterialWidget):
         self.field_color = MaterialColorField()
 
         # Layouts
-        layout = QtWidgets.QGridLayout()
+        layout = FieldLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        self.field_formula.addToGridLayout(layout, 0)
-        self.field_density.addToGridLayout(layout, 1)
-        self.field_color.addToGridLayout(layout, 2)
+        layout.addField(self.field_formula)
+        layout.addField(self.field_density)
+        layout.addField(self.field_color)
         self.setLayout(layout)
 
         # Signals
@@ -405,10 +405,10 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.tbl_composition = CompositionTableWidget()
 
         # Layouts
-        lyt_top = QtWidgets.QGridLayout()
-        self.field_name.addToGridLayout(lyt_top, 0)
-        self.field_density.addToGridLayout(lyt_top, 1)
-        self.field_color.addToGridLayout(lyt_top, 2)
+        lyt_top = FieldLayout()
+        lyt_top.addField(self.field_name)
+        lyt_top.addField(self.field_density)
+        lyt_top.addField(self.field_color)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -961,4 +961,4 @@ def run3(): #pragma: no cover
     app.exec_()
 
 if __name__ == '__main__': #pragma: no cover
-    run3()
+    run()

@@ -8,6 +8,7 @@ from qtpy import QtWidgets
 # Local modules.
 from pymontecarlo.options.sample.inclusion import InclusionSample, InclusionSampleBuilder
 
+from pymontecarlo_gui.widgets.field import FieldLayout
 from pymontecarlo_gui.options.sample.base import \
     SampleWidget, TiltField, RotationField, MaterialField, DiameterField
 
@@ -45,12 +46,12 @@ class InclusionSampleWidget(SampleWidget):
         self.field_rotation = RotationField()
 
         # Layouts
-        layout = QtWidgets.QGridLayout()
-        self.field_substrate.addToGridLayout(layout, 0)
-        self.field_inclusion.addToGridLayout(layout, 1)
-        self.field_diameter.addToGridLayout(layout, 2)
-        self.field_tilt.addToGridLayout(layout, 3)
-        self.field_rotation.addToGridLayout(layout, 4)
+        layout = FieldLayout()
+        layout.addField(self.field_substrate)
+        layout.addField(self.field_inclusion)
+        layout.addField(self.field_diameter)
+        layout.addField(self.field_tilt)
+        layout.addField(self.field_rotation)
         self.setLayout(layout)
 
     def setAvailableMaterials(self, materials):
