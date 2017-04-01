@@ -17,7 +17,7 @@ from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
-from pymontecarlo_gui.widgets.field import Field
+from pymontecarlo_gui.widgets.field import LabelField
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
@@ -105,7 +105,7 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
 #--- Widgets
 
-class MaterialNameField(Field):
+class MaterialNameField(LabelField):
 
     nameChanged = QtCore.Signal(str)
 
@@ -167,7 +167,7 @@ class MaterialNameField(Field):
         self._composition = composition.copy()
         self._update_name()
 
-class MaterialFormulaField(Field):
+class MaterialFormulaField(LabelField):
 
     formulaChanged = QtCore.Signal(str)
 
@@ -199,7 +199,7 @@ class MaterialFormulaField(Field):
     def setFormula(self, formula):
         self._widget.setText(formula)
 
-class MaterialDensityField(Field):
+class MaterialDensityField(LabelField):
 
     densityChanged = QtCore.Signal(float)
 
@@ -210,7 +210,7 @@ class MaterialDensityField(Field):
         self._composition = {}
 
         # Widgets
-        self._label = QtWidgets.QLabel("Density (g/cm<sup>3</sup>)")
+        self._label = QtWidgets.QLabel("Density [g/cm<sup>3</sup>]")
 
         self._widget = ColoredFloatLineEdit()
         decimals = tolerance_to_decimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3) + 3
@@ -263,7 +263,7 @@ class MaterialDensityField(Field):
         self._composition = composition.copy()
         self._update_density()
 
-class MaterialColorField(Field):
+class MaterialColorField(LabelField):
 
     colorChanged = QtCore.Signal(QtGui.QColor)
 
@@ -804,7 +804,7 @@ class CheckableMaterialModel(MaterialModel):
 
 class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin):
 
-    selectionChanged = QtCore.Signal()
+    selectionChanged = QtCore.Signal(tuple)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -823,7 +823,10 @@ class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialV
         self.setLayout(layout)
 
         # Signals
-        model.dataChanged.connect(self.selectionChanged)
+        model.dataChanged.connect(self._on_data_changed)
+
+    def _on_data_changed(self, *args):
+        self.selectionChanged.emit(self.selectedMaterials())
 
     def _model(self):
         return self.listview.model()
