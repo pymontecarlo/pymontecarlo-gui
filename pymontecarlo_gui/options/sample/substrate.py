@@ -13,18 +13,13 @@ from pymontecarlo_gui.options.sample.base import \
 
 # Globals and constants variables.
 
-class SubstrateMaterialField(MaterialField):
-
-    def title(self):
-        return 'Substrate material(s)'
-
 class SubstrateSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         # Widgets
-        self.field_material = SubstrateMaterialField()
+        self.field_material = MaterialField()
 
         self.field_tilt = TiltField()
 
@@ -36,9 +31,6 @@ class SubstrateSampleWidget(SampleWidget):
         self.field_tilt.addToGridLayout(layout, 1)
         self.field_rotation.addToGridLayout(layout, 2)
         self.setLayout(layout)
-
-    def availableMaterials(self):
-        return self.field_material.availableMaterials()
 
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)

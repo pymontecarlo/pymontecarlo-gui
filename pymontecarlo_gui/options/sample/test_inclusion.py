@@ -10,23 +10,30 @@ from qtpy import QtTest
 
 # Local modules.
 from pymontecarlo_gui.testcase import TestCase
-from pymontecarlo_gui.options.sample.substrate import SubstrateSampleWidget
+from pymontecarlo_gui.options.sample.inclusion import InclusionSampleWidget
 
 # Globals and constants variables.
 
-class TestSubstrateSampleWidget(TestCase):
+class TestInclusionSampleWidget(TestCase):
 
     def setUp(self):
         super().setUp()
 
-        self.wdg = SubstrateSampleWidget()
+        self.wdg = InclusionSampleWidget()
 
     def testsamples(self):
         materials = self.create_materials()
         self.wdg.setAvailableMaterials(materials)
 
-        widget = self.wdg.field_material.widget()
+        widget = self.wdg.field_substrate.widget()
         widget.setSelectedMaterials(materials[:2])
+
+        widget = self.wdg.field_inclusion.widget()
+        widget.setSelectedMaterials(materials[-2:])
+
+        widget = self.wdg.field_diameter.widget()
+        widget.clear()
+        QtTest.QTest.keyClicks(widget, '100.0;200.0')
 
         widget = self.wdg.field_tilt.widget()
         widget.clear()
@@ -37,7 +44,7 @@ class TestSubstrateSampleWidget(TestCase):
         QtTest.QTest.keyClicks(widget, '3.3;4.4')
 
         samples = self.wdg.samples()
-        self.assertEqual(2 ** 3, len(samples))
+        self.assertEqual(2 ** 5, len(samples))
 
 if __name__ == '__main__': #pragma: no cover
     logging.getLogger().setLevel(logging.DEBUG)

@@ -7,6 +7,8 @@ import abc
 # Third party modules.
 from qtpy import QtWidgets, QtCore
 
+import numpy as np
+
 # Local modules.
 from pymontecarlo.options.sample.base import Sample
 
@@ -116,6 +118,38 @@ class MaterialField(GroupField):
     def setAvailableMaterials(self, materials):
         self._widget.setMaterials(materials)
 
+class DiameterField(LabelField):
+
+    def __init__(self):
+        super().__init__()
+
+        # Widgets
+        self._label = QtWidgets.QLabel('Diameter(s) [nm]')
+        self._label.setStyleSheet('color: blue')
+
+        self._widget = ColoredMultiFloatLineEdit()
+        tolerance = self._get_tolerance_m()
+        decimals = tolerance_to_decimals(tolerance)
+        self._widget.setRange(tolerance, float('inf'), decimals)
+        self._widget.setValues([100.0])
+
+    @abc.abstractmethod
+    def _get_tolerance_m(self):
+        raise NotImplementedError
+
+    def label(self):
+        return self._label
+
+    def widget(self):
+        return self._widget
+
+    def diameters_m(self):
+        return np.array(self._widget.values()) * 1e-9
+
+    def setDiameters_m(self, diameters_m):
+        values = np.array(diameters_m) * 1e9
+        self._widget.setValues(values)
+
 class SampleWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
@@ -130,8 +164,4 @@ class SampleWidget(QtWidgets.QWidget, metaclass=QABCMeta):
 
     @abc.abstractmethod
     def setAvailableMaterials(self, materials):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def availableMaterials(self):
         raise NotImplementedError
