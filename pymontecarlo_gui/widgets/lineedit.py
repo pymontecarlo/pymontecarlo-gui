@@ -73,8 +73,7 @@ class ColoredLineEdit(QtWidgets.QLineEdit):
         self.textChanged.connect(self._on_text_changed)
 
     def _on_text_changed(self, text):
-        if self.hasAcceptableInput() or \
-                not self.isEnabled():
+        if self.hasAcceptableInput() or not self.isEnabled():
             self.setStyleSheet("background: none")
         else:
             self.setStyleSheet("background: pink")
