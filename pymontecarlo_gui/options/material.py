@@ -88,9 +88,9 @@ class FormulaValidator(QtGui.QRegExpValidator):
         super().__init__(QtCore.QRegExp(r'^[\w ]+$'))
 
     def validate(self, input, pos):
-        out, input, pos = super().validate(input, pos)
-        if out == QtGui.QValidator.Invalid:
-            return QtGui.QValidator.Invalid, input, pos
+        state, input, pos = super().validate(input, pos)
+        if state == QtGui.QValidator.Invalid:
+            return state, input, pos
 
         try:
             from_formula(input)
@@ -829,7 +829,7 @@ class MaterialListWidget(QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialV
     def setSelectedMaterials(self, materials):
         self._model().setSelectedMaterials(materials)
 
-def run():
+def run(): #pragma: no cover
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
@@ -841,7 +841,7 @@ def run():
 
     app.exec_()
 
-def run2():
+def run2(): #pragma: no cover
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
@@ -861,7 +861,7 @@ def run2():
 
     app.exec_()
 
-def run3():
+def run3(): #pragma: no cover
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
@@ -883,5 +883,5 @@ def run3():
 
     app.exec_()
 
-if __name__ == '__main__':
+if __name__ == '__main__': #pragma: no cover
     run3()
