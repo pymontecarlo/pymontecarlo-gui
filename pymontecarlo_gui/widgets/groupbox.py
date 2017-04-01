@@ -9,10 +9,6 @@ from qtpy import QtWidgets
 
 # Globals and constants variables.
 
-def clear_stackedwidget(wdg):
-    for index in reversed(range(wdg.count())):
-        wdg.removeWidget(wdg.widget(index))
-
 def create_group_box(title, *widgets, direction=None):
     if direction is None:
         direction = QtWidgets.QBoxLayout.TopToBottom

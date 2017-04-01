@@ -10,7 +10,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 # Local modules.
 from pymontecarlo_gui.results.base import ResultSummaryWidget
-from pymontecarlo_gui.widgets.util import create_group_box
+from pymontecarlo_gui.widgets.groupbox import create_group_box
 
 # Globals and constants variables.
 

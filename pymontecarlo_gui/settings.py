@@ -15,7 +15,8 @@ from pymontecarlo._settings import Settings
 from pymontecarlo.exceptions import ValidationError
 from pymontecarlo.program.configurator import FileType, DirectoryType
 
-from pymontecarlo_gui.widgets.util import clear_stackedwidget, create_group_box
+from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
+from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.label import LabelIcon
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.browse import FileBrowseWidget, DirectoryBrowseWidget
