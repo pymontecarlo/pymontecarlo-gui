@@ -3,43 +3,34 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtWidgets
 
 # Local modules.
-from pymontecarlo.options.sample.inclusion import InclusionSample, InclusionSampleBuilder
+from pymontecarlo.options.sample.horizontallayers import HorizontalLayerSampleBuilder
 
-from pymontecarlo_gui.widgets.field import FieldLayout
 from pymontecarlo_gui.options.sample.base import \
-    SampleWidget, TiltField, RotationField, MaterialField, DiameterField
+    TiltField, RotationField, MaterialField, LayerBuilderField, SampleWidget
+from pymontecarlo_gui.widgets.field import FieldLayout
 
 # Globals and constants variables.
 
 class SubstrateMaterialField(MaterialField):
 
+    def __init__(self):
+        super().__init__()
+        self._widget.setRequiresSelection(False)
+
     def title(self):
-        return 'Substrate material(s)'
+        return "Substrate material(s) (optional)"
 
-class InclusionMaterialField(MaterialField):
-
-    def title(self):
-        return 'Inclusion material(s)'
-
-class InclusionDiameterField(DiameterField):
-
-    def _get_tolerance_m(self):
-        return InclusionSample.INCLUSION_DIAMETER_TOLERANCE_m
-
-class InclusionSampleWidget(SampleWidget):
+class HorizontalLayerSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         # Widgets
+        self.field_layers = LayerBuilderField()
+
         self.field_substrate = SubstrateMaterialField()
-
-        self.field_inclusion = InclusionMaterialField()
-
-        self.field_diameter = InclusionDiameterField()
 
         self.field_tilt = TiltField()
 
@@ -47,43 +38,37 @@ class InclusionSampleWidget(SampleWidget):
 
         # Layouts
         layout = FieldLayout()
+        layout.addField(self.field_layers)
         layout.addField(self.field_substrate)
-        layout.addField(self.field_inclusion)
-        layout.addField(self.field_diameter)
         layout.addField(self.field_tilt)
         layout.addField(self.field_rotation)
         self.setLayout(layout)
 
         # Signals
+        self.field_layers.layerBuildersChanged.connect(self.samplesChanged)
         self.field_substrate.materialsChanged.connect(self.samplesChanged)
-        self.field_inclusion.materialsChanged.connect(self.samplesChanged)
-        self.field_diameter.diametersChanged.connect(self.samplesChanged)
         self.field_tilt.tiltsChanged.connect(self.samplesChanged)
         self.field_rotation.rotationsChanged.connect(self.samplesChanged)
 
     def isValid(self):
         return super().isValid() and \
+            self.field_layers.isValid() and \
             self.field_substrate.isValid() and \
-            self.field_inclusion.isValid() and \
-            self.field_diameter.isValid() and \
             self.field_tilt.isValid() and \
             self.field_rotation.isValid()
 
     def setAvailableMaterials(self, materials):
+        self.field_layers.setAvailableMaterials(materials)
         self.field_substrate.setAvailableMaterials(materials)
-        self.field_inclusion.setAvailableMaterials(materials)
 
     def samples(self):
-        builder = InclusionSampleBuilder()
+        builder = HorizontalLayerSampleBuilder()
+
+        for layer_builder in self.field_layers.layerBuilders():
+            builder.add_layer_builder(layer_builder)
 
         for material in self.field_substrate.materials():
             builder.add_substrate_material(material)
-
-        for material in self.field_inclusion.materials():
-            builder.add_inclusion_material(material)
-
-        for diameter_m in self.field_diameter.diameters_m():
-            builder.add_inclusion_diameter_m(diameter_m)
 
         for tilt_deg in self.field_tilt.tilts_deg():
             builder.add_tilt_deg(tilt_deg)
@@ -95,9 +80,11 @@ class InclusionSampleWidget(SampleWidget):
 
 def run(): #pragma: no cover
     import sys
+    from qtpy import QtWidgets
+
     app = QtWidgets.QApplication(sys.argv)
 
-    table = InclusionSampleWidget()
+    table = HorizontalLayerSampleWidget()
 
     mainwindow = QtWidgets.QMainWindow()
     mainwindow.setCentralWidget(table)

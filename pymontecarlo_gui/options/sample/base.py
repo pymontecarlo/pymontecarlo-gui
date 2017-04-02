@@ -12,7 +12,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 # Local modules.
-from pymontecarlo.options.sample.base import Sample, Layer
+from pymontecarlo.options.sample.base import Sample, Layer, LayerBuilder
 
 from pymontecarlo_gui.widgets.field import LabelField, GroupField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
@@ -126,6 +126,8 @@ class MaterialField(GroupField):
 
 class DiameterField(LabelField):
 
+    diametersChanged = QtCore.Signal(tuple)
+
     def __init__(self):
         super().__init__()
 
@@ -134,10 +136,13 @@ class DiameterField(LabelField):
         self._label.setStyleSheet('color: blue')
 
         self._widget = ColoredMultiFloatLineEdit()
-        tolerance = self._get_tolerance_m()
+        tolerance = self._get_tolerance_m() * 1e9
         decimals = tolerance_to_decimals(tolerance)
         self._widget.setRange(tolerance, float('inf'), decimals)
         self._widget.setValues([100.0])
+
+        # Widgets
+        self._widget.valuesChanged.connect(self.diametersChanged)
 
     @abc.abstractmethod
     def _get_tolerance_m(self):
@@ -156,64 +161,86 @@ class DiameterField(LabelField):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-#--- Layers
+class LayerBuilderField(GroupField):
 
-class LayerRow:
-
-    def __init__(self):
-        self.materials = []
-        self.thicknesses_m = []
-
-    def isValid(self):
-        return bool(self.materials) and bool(self.thicknesses_m)
-
-class LayerRowModel(QtCore.QAbstractTableModel, Validable):
-
-    MIMETYPE = 'application/layerrow'
+    layerBuildersChanged = QtCore.Signal(tuple)
 
     def __init__(self):
         super().__init__()
 
-        self._layerrows = []
+        # Widgets
+        self._widget = LayerBuilderWidget()
+
+        # Signals
+        self._widget.layerBuildersChanged.connect(self.layerBuildersChanged)
+
+    def title(self):
+        return 'Layers'
+
+    def widget(self):
+        return self._widget
+
+    def layerBuilders(self):
+        return self._widget.layerBuilders()
+
+    def setLayerBuilders(self, builders):
+        self._widget.setLayerBuilders(builders)
+
+    def availableMaterials(self):
+        return self._widget.availableMaterials()
+
+    def setAvailableMaterials(self, materials):
+        self._widget.setAvailableMaterials(materials)
+
+#--- Layers
+
+class LayerBuilderModel(QtCore.QAbstractTableModel, Validable):
+
+    MIMETYPE = 'pymontecarlo/layerbuilder'
+
+    def __init__(self):
+        super().__init__()
+
+        self._builders = []
 
         tolerance = Layer.THICKNESS_TOLERANCE_m * 1e9
         decimals = tolerance_to_decimals(tolerance)
         self.thickness_format = '%.{}f'.format(decimals)
 
     def rowCount(self, *args, **kwargs):
-        return len(self._layerrows)
+        return len(self._builders)
 
     def columnCount(self, *args, **kwargs):
         return 2
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid() or \
-                not (0 <= index.row() < len(self._layerrows)):
+                not (0 <= index.row() < len(self._builders)):
             return None
 
         row = index.row()
         column = index.column()
-        layerrow = self._layerrows[row]
+        builder = self._builders[row]
 
         if role == QtCore.Qt.DisplayRole:
             if column == 0:
-                if not layerrow.materials:
+                if not builder.materials:
                     return 'none'
                 else:
-                    return ', '.join(map(operator.attrgetter('name'), layerrow.materials))
+                    return ', '.join(map(operator.attrgetter('name'), builder.materials))
             elif column == 1:
-                if len(layerrow.thicknesses_m) > 0:
-                    values = np.array(layerrow.thicknesses_m) * 1e9
+                if len(builder.thicknesses_m) > 0:
+                    values = np.array(sorted(builder.thicknesses_m)) * 1e9
                     return ', '.join(locale.format(self.thickness_format, v) for v in values)
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
 
         elif role == QtCore.Qt.UserRole:
-            return layerrow
+            return builder
 
         elif role == QtCore.Qt.BackgroundRole:
-            if not layerrow.isValid():
+            if len(builder) == 0:
                 brush = QtGui.QBrush()
                 brush.setColor(QtGui.QColor(INVALID_COLOR))
                 brush.setStyle(QtCore.Qt.SolidPattern)
@@ -246,7 +273,7 @@ class LayerRowModel(QtCore.QAbstractTableModel, Validable):
             return False
 
         row = index.row()
-        self._layerrows[row] = value
+        self._builders[row] = value
 
         self.dataChanged.emit(index, index)
         return True
@@ -298,56 +325,56 @@ class LayerRowModel(QtCore.QAbstractTableModel, Validable):
 
         oldrow = int(mimedata.data(self.MIMETYPE).data().decode('ascii'))
 
-        layerrow = self._layerrows.pop(oldrow)
-        self._layerrows.insert(newrow, layerrow)
+        builder = self._builders.pop(oldrow)
+        self._builders.insert(newrow, builder)
 
         self.modelReset.emit()
 
         return True
 
     def isValid(self):
-        return super().isValid() and all(r.isValid() for r in self._layerrows)
+        return super().isValid() and all(len(b) > 0 for b in self._builders)
 
-    def _add_layerrow(self, layerrow):
-        self._layerrows.append(layerrow)
+    def _add_builder(self, builder):
+        self._builders.append(builder)
 
-    def addLayerRow(self, layerrow):
-        self._add_layerrow(layerrow)
+    def addLayerBuilder(self, builder):
+        self._add_builder(builder)
         self.modelReset.emit()
 
-    def addNewLayerRow(self):
-        self.addLayerRow(LayerRow())
+    def addNewLayerBuilder(self):
+        self.addLayerBuilder(LayerBuilder())
 
-    def updateLayerRow(self, row, layerrow):
-        self._layerrows[row] = layerrow
+    def updateLayerBuilder(self, row, builder):
+        self._builders[row] = builder
         self.modelReset.emit()
 
-    def removeLayerRow(self, layerrow):
-        if layerrow not in self._layerrows:
+    def removeLayerBuilder(self, builder):
+        if builder not in self._builders:
             return
-        self._layerrows.remove(layerrow)
+        self._builders.remove(builder)
         self.modelReset.emit()
 
-    def clearLayerRows(self):
-        self._layerrows.clear()
+    def clearLayerBuilders(self):
+        self._builders.clear()
         self.modelReset.emit()
 
-    def hasLayerRows(self):
-        return bool(self._layerrows)
+    def hasLayerBuilders(self):
+        return bool(self._builders)
 
-    def layerRow(self, row):
-        return self._layerrows[row]
+    def layerBuilder(self, row):
+        return self._builders[row]
 
-    def layerRows(self):
-        return tuple(self._layerrows)
+    def layerBuilders(self):
+        return tuple(self._builders)
 
-    def setLayerRows(self, layerrows):
-        self.clearMaterials()
-        for layerrow in layerrows:
-            self._add_layerrow(layerrow)
+    def setLayerBuilders(self, builders):
+        self.clearLayerBuilders()
+        for builder in builders:
+            self._add_builder(builder)
         self.modelReset.emit()
 
-class LayerRowDelegate(QtWidgets.QItemDelegate):
+class LayerBuilderDelegate(QtWidgets.QItemDelegate):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -374,30 +401,30 @@ class LayerRowDelegate(QtWidgets.QItemDelegate):
 
     def setEditorData(self, editor, index):
         model = index.model()
-        layerrow = model.data(index, QtCore.Qt.UserRole)
+        builder = model.layerBuilder(index.row())
         column = index.column()
 
         if column == 0:
             editor.setMaterials(self._available_materials)
-            editor.setSelectedMaterials(layerrow.materials)
             editor.setAllowVacuum(True)
+            editor.setSelectedMaterials(builder.materials)
 
         elif column == 1:
-            values = np.array(layerrow.thicknesses_m) * 1e9
+            values = np.array(sorted(builder.thicknesses_m)) * 1e9
             editor.setValues(values)
 
     def setModelData(self, editor, model, index):
         column = index.column()
-        layerrow = model.data(index, QtCore.Qt.UserRole)
+        builder = model.layerBuilder(index.row())
 
         if column == 0:
-            layerrow.materials = editor.selectedMaterials()
+            builder.materials = editor.selectedMaterials()
 
         elif column == 1:
             values = editor.values()
-            layerrow.thicknesses_m = np.array(values) * 1e-9
+            builder.thicknesses_m = set(np.array(values) * 1e-9)
 
-        model.updateLayerRow(index.row(), layerrow)
+        model.updateLayerBuilder(index.row(), builder)
 
     def availableMaterials(self):
         return self._available_materials
@@ -406,7 +433,7 @@ class LayerRowDelegate(QtWidgets.QItemDelegate):
         self._available_materials.clear()
         self._available_materials.extend(materials)
 
-class LayerRowToolbar(QtWidgets.QToolBar):
+class LayerBuilderToolbar(QtWidgets.QToolBar):
 
     def __init__(self, table, parent=None):
         super().__init__(parent)
@@ -415,11 +442,11 @@ class LayerRowToolbar(QtWidgets.QToolBar):
         self.table = table
 
         # Actions
-        self.act_add = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Pure")
+        self.act_add = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Add")
         self.act_add.setToolTip('Add layer')
 
         self.act_remove = self.addAction(QtGui.QIcon.fromTheme("list-remove"), 'Remove')
-        self.act_remove.setToolTip('Remove')
+        self.act_remove.setToolTip('Remove layer')
         self.act_remove.setEnabled(False)
         self.act_remove.setShortcutContext(QtCore.Qt.WindowShortcut)
         self.act_remove.setShortcut(QtGui.QKeySequence.Delete)
@@ -438,7 +465,7 @@ class LayerRowToolbar(QtWidgets.QToolBar):
 
     def _on_data_changed(self):
         model = self.table.model()
-        has_rows = model.hasLayerRows()
+        has_rows = model.hasLayerBuilders()
 
         selection_model = self.table.selectionModel()
         has_selection = selection_model.hasSelection()
@@ -448,7 +475,7 @@ class LayerRowToolbar(QtWidgets.QToolBar):
 
     def _on_add_layer(self):
         model = self.table.model()
-        model.addNewLayerRow()
+        model.addNewLayerBuilder()
 
     def _on_remove_layer(self):
         selection_model = self.table.selectionModel()
@@ -458,24 +485,28 @@ class LayerRowToolbar(QtWidgets.QToolBar):
         indexes = selection_model.selectedIndexes()
         model = self.table.model()
         for row in reversed([index.row() for index in indexes]):
-            model.removeLayerRow(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
+            builder = model.layerBuilder(row)
+            model.removeLayerBuilder(builder)
 
     def _on_clear_layers(self):
         model = self.table.model()
-        model.clearLayerRows()
+        model.clearLayerBuilders()
 
-class LayersWidget(QtWidgets.QWidget):
+class LayerBuilderWidget(QtWidgets.QWidget, Validable):
+
+    layerBuildersChanged = QtCore.Signal(tuple)
 
     def __init__(self, parent=None):
         super().__init__()
 
         # Variables
-        model = LayerRowModel()
+        model = LayerBuilderModel()
 
         # Widgets
         self.table = QtWidgets.QTableView()
         self.table.setModel(model)
-        self.table.setItemDelegate(LayerRowDelegate())
+        self.table.setItemDelegate(LayerBuilderDelegate())
+        self.table.setWordWrap(True)
         self.table.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.table.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
         self.table.setDragDropMode(QtWidgets.QTableView.InternalMove)
@@ -484,12 +515,12 @@ class LayersWidget(QtWidgets.QWidget):
         self.table.setDropIndicatorShown(True)
 
         header = self.table.horizontalHeader()
-        for column in range(self.table.model().columnCount()):
+        for column in range(model.columnCount()):
             header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)
 
         header.setStyleSheet('color: blue')
 
-        self.toolbar = LayerRowToolbar(self.table)
+        self.toolbar = LayerBuilderToolbar(self.table)
 
         self.lbl_info = LabelIcon('Double-click to modify\nDrag and drop to move layer',
                                   QtGui.QIcon.fromTheme("dialog-information"))
@@ -507,18 +538,32 @@ class LayersWidget(QtWidgets.QWidget):
         layout.addLayout(lyt_bottom)
         self.setLayout(layout)
 
+        # Signals
+        model.dataChanged.connect(self._on_data_changed)
+
+    def _on_data_changed(self, *args):
+        self.layerBuildersChanged.emit(self.layerBuilders())
+
+    def isValid(self):
+        return self.table.model().isValid()
+
     def availableMaterials(self):
         return self.table.itemDelegate().availableMaterials()
 
     def setAvailableMaterials(self, materials):
         self.table.itemDelegate().setAvailableMaterials(materials)
 
-    def layersList(self):
-        return []
+    def layerBuilders(self):
+        return self.table.model().layerBuilders()
+
+    def setLayerBuilders(self, builders):
+        self.table.model().setLayerBuilders(builders)
 
 #--- Base widgets
 
 class SampleWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
+
+    samplesChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -547,7 +592,7 @@ def run_layerswidget(): #pragma: no cover
     for z in range(14, 79, 5):
         materials.append(Material.pure(z))
 
-    widget = LayersWidget()
+    widget = LayerBuilderWidget()
     widget.setAvailableMaterials(materials)
 
     mainwindow = QtWidgets.QMainWindow()

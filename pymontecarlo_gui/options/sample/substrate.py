@@ -3,7 +3,6 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtWidgets
 
 # Local modules.
 from pymontecarlo.options.sample.substrate import SubstrateSampleBuilder
@@ -33,6 +32,17 @@ class SubstrateSampleWidget(SampleWidget):
         layout.addField(self.field_rotation)
         self.setLayout(layout)
 
+        # Signals
+        self.field_material.materialsChanged.connect(self.samplesChanged)
+        self.field_tilt.tiltsChanged.connect(self.samplesChanged)
+        self.field_rotation.rotationsChanged.connect(self.samplesChanged)
+
+    def isValid(self):
+        return super().isValid() and \
+            self.field_material.isValid() and \
+            self.field_tilt.isValid() and \
+            self.field_rotation.isValid()
+
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)
 
@@ -52,6 +62,8 @@ class SubstrateSampleWidget(SampleWidget):
 
 def run(): #pragma: no cover
     import sys
+    from qtpy import QtWidgets
+
     app = QtWidgets.QApplication(sys.argv)
 
     table = SubstrateSampleWidget()
