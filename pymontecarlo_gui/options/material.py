@@ -842,7 +842,7 @@ class CheckableMaterialModel(MaterialModel):
         for material in materials:
             try:
                 row = self._materials.index(material)
-            except IndexError:
+            except ValueError:
                 continue
             self._selection[row] = True
 
@@ -862,7 +862,7 @@ class MaterialListWidget(QtWidgets.QWidget,
         # Variables
         model = CheckableMaterialModel()
 
-        self._requires_selection = False
+        self._requires_selection = True
 
         # Widgets
         self.listview = QtWidgets.QListView()
@@ -909,6 +909,7 @@ class MaterialListWidget(QtWidgets.QWidget,
 
     def setRequiresSelection(self, answer):
         self._requires_selection = answer
+        self._on_data_changed()
 
 def run(): #pragma: no cover
     import sys
