@@ -75,7 +75,11 @@ class ColoredLineEdit(QtWidgets.QLineEdit, Validable):
         self.textChanged.connect(self._on_text_changed)
 
     def _on_text_changed(self, text):
-        if self.hasAcceptableInput() or not self.isEnabled():
+        if not self.isEnabled():
+            self.setStyleSheet(VALID_BACKGROUND_STYLESHEET)
+            return
+
+        if self.hasAcceptableInput():
             self.setStyleSheet(VALID_BACKGROUND_STYLESHEET)
         else:
             self.setStyleSheet(INVALID_BACKGROUND_STYLESHEET)
@@ -160,6 +164,10 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         fmt = '%.{}f'.format(self.decimals())
         text = locale.format(fmt, value)
         self.lineedit.setText(text)
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+        self.lineedit.setEnabled(enabled)
 
 MULTIFLOAT_SEPARATOR = ';'
 MULTIFLOAT_PATTERN = r'(?P<start>inf|[\de\.+\-]*)(?:\:(?P<stop>[\de\.+\-]*))?(?:\:(?P<step>[\de\.+\-]*))?'
@@ -297,6 +305,10 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         fmt = '%.{}f'.format(self.decimals())
         text = MULTIFLOAT_SEPARATOR.join(locale.format(fmt, v) for v in values)
         self.lineedit.setText(text)
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+        self.lineedit.setEnabled(enabled)
 
 def run(): #pragma: no cover
     import sys
