@@ -677,6 +677,8 @@ class MaterialToolbar(QtWidgets.QToolBar):
 
 class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
+    materialsChanged = QtCore.Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -698,6 +700,8 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
         # Signals
         self.listview.doubleClicked.connect(self._on_double_clicked)
+        model.dataChanged.connect(self._on_data_changed)
+        model.modelReset.connect(self._on_data_changed)
 
     def _get_model(self):
         return self.listview.model()
@@ -719,6 +723,9 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
         assert len(materials) == 1
         self._get_model().updateMaterial(row, materials[0])
+
+    def _on_data_changed(self):
+        self.materialsChanged.emit()
 
 class MaterialComboBox(QtWidgets.QWidget,
                        MaterialAbstractViewMixin,
@@ -877,6 +884,7 @@ class MaterialListWidget(QtWidgets.QWidget,
 
         # Signals
         model.dataChanged.connect(self._on_data_changed)
+        model.modelReset.connect(self._on_data_changed)
 
     def _on_data_changed(self, *args):
         if self.isValid() or not self.isEnabled():
