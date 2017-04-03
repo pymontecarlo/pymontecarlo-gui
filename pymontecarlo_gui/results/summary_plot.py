@@ -14,9 +14,10 @@ import matplotlib.pyplot as plt
 from pymontecarlo_gui.results.base import ResultSummaryWidget
 from pymontecarlo_gui.widgets.util import create_group_box
 
+
 # Globals and constants variables.
 
-class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
+class ResultPlotWidget(QtWidgets.QWidget):
 
     def __init__(self, project=None):
         super().__init__()
@@ -28,7 +29,9 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
         self._selected_option = None
 
         self._xaxis = []
+        self._xaxis_unit = None
         self._yaxis = []
+        self._graph_names = []
 
         self._update_xaxis()
         self._update_yaxis()
@@ -42,10 +45,12 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
+
         self.setLayout(layout)
 
     def _update_xaxis(self):
         self._xaxis.clear()
+        self._xaxis_unit = None
 
         if self._project is None \
                 or self._selected_option is None:
@@ -57,9 +62,16 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
         if not datarows:
             return
 
-        self._xaxis = \
-            [datarow.to_list([self._selected_option]) for datarow in datarows]
+        datarow_union = functools.reduce(operator.or_, datarows)
 
+        self._xaxis_unit = \
+            list(map(operator.itemgetter(0), datarow_union.to_list([self._selected_option])))
+
+        dict_xaxis = \
+            [dict(datarow.to_list([self._selected_option])) for datarow in datarows]
+
+        for x in dict_xaxis:
+            self._xaxis.append(x.get(self._xaxis_unit[0], float('nan')))
 
     def _update_yaxis(self):
         self._yaxis.clear()
@@ -75,13 +87,36 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
         if not datarows:
             return
 
+        datarow_union = functools.reduce(operator.or_, datarows)
+
+        self._graph_names = \
+            list(map(operator.itemgetter(0), datarow_union.to_list(self._xray_lines)))
+
+        for name in self._graph_names:
+            if name.startswith('\u03C3'):
+                self._graph_names.remove(name)
+
         self._yaxis = \
             [dict(datarow.to_list(self._xray_lines)) for datarow in datarows]
 
     def _plot(self):
-        if self._xaxis == [] or self._yaxis == []:
-            return
-        # TODO plotting the axis with matplotlib
+        self.figure.clf()
+        ax = self.figure.add_subplot(111)
+
+        if not (self._xaxis == [] or self._yaxis == []):
+            yaxis = []
+            for graph in self._graph_names:
+                yaxis.clear()
+                for i in self._yaxis:
+                    try:
+                        value = i[graph]
+                    except:
+                        g = self._xray_lines[self._graph_names.index(graph)]
+                        value = i[g]
+                    yaxis.append(value)
+                ax.plot(self._xaxis, yaxis)
+
+        self.canvas.draw_idle()
 
     def xaxis(self):
         return self._xaxis
@@ -92,7 +127,6 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
     def project(self):
         return self._project
 
-
     def setProject(self, project):
         self._project = project
         self._result_class = None
@@ -100,30 +134,25 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
         self._selected_option = None
         self._plot()
 
-
     def resultClass(self):
         return self._result_class
 
-
     def setResultClass(self, result_class):
         self._result_class = result_class
-        self._xray_lines = []
+        self._xray_lines.clear()
+        self._update_yaxis()
         self._plot()
-
 
     def xrayLines(self):
         return self._xray_lines
-
 
     def setXrayLines(self, xray_lines):
         self._xray_lines = xray_lines
         self._update_yaxis()
         self._plot()
 
-
     def selectedOption(self):
         return self._selected_option
-
 
     def setSelectedOption(self, option):
         self._selected_option = option
@@ -132,7 +161,6 @@ class ResultPlotWidget(QtWidgets.QWidget): #TODO implement Matplotlib
 
 
 class XrayLineListWidget(QtWidgets.QWidget):
-
     selectionChanged = QtCore.Signal()
 
     def __init__(self, parent=None, project=None):
@@ -196,7 +224,7 @@ class XrayLineListWidget(QtWidgets.QWidget):
             lines = datarow_union.columns
             for line in lines:
                 item = QtWidgets.QListWidgetItem(line)
-                item.setData(QtCore.Qt.UserRole, None)
+                item.setData(QtCore.Qt.UserRole, line)
                 item.setTextAlignment(QtCore.Qt.AlignLeft)
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
                 item.setCheckState(QtCore.Qt.Unchecked)
@@ -221,7 +249,6 @@ class XrayLineListWidget(QtWidgets.QWidget):
 
 
 class XaxisComboBoxWidget(QtWidgets.QWidget):
-
     selectionChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -259,7 +286,6 @@ class XaxisComboBoxWidget(QtWidgets.QWidget):
 
 
 class YaxisComboBoxWidget(QtWidgets.QWidget):
-
     selectionChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -298,7 +324,6 @@ class YaxisComboBoxWidget(QtWidgets.QWidget):
 
 
 class ResultSummaryTableWidget(ResultSummaryWidget):
-
     COLUMN_WIDTH = 125
 
     def __init__(self, parent=None):
@@ -359,8 +384,8 @@ def run():
     testcase.setUp()
     project = testcase.create_basic_project()
 
-    #from pymontecarlo.project import Project
-    #project = Project.read(filepath)
+    # from pymontecarlo.project import Project
+    # project = Project.read(filepath)
 
     import pymontecarlo
     pymontecarlo.settings.set_preferred_unit('eV')
@@ -374,6 +399,7 @@ def run():
     mainwindow.show()
 
     app.exec_()
+
 
 if __name__ == '__main__':
     run()
