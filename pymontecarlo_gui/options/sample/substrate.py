@@ -17,6 +17,8 @@ class SubstrateSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAccessibleName("Substrate")
+        self.setAccessibleDescription("An infinitely thick sample")
 
         # Widgets
         self.field_material = MaterialField()
@@ -27,6 +29,7 @@ class SubstrateSampleWidget(SampleWidget):
 
         # Layouts
         layout = FieldLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addField(self.field_material)
         layout.addField(self.field_tilt)
         layout.addField(self.field_rotation)

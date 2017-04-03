@@ -33,6 +33,8 @@ class InclusionSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAccessibleName('Inclusion')
+        self.setAccessibleDescription('An half-sphere inclusion in a substrate')
 
         # Widgets
         self.field_substrate = SubstrateMaterialField()
@@ -47,6 +49,7 @@ class InclusionSampleWidget(SampleWidget):
 
         # Layouts
         layout = FieldLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addField(self.field_substrate)
         layout.addField(self.field_inclusion)
         layout.addField(self.field_diameter)

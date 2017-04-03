@@ -26,6 +26,8 @@ class HorizontalLayerSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAccessibleName('Horizontal layered sample')
+        self.setAccessibleDescription('A multi-layer sample')
 
         # Widgets
         self.field_layers = LayerBuilderField()
@@ -38,6 +40,7 @@ class HorizontalLayerSampleWidget(SampleWidget):
 
         # Layouts
         layout = FieldLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addField(self.field_layers)
         layout.addField(self.field_substrate)
         layout.addField(self.field_tilt)

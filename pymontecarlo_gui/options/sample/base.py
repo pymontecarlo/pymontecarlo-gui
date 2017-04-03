@@ -103,7 +103,7 @@ class MaterialField(GroupField):
 
     def _create_group_box(self):
         groupbox = super()._create_group_box()
-        groupbox.setStyleSheet('color: blue')
+        #groupbox.setStyleSheet('color: blue')
         return groupbox
 
     def title(self):
@@ -540,6 +540,7 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
 
         # Signals
         model.dataChanged.connect(self._on_data_changed)
+        model.modelReset.connect(self._on_data_changed)
 
     def _on_data_changed(self, *args):
         self.layerBuildersChanged.emit(self.layerBuilders())

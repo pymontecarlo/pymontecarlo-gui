@@ -80,6 +80,8 @@ class VerticalLayerSampleWidget(SampleWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAccessibleName('Vertical layered sample')
+        self.setAccessibleDescription('YZ planes sandwiched between two infinite substrates')
 
         # Widgets
         self.field_left = LeftMaterialField()
@@ -96,6 +98,7 @@ class VerticalLayerSampleWidget(SampleWidget):
 
         # Layouts
         layout = FieldLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addField(self.field_left)
         layout.addField(self.field_layers)
         layout.addField(self.field_right)
