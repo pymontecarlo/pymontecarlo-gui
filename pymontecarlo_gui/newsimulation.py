@@ -97,6 +97,7 @@ class SampleWizardPage(QtWidgets.QWizardPage):
         self.wdg_sample.setCurrentIndex(widget_index)
 
         widget = self.wdg_sample.widget(widget_index)
+        widget.setAvailableMaterials(self.wdg_materials.materials())
         self.txt_sample_description.setText(widget.accessibleDescription())
 
         self._update_figure()
@@ -104,10 +105,7 @@ class SampleWizardPage(QtWidgets.QWizardPage):
 
     def _on_materials_changed(self):
         materials = self.wdg_materials.materials()
-
-        for widget_index in range(self.wdg_sample.count()):
-            widget = self.wdg_sample.widget(widget_index)
-            widget.setAvailableMaterials(materials)
+        self.wdg_sample.currentWidget().setAvailableMaterials(materials)
 
         self._update_figure()
         self.samplesChanged.emit()

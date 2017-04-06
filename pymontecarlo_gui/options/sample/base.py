@@ -363,6 +363,17 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, Validable):
             self._add_builder(builder)
         self.modelReset.emit()
 
+    def availableMaterials(self):
+        return self._available_materials
+
+    def setAvailableMaterials(self, materials):
+        for builder in self._builders:
+            builder.materials = [m for m in materials if m in builder.materials]
+
+        self._available_materials = materials
+
+        self.modelReset.emit()
+
 class LayerBuilderDelegate(QtWidgets.QItemDelegate):
 
     def __init__(self, parent=None):
@@ -538,6 +549,7 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
         return self.table.itemDelegate().availableMaterials()
 
     def setAvailableMaterials(self, materials):
+        self.table.model().setAvailableMaterials(materials)
         self.table.itemDelegate().setAvailableMaterials(materials)
 
     def layerBuilders(self):
