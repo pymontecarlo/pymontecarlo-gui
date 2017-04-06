@@ -3,13 +3,14 @@
 # Standard library modules.
 
 # Third party modules.
+from qtpy import QtWidgets
 
 # Local modules.
 from pymontecarlo.options.sample.horizontallayers import HorizontalLayerSampleBuilder
 
 from pymontecarlo_gui.options.sample.base import \
     TiltField, RotationField, MaterialField, LayerBuilderField, SampleWidget
-from pymontecarlo_gui.widgets.field import FieldLayout
+from pymontecarlo_gui.widgets.field import FieldToolBox
 
 # Globals and constants variables.
 
@@ -19,8 +20,8 @@ class SubstrateMaterialField(MaterialField):
         super().__init__()
         self._widget.setRequiresSelection(False)
 
-    def title(self):
-        return "Substrate material(s) (optional)"
+    def label(self):
+        return QtWidgets.QLabel("Substrate material(s) (optional)")
 
 class HorizontalLayerSampleWidget(SampleWidget):
 
@@ -38,20 +39,22 @@ class HorizontalLayerSampleWidget(SampleWidget):
 
         self.field_rotation = RotationField()
 
+        toolbox = FieldToolBox()
+        toolbox.addGroupField(self.field_layers)
+        toolbox.addGroupField(self.field_substrate)
+        toolbox.addLabelFields('Angles', self.field_tilt, self.field_rotation)
+
         # Layouts
-        layout = FieldLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addField(self.field_layers)
-        layout.addField(self.field_substrate)
-        layout.addField(self.field_tilt)
-        layout.addField(self.field_rotation)
+        layout.addWidget(toolbox)
         self.setLayout(layout)
 
         # Signals
-        self.field_layers.layerBuildersChanged.connect(self.samplesChanged)
-        self.field_substrate.materialsChanged.connect(self.samplesChanged)
-        self.field_tilt.tiltsChanged.connect(self.samplesChanged)
-        self.field_rotation.rotationsChanged.connect(self.samplesChanged)
+        self.field_layers.changed.connect(self.changed)
+        self.field_substrate.changed.connect(self.changed)
+        self.field_tilt.changed.connect(self.changed)
+        self.field_rotation.changed.connect(self.changed)
 
     def isValid(self):
         return super().isValid() and \
@@ -83,7 +86,6 @@ class HorizontalLayerSampleWidget(SampleWidget):
 
 def run(): #pragma: no cover
     import sys
-    from qtpy import QtWidgets
 
     app = QtWidgets.QApplication(sys.argv)
 

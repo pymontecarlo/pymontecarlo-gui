@@ -131,7 +131,7 @@ class SampleWizardPage(QtWidgets.QWizardPage):
         widget_index = self.wdg_sample.addWidget(widget)
         self.cb_sample.addItem(widget.accessibleName(), widget_index)
 
-        widget.samplesChanged.connect(self._on_samples_changed)
+        widget.changed.connect(self._on_samples_changed)
 
         if self.cb_sample.count() == 1:
             self.cb_sample.setCurrentIndex(0)

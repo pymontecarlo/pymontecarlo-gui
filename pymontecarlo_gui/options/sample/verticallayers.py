@@ -3,7 +3,7 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtCore, QtWidgets
+from qtpy import QtWidgets
 
 # Local modules.
 from pymontecarlo.options.sample.verticallayers import \
@@ -11,7 +11,7 @@ from pymontecarlo.options.sample.verticallayers import \
 
 from pymontecarlo_gui.options.sample.base import \
     TiltField, RotationField, MaterialField, LayerBuilderField, SampleWidget
-from pymontecarlo_gui.widgets.field import FieldLayout, LabelField
+from pymontecarlo_gui.widgets.field import Field, FieldToolBox
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
@@ -19,17 +19,15 @@ from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
 class LeftMaterialField(MaterialField):
 
-    def title(self):
-        return "Left material(s)"
+    def label(self):
+        return QtWidgets.QLabel("Left material(s)")
 
 class RightMaterialField(MaterialField):
 
-    def title(self):
-        return "Right material(s)"
+    def label(self):
+        return QtWidgets.QLabel("Right material(s)")
 
-class DepthField(LabelField):
-
-    depthsChanged = QtCore.Signal(tuple)
+class DepthField(Field):
 
     def __init__(self):
         super().__init__()
@@ -48,7 +46,7 @@ class DepthField(LabelField):
         self._suffix.setChecked(True)
 
         # Signals
-        self._widget.valuesChanged.connect(self.depthsChanged)
+        self._widget.valuesChanged.connect(self.changed)
         self._suffix.stateChanged.connect(self._on_infinite_changed)
 
     def _on_infinite_changed(self):
@@ -96,24 +94,25 @@ class VerticalLayerSampleWidget(SampleWidget):
 
         self.field_rotation = RotationField()
 
+        toolbox = FieldToolBox()
+        toolbox.addGroupField(self.field_left)
+        toolbox.addGroupField(self.field_layers)
+        toolbox.addGroupField(self.field_right)
+        toolbox.addLabelFields("Angles", self.field_tilt, self.field_rotation)
+
         # Layouts
-        layout = FieldLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addField(self.field_left)
-        layout.addField(self.field_layers)
-        layout.addField(self.field_right)
-        layout.addField(self.field_depth)
-        layout.addField(self.field_tilt)
-        layout.addField(self.field_rotation)
+        layout.addWidget(toolbox)
         self.setLayout(layout)
 
         # Signals
-        self.field_left.materialsChanged.connect(self.samplesChanged)
-        self.field_layers.layerBuildersChanged.connect(self.samplesChanged)
-        self.field_right.materialsChanged.connect(self.samplesChanged)
-        self.field_depth.depthsChanged.connect(self.samplesChanged)
-        self.field_tilt.tiltsChanged.connect(self.samplesChanged)
-        self.field_rotation.rotationsChanged.connect(self.samplesChanged)
+        self.field_left.changed.connect(self.changed)
+        self.field_layers.changed.connect(self.changed)
+        self.field_right.changed.connect(self.changed)
+        self.field_depth.changed.connect(self.changed)
+        self.field_tilt.changed.connect(self.changed)
+        self.field_rotation.changed.connect(self.changed)
 
     def isValid(self):
         return super().isValid() and \

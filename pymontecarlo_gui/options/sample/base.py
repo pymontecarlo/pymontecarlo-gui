@@ -14,7 +14,7 @@ import numpy as np
 # Local modules.
 from pymontecarlo.options.sample.base import Sample, Layer, LayerBuilder
 
-from pymontecarlo_gui.widgets.field import LabelField, GroupField
+from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
@@ -26,15 +26,13 @@ from pymontecarlo_gui.options.material import MaterialListWidget
 
 #--- Fields
 
-class TiltField(LabelField):
-
-    tiltsChanged = QtCore.Signal(tuple)
+class TiltField(Field):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Tilt(s) [\u00b0]')
+        self._label = QtWidgets.QLabel('Tilts [\u00b0]')
         self._label.setStyleSheet('color: blue')
 
         self._widget = ColoredMultiFloatLineEdit()
@@ -43,7 +41,7 @@ class TiltField(LabelField):
         self._widget.setValues([0.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.tiltsChanged)
+        self._widget.valuesChanged.connect(self.changed)
 
     def label(self):
         return self._label
@@ -57,9 +55,7 @@ class TiltField(LabelField):
     def setTilts_deg(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class RotationField(LabelField):
-
-    rotationsChanged = QtCore.Signal(tuple)
+class RotationField(Field):
 
     def __init__(self):
         super().__init__()
@@ -74,7 +70,7 @@ class RotationField(LabelField):
         self._widget.setValues([0.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.rotationsChanged)
+        self._widget.valuesChanged.connect(self.changed)
 
     def label(self):
         return self._label
@@ -88,26 +84,21 @@ class RotationField(LabelField):
     def setRotations_deg(self, rotations_deg):
         self._widget.setValues(rotations_deg)
 
-class MaterialField(GroupField):
-
-    materialsChanged = QtCore.Signal(tuple)
+class MaterialField(Field):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
+        self._label = QtWidgets.QLabel('Material(s)')
+
         self._widget = MaterialListWidget()
 
         # Signals
-        self._widget.selectionChanged.connect(self.materialsChanged)
+        self._widget.selectionChanged.connect(self.changed)
 
-    def _create_group_box(self):
-        groupbox = super()._create_group_box()
-        #groupbox.setStyleSheet('color: blue')
-        return groupbox
-
-    def title(self):
-        return 'Material(s)'
+    def label(self):
+        return self._label
 
     def widget(self):
         return self._widget
@@ -124,9 +115,7 @@ class MaterialField(GroupField):
     def setAvailableMaterials(self, materials):
         self._widget.setMaterials(materials)
 
-class DiameterField(LabelField):
-
-    diametersChanged = QtCore.Signal(tuple)
+class DiameterField(Field):
 
     def __init__(self):
         super().__init__()
@@ -142,7 +131,7 @@ class DiameterField(LabelField):
         self._widget.setValues([100.0])
 
         # Widgets
-        self._widget.valuesChanged.connect(self.diametersChanged)
+        self._widget.valuesChanged.connect(self.changed)
 
     @abc.abstractmethod
     def _get_tolerance_m(self):
@@ -161,21 +150,21 @@ class DiameterField(LabelField):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-class LayerBuilderField(GroupField):
-
-    layerBuildersChanged = QtCore.Signal(tuple)
+class LayerBuilderField(Field):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
+        self._label = QtWidgets.QLabel('Layers')
+
         self._widget = LayerBuilderWidget()
 
         # Signals
-        self._widget.layerBuildersChanged.connect(self.layerBuildersChanged)
+        self._widget.layerBuildersChanged.connect(self.changed)
 
-    def title(self):
-        return 'Layers'
+    def label(self):
+        return self._label
 
     def widget(self):
         return self._widget
@@ -494,7 +483,7 @@ class LayerBuilderToolbar(QtWidgets.QToolBar):
 
 class LayerBuilderWidget(QtWidgets.QWidget, Validable):
 
-    layerBuildersChanged = QtCore.Signal(tuple)
+    layerBuildersChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__()
@@ -539,11 +528,8 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
         self.setLayout(layout)
 
         # Signals
-        model.dataChanged.connect(self._on_data_changed)
-        model.modelReset.connect(self._on_data_changed)
-
-    def _on_data_changed(self, *args):
-        self.layerBuildersChanged.emit(self.layerBuilders())
+        model.dataChanged.connect(self.layerBuildersChanged)
+        model.modelReset.connect(self.layerBuildersChanged)
 
     def isValid(self):
         return self.table.model().isValid()
@@ -564,7 +550,7 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
 
 class SampleWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
 
-    samplesChanged = QtCore.Signal()
+    changed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

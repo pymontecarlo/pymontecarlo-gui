@@ -50,19 +50,19 @@ class InclusionSampleWidget(SampleWidget):
         # Layouts
         layout = FieldLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addField(self.field_substrate)
-        layout.addField(self.field_inclusion)
-        layout.addField(self.field_diameter)
-        layout.addField(self.field_tilt)
-        layout.addField(self.field_rotation)
+        layout.addGroupField(self.field_substrate)
+        layout.addGroupField(self.field_inclusion)
+        layout.addLabelField(self.field_diameter)
+        layout.addLabelField(self.field_tilt)
+        layout.addLabelField(self.field_rotation)
         self.setLayout(layout)
 
         # Signals
-        self.field_substrate.materialsChanged.connect(self.samplesChanged)
-        self.field_inclusion.materialsChanged.connect(self.samplesChanged)
-        self.field_diameter.diametersChanged.connect(self.samplesChanged)
-        self.field_tilt.tiltsChanged.connect(self.samplesChanged)
-        self.field_rotation.rotationsChanged.connect(self.samplesChanged)
+        self.field_substrate.changed.connect(self.changed)
+        self.field_inclusion.changed.connect(self.changed)
+        self.field_diameter.changed.connect(self.changed)
+        self.field_tilt.changed.connect(self.changed)
+        self.field_rotation.changed.connect(self.changed)
 
     def isValid(self):
         return super().isValid() and \

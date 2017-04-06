@@ -30,15 +30,15 @@ class SubstrateSampleWidget(SampleWidget):
         # Layouts
         layout = FieldLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addField(self.field_material)
-        layout.addField(self.field_tilt)
-        layout.addField(self.field_rotation)
+        layout.addGroupField(self.field_material)
+        layout.addLabelField(self.field_tilt)
+        layout.addLabelField(self.field_rotation)
         self.setLayout(layout)
 
         # Signals
-        self.field_material.materialsChanged.connect(self.samplesChanged)
-        self.field_tilt.tiltsChanged.connect(self.samplesChanged)
-        self.field_rotation.rotationsChanged.connect(self.samplesChanged)
+        self.field_material.changed.connect(self.changed)
+        self.field_tilt.changed.connect(self.changed)
+        self.field_rotation.changed.connect(self.changed)
 
     def isValid(self):
         return super().isValid() and \
