@@ -53,7 +53,7 @@ class DepthField(Field):
         is_infinite = self._suffix.isChecked()
         self._widget.setValues([])
         self._widget.setEnabled(not is_infinite)
-        self.depthsChanged.emit((float('inf'),))
+        self.changed.emit()
 
     def label(self):
         return self._label
