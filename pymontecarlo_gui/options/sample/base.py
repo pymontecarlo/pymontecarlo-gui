@@ -49,10 +49,10 @@ class TiltField(Field):
     def widget(self):
         return self._widget
 
-    def tilts_deg(self):
+    def tiltsDegree(self):
         return self._widget.values()
 
-    def setTilts_deg(self, tilts_deg):
+    def setTiltsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
 class RotationField(Field):
@@ -78,10 +78,10 @@ class RotationField(Field):
     def widget(self):
         return self._widget
 
-    def rotations_deg(self):
+    def rotationsDegree(self):
         return self._widget.values()
 
-    def setRotations_deg(self, rotations_deg):
+    def setRotationsDegree(self, rotations_deg):
         self._widget.setValues(rotations_deg)
 
 class MaterialField(Field):
@@ -143,10 +143,10 @@ class DiameterField(Field):
     def widget(self):
         return self._widget
 
-    def diameters_m(self):
+    def diametersMeter(self):
         return np.array(self._widget.values()) * 1e-9
 
-    def setDiameters_m(self, diameters_m):
+    def setDiametersMeter(self, diameters_m):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 

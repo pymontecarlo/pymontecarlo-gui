@@ -85,13 +85,13 @@ class InclusionSampleWidget(SampleWidget):
         for material in self.field_inclusion.materials():
             builder.add_inclusion_material(material)
 
-        for diameter_m in self.field_diameter.diameters_m():
+        for diameter_m in self.field_diameter.diametersMeter():
             builder.add_inclusion_diameter_m(diameter_m)
 
-        for tilt_deg in self.field_tilt.tilts_deg():
+        for tilt_deg in self.field_tilt.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_rotation.rotations_deg():
+        for rotation_deg in self.field_rotation.rotationsDegree():
             builder.add_rotation_deg(rotation_deg)
 
         return super().samples() + builder.build()

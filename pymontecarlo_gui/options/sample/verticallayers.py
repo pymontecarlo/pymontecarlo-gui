@@ -64,13 +64,13 @@ class DepthField(Field):
     def suffix(self):
         return self._suffix
 
-    def depths_m(self):
+    def depthsMeter(self):
         if self._suffix.isChecked():
             return (float('inf'),)
         else:
             return self._widget.values()
 
-    def setDepths_m(self, depths_deg):
+    def setDepthsMeter(self, depths_deg):
         self._widget.setValues(depths_deg)
         self._suffix.setChecked(False)
 
@@ -140,13 +140,13 @@ class VerticalLayerSampleWidget(SampleWidget):
         for material in self.field_right.materials():
             builder.add_right_material(material)
 
-        for depth_m in self.field_depth.depths_m():
+        for depth_m in self.field_depth.depthsMeter():
             builder.add_depth_m(depth_m)
 
-        for tilt_deg in self.field_tilt.tilts_deg():
+        for tilt_deg in self.field_tilt.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_rotation.rotations_deg():
+        for rotation_deg in self.field_rotation.rotationsDegree():
             builder.add_rotation_deg(rotation_deg)
 
         return super().samples() + builder.build()
