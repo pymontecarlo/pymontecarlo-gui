@@ -1,17 +1,21 @@
 """"""
 
 # Standard library modules.
+import abc
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
+from pymontecarlo.options.options import OptionsBuilder
+
 from pymontecarlo_gui.options.material import MaterialsWidget
 from pymontecarlo_gui.options.sample.substrate import SubstrateSampleWidget
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleWidget
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleWidget
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWidget
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
+from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 
 # Globals and constants variables.
@@ -37,13 +41,16 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def paintEvent(self, event):
         pass
 
-    def setCount(self, count):
+    def setCount(self, count, estimate=False):
         if count == 0:
             text = 'No simulation defined'
-        elif count > 1:
-            text = '{:d} simulations defined'.format(count)
-        else:
+        elif count == 1:
             text = '{:d} simulation defined'.format(count)
+        else:
+            text = '{:d} simulations defined'.format(count)
+
+        if estimate and count > 0:
+            text += ' (estimation)'
 
         self._count = count
         self.label.setText(text)
@@ -51,7 +58,13 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def count(self):
         return self._count
 
-class SampleWizardPage(QtWidgets.QWizardPage):
+class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
+
+    @abc.abstractmethod
+    def count(self):
+        raise NotImplementedError
+
+class SampleWizardPage(NewSimulationWizardPage):
 
     samplesChanged = QtCore.Signal()
 
@@ -105,7 +118,10 @@ class SampleWizardPage(QtWidgets.QWizardPage):
 
     def _on_materials_changed(self):
         materials = self.wdg_materials.materials()
-        self.wdg_sample.currentWidget().setAvailableMaterials(materials)
+
+        widget = self.wdg_sample.currentWidget()
+        if widget:
+            widget.setAvailableMaterials(materials)
 
         self._update_figure()
         self.samplesChanged.emit()
@@ -116,14 +132,21 @@ class SampleWizardPage(QtWidgets.QWizardPage):
 
     def _update_figure(self):
         widget = self.wdg_sample.currentWidget()
-        samples = widget.samples()
+
+        samples = []
+        if widget:
+            samples = widget.samples()
+
         if samples:
             self.wdg_figure.setSample(samples[0])
         else:
             self.wdg_figure.setSample(None)
 
     def isComplete(self):
-        return self.wdg_sample.currentWidget().isValid()
+        widget = self.wdg_sample.currentWidget()
+        if not widget:
+            return False
+        return widget.isValid()
 
     def registerSampleWidget(self, widget):
         widget_index = self.wdg_sample.addWidget(widget)
@@ -135,7 +158,13 @@ class SampleWizardPage(QtWidgets.QWizardPage):
             self.cb_sample.setCurrentIndex(0)
 
     def samples(self):
-        return self.wdg_sample.currentWidget().samples()
+        widget = self.wdg_sample.currentWidget()
+        if not widget:
+            return []
+        return widget.samples()
+
+    def count(self):
+        return len(self.samples())
 
 class NewSimulationWizard(QtWidgets.QWizard):
 
@@ -144,7 +173,11 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
-        self.setOption(QtWidgets.QWizard.IndependentPages)
+
+        # Variables
+        self.builder = OptionsBuilder()
+
+        # Buttons
         self.setOption(QtWidgets.QWizard.HaveCustomButton1)
         self.setButtonLayout([QtWidgets.QWizard.CustomButton1,
                               QtWidgets.QWizard.Stretch,
@@ -157,31 +190,49 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.setButton(QtWidgets.QWizard.CustomButton1, self.btn_count)
 
         # Sample
-        self.sample_page = SampleWizardPage()
+        self.page_sample = SampleWizardPage()
 
-        self.sample_page.registerSampleWidget(SubstrateSampleWidget())
-        self.sample_page.registerSampleWidget(InclusionSampleWidget())
-        self.sample_page.registerSampleWidget(HorizontalLayerSampleWidget())
-        self.sample_page.registerSampleWidget(VerticalLayerSampleWidget())
+        self.page_sample.registerSampleWidget(SubstrateSampleWidget())
+        self.page_sample.registerSampleWidget(InclusionSampleWidget())
+        self.page_sample.registerSampleWidget(HorizontalLayerSampleWidget())
+        self.page_sample.registerSampleWidget(VerticalLayerSampleWidget())
 
-        self.sample_page.samplesChanged.connect(self.optionsChanged)
+        self.page_sample.samplesChanged.connect(self._on_samples_changed)
 
-        self.addPage(self.sample_page)
+        self.addPage(self.page_sample)
 
         # Signals
         self.optionsChanged.connect(self._on_options_changed)
 
+    def _on_samples_changed(self):
+        self.builder.samples = self.page_sample.samples()
+        self.optionsChanged.emit()
+
     def _on_options_changed(self):
-        self.btn_count.setCount(len(self.samples()))
+        count = len(self.builder)
+        if count > 0:
+            self.btn_count.setCount(count)
+            return
+
+        page_indexes = set(self.visitedPages())
+        page_indexes.remove(self.currentId())
+        pages = [self.page(index) for index in page_indexes]
+        visited_count = sum(page.count() for page in pages if hasattr(page, 'count'))
+
+        current_page = self.currentPage()
+        current_count = current_page.count() if hasattr(current_page, 'count') else 0
+
+        if visited_count == 0:
+            count = current_count
+        elif current_count > 0:
+            count = visited_count * current_count
+        else:
+            count = visited_count
+
+        self.btn_count.setCount(count, estimate=True)
 
     def options(self):
-        raise NotImplementedError
-
-    def optionsCount(self):
-        raise NotImplementedError
-
-    def samples(self):
-        return self.sample_page.samples()
+        return self.builder.build()
 
 def run(): #pragma: no cover
     import sys
