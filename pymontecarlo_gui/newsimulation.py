@@ -1,13 +1,14 @@
 """"""
 
 # Standard library modules.
-import abc
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
 from pymontecarlo.options.options import OptionsBuilder
+from pymontecarlo.mock import ProgramMock, SampleMock
+from pymontecarlo.options.beam.base import Beam
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
@@ -65,10 +66,6 @@ class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
-    @abc.abstractmethod
-    def count(self):
-        raise NotImplementedError
 
 class SampleWizardPage(NewSimulationWizardPage):
 
@@ -169,9 +166,6 @@ class SampleWizardPage(NewSimulationWizardPage):
             return []
         return widget.samples()
 
-    def count(self):
-        return len(self.samples())
-
 class AnalysisWizardPage(NewSimulationWizardPage):
 
     analysesChanged = QtCore.Signal()
@@ -203,7 +197,7 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.analysesChanged.connect(self.completeChanged)
 
     def isComplete(self):
-        return self.count() > 0 and self.toolbox.isValid()
+        return len(self.analyses()) > 0 and self.toolbox.isValid()
 
     def registerAnalysisWidget(self, widget):
         widget.setAnalysisToolBox(self.toolbox)
@@ -224,9 +218,6 @@ class AnalysisWizardPage(NewSimulationWizardPage):
 
         return analyses
 
-    def count(self):
-        return len(self.analyses())
-
 class NewSimulationWizard(QtWidgets.QWizard):
 
     optionsChanged = QtCore.Signal()
@@ -234,6 +225,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
+        self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
 
         # Variables
         self.builder = OptionsBuilder()
@@ -285,27 +277,36 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.optionsChanged.emit()
 
     def _on_options_changed(self):
-        count = len(self.builder)
-        if count > 0:
-            self.btn_count.setCount(count)
-            return
+        program_mock_added = False
+        if not self.builder.programs:
+            self.builder.add_program(ProgramMock())
+            program_mock_added = True
 
-        page_indexes = set(self.visitedPages())
-        page_indexes.discard(self.currentId())
-        pages = [self.page(index) for index in page_indexes]
-        visited_count = sum(page.count() for page in pages if hasattr(page, 'count'))
+        beam_mock_added = False
+        if not self.builder.beams:
+            self.builder.add_beam(Beam(0.0))
+            beam_mock_added = True
 
-        current_page = self.currentPage()
-        current_count = current_page.count() if hasattr(current_page, 'count') else 0
+        sample_mock_added = False
+        if not self.builder.samples:
+            self.builder.add_sample(SampleMock())
+            sample_mock_added = True
 
-        if visited_count == 0:
-            count = current_count
-        elif current_count > 0:
-            count = visited_count * current_count
+        if program_mock_added and beam_mock_added and sample_mock_added:
+            count = 0
         else:
-            count = visited_count
+            count = len(self.builder)
 
-        self.btn_count.setCount(count, estimate=True)
+        estimate = program_mock_added or beam_mock_added or sample_mock_added
+
+        self.btn_count.setCount(count, estimate=estimate)
+
+        if program_mock_added:
+            self.builder.programs.clear()
+        if beam_mock_added:
+            self.builder.beams.clear()
+        if sample_mock_added:
+            self.builder.samples.clear()
 
     def options(self):
         return self.builder.build()
