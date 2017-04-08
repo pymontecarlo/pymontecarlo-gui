@@ -9,14 +9,17 @@ from qtpy import QtCore, QtWidgets
 # Local modules.
 from pymontecarlo.options.options import OptionsBuilder
 
+from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.widgets.groupbox import create_group_box
+from pymontecarlo_gui.figures.sample import SampleFigureWidget
 from pymontecarlo_gui.options.material import MaterialsWidget
 from pymontecarlo_gui.options.sample.substrate import SubstrateSampleWidget
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleWidget
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleWidget
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWidget
-from pymontecarlo_gui.figures.sample import SampleFigureWidget
-from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.widgets.groupbox import create_group_box
+from pymontecarlo_gui.options.analysis.base import AnalysisToolBox
+from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisWidget
+from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
 
 # Globals and constants variables.
 
@@ -60,6 +63,9 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
 class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
     @abc.abstractmethod
     def count(self):
         raise NotImplementedError
@@ -77,10 +83,10 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.cb_sample = QtWidgets.QComboBox()
 
-        self.txt_sample_description = QtWidgets.QLabel()
-        font = self.txt_sample_description.font()
+        self.lbl_sample_description = QtWidgets.QLabel()
+        font = self.lbl_sample_description.font()
         font.setItalic(True)
-        self.txt_sample_description.setFont(font)
+        self.lbl_sample_description.setFont(font)
 
         self.wdg_sample = QtWidgets.QStackedWidget()
 
@@ -89,7 +95,7 @@ class SampleWizardPage(NewSimulationWizardPage):
         # Layouts
         lyt_middle = QtWidgets.QVBoxLayout()
         lyt_middle.addWidget(self.cb_sample)
-        lyt_middle.addWidget(self.txt_sample_description)
+        lyt_middle.addWidget(self.lbl_sample_description)
         lyt_middle.addWidget(self.wdg_sample)
 
         layout = QtWidgets.QHBoxLayout()
@@ -111,7 +117,7 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         widget = self.wdg_sample.widget(widget_index)
         widget.setAvailableMaterials(self.wdg_materials.materials())
-        self.txt_sample_description.setText(widget.accessibleDescription())
+        self.lbl_sample_description.setText(widget.accessibleDescription())
 
         self._update_figure()
         self.samplesChanged.emit()
@@ -166,6 +172,61 @@ class SampleWizardPage(NewSimulationWizardPage):
     def count(self):
         return len(self.samples())
 
+class AnalysisWizardPage(NewSimulationWizardPage):
+
+    analysesChanged = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle('Select type(s) of analysis')
+
+        # Widgets
+        self.analysis_widgets = []
+
+        self.toolbox = AnalysisToolBox()
+
+        self.wdg_figure = SampleFigureWidget()
+
+        # Layouts
+        self.lyt_analyses = QtWidgets.QVBoxLayout()
+        self.lyt_analyses.addStretch()
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(self.lyt_analyses, 1)
+        layout.addWidget(self.toolbox, 1)
+        layout.addWidget(self.wdg_figure, 1)
+        self.setLayout(layout)
+
+        # Signals
+        self.toolbox.changed.connect(self.analysesChanged)
+
+        self.analysesChanged.connect(self.completeChanged)
+
+    def isComplete(self):
+        return self.count() > 0 and self.toolbox.isValid()
+
+    def registerAnalysisWidget(self, widget):
+        widget.setAnalysisToolBox(self.toolbox)
+        self.analysis_widgets.append(widget)
+
+        # Layouts
+        index = len(self.analysis_widgets) - 1
+        self.lyt_analyses.insertWidget(index, widget)
+
+        # Signals
+        widget.changed.connect(self.analysesChanged)
+
+    def analyses(self):
+        analyses = []
+
+        for widget in self.analysis_widgets:
+            analyses.extend(widget.analyses())
+
+        return analyses
+
+    def count(self):
+        return len(self.analyses())
+
 class NewSimulationWizard(QtWidgets.QWizard):
 
     optionsChanged = QtCore.Signal()
@@ -201,11 +262,26 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         self.addPage(self.page_sample)
 
+        # Analysis
+        self.page_analysis = AnalysisWizardPage()
+
+        self.page_analysis.registerAnalysisWidget(PhotonIntensityAnalysisWidget())
+        self.page_analysis.registerAnalysisWidget(KRatioAnalysisWidget())
+
+        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
+
+        self.addPage(self.page_analysis)
+
         # Signals
+        self.currentIdChanged.connect(self._on_options_changed)
         self.optionsChanged.connect(self._on_options_changed)
 
     def _on_samples_changed(self):
         self.builder.samples = self.page_sample.samples()
+        self.optionsChanged.emit()
+
+    def _on_analyses_changed(self):
+        self.builder.analyses = self.page_analysis.analyses()
         self.optionsChanged.emit()
 
     def _on_options_changed(self):
@@ -215,7 +291,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
             return
 
         page_indexes = set(self.visitedPages())
-        page_indexes.remove(self.currentId())
+        page_indexes.discard(self.currentId())
         pages = [self.page(index) for index in page_indexes]
         visited_count = sum(page.count() for page in pages if hasattr(page, 'count'))
 
