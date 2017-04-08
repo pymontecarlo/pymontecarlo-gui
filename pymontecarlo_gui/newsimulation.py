@@ -13,12 +13,13 @@ from pymontecarlo.options.beam import GaussianBeam
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
+from pymontecarlo_gui.widgets.field import FieldChooser
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
 from pymontecarlo_gui.options.material import MaterialsWidget
-from pymontecarlo_gui.options.sample.substrate import SubstrateSampleWidget
-from pymontecarlo_gui.options.sample.inclusion import InclusionSampleWidget
-from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleWidget
-from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWidget
+from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
+from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
+from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
+from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
 from pymontecarlo_gui.options.analysis.base import AnalysisToolBox, AnalysesWidget
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisWidget
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
@@ -128,40 +129,24 @@ class SampleWizardPage(NewSimulationWizardPage):
         # Widgets
         self.wdg_materials = MaterialsWidget()
 
-        self.cb_sample = QtWidgets.QComboBox()
-
-        self.lbl_sample_description = QtWidgets.QLabel()
-        font = self.lbl_sample_description.font()
-        font.setItalic(True)
-        self.lbl_sample_description.setFont(font)
-
-        self.wdg_sample = QtWidgets.QStackedWidget()
+        self.wdg_sample = FieldChooser()
 
         self.wdg_preview = PreviewWidget()
 
         # Layouts
-        lyt_middle = QtWidgets.QVBoxLayout()
-        lyt_middle.addWidget(self.cb_sample)
-        lyt_middle.addWidget(self.lbl_sample_description)
-        lyt_middle.addWidget(self.wdg_sample)
-
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(create_group_box('Materials', self.wdg_materials), 1)
-        layout.addWidget(create_group_box('Definition', lyt_middle), 1)
+        layout.addWidget(create_group_box('Definition', self.wdg_sample), 1)
         layout.addWidget(create_group_box('Preview', self.wdg_preview), 1)
         self.setLayout(layout)
 
         # Signals
-        self.cb_sample.currentIndexChanged.connect(self._on_selected_sample_changed)
+        self.wdg_sample.currentFieldChanged.connect(self._on_selected_sample_changed)
         self.wdg_materials.materialsChanged.connect(self._on_materials_changed)
 
-    def _on_selected_sample_changed(self, index):
-        widget_index = self.cb_sample.itemData(index)
-        self.wdg_sample.setCurrentIndex(widget_index)
-
-        widget = self.wdg_sample.widget(widget_index)
-        widget.setAvailableMaterials(self.wdg_materials.materials())
-        self.lbl_sample_description.setText(widget.accessibleDescription())
+    def _on_selected_sample_changed(self, field):
+        materials = self.wdg_materials.materials()
+        field.setAvailableMaterials(materials)
 
         self.samplesChanged.emit()
         self.wdg_preview.update()
@@ -170,9 +155,9 @@ class SampleWizardPage(NewSimulationWizardPage):
     def _on_materials_changed(self):
         materials = self.wdg_materials.materials()
 
-        widget = self.wdg_sample.currentWidget()
-        if widget:
-            widget.setAvailableMaterials(materials)
+        field = self.wdg_sample.currentField()
+        if field:
+            field.setAvailableMaterials(materials)
 
         self.samplesChanged.emit()
         self.wdg_preview.update()
@@ -188,25 +173,20 @@ class SampleWizardPage(NewSimulationWizardPage):
         self.wdg_preview.update()
 
     def isComplete(self):
-        widget = self.wdg_sample.currentWidget()
-        if not widget:
+        field = self.wdg_sample.currentField()
+        if not field:
             return False
-        return widget.isValid()
+        return field.isValid()
 
-    def registerSampleWidget(self, widget):
-        widget_index = self.wdg_sample.addWidget(widget)
-        self.cb_sample.addItem(widget.accessibleName(), widget_index)
-
-        widget.changed.connect(self._on_samples_changed)
-
-        if self.cb_sample.count() == 1:
-            self.cb_sample.setCurrentIndex(0)
+    def registerSampleField(self, field):
+        self.wdg_sample.addField(field)
+        field.fieldChanged.connect(self._on_samples_changed)
 
     def samples(self):
-        widget = self.wdg_sample.currentWidget()
-        if not widget:
+        field = self.wdg_sample.currentField()
+        if not field:
             return []
-        return widget.samples()
+        return field.samples()
 
 class AnalysisWizardPage(NewSimulationWizardPage):
 
@@ -348,37 +328,37 @@ class NewSimulationWizard(QtWidgets.QWizard):
         # Sample
         self.page_sample = SampleWizardPage()
 
-        self.page_sample.registerSampleWidget(SubstrateSampleWidget())
-        self.page_sample.registerSampleWidget(InclusionSampleWidget())
-        self.page_sample.registerSampleWidget(HorizontalLayerSampleWidget())
-        self.page_sample.registerSampleWidget(VerticalLayerSampleWidget())
+        self.page_sample.registerSampleField(SubstrateSampleField())
+        self.page_sample.registerSampleField(InclusionSampleField())
+        self.page_sample.registerSampleField(HorizontalLayerSampleField())
+        self.page_sample.registerSampleField(VerticalLayerSampleField())
 
         self.page_sample.samplesChanged.connect(self._on_samples_changed)
 
         self.addPage(self.page_sample)
 
-        # Analysis
-        self.page_analysis = AnalysisWizardPage()
-
-        self.page_analysis.registerAnalysisWidget(PhotonIntensityAnalysisWidget())
-        self.page_analysis.registerAnalysisWidget(KRatioAnalysisWidget())
-
-        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
-
-        self.addPage(self.page_analysis)
-
-        # Programs
-        self.page_program = ProgramWizardPage()
-
-        for _class, program in pymontecarlo.settings.iter_programs():
-            if program is None:
-                continue
-            self.page_program.registerProgram(program)
-
-        self.page_program.programsChanged.connect(self._on_programs_changed)
-        self.page_program.limitsChanged.connect(self._on_limits_changed)
-
-        self.addPage(self.page_program)
+#        # Analysis
+#        self.page_analysis = AnalysisWizardPage()
+#
+#        self.page_analysis.registerAnalysisWidget(PhotonIntensityAnalysisWidget())
+#        self.page_analysis.registerAnalysisWidget(KRatioAnalysisWidget())
+#
+#        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
+#
+#        self.addPage(self.page_analysis)
+#
+#        # Programs
+#        self.page_program = ProgramWizardPage()
+#
+#        for _class, program in pymontecarlo.settings.iter_programs():
+#            if program is None:
+#                continue
+#            self.page_program.registerProgram(program)
+#
+#        self.page_program.programsChanged.connect(self._on_programs_changed)
+#        self.page_program.limitsChanged.connect(self._on_limits_changed)
+#
+#        self.addPage(self.page_program)
 
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)

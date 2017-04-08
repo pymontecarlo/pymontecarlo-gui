@@ -14,11 +14,10 @@ import numpy as np
 # Local modules.
 from pymontecarlo.options.sample.base import Sample, Layer, LayerBuilder
 
-from pymontecarlo_gui.widgets.field import Field
+from pymontecarlo_gui.widgets.field import ToolBoxField, MultiValueField, WidgetField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
 from pymontecarlo_gui.options.material import MaterialListWidget
 
@@ -26,25 +25,25 @@ from pymontecarlo_gui.options.material import MaterialListWidget
 
 #--- Fields
 
-class TiltField(Field):
+class TiltField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Tilts [\u00b0]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
         decimals = tolerance_to_decimals(math.degrees(Sample.TILT_TOLERANCE_rad))
         self._widget.setRange(-180.0, 180.0, decimals)
         self._widget.setValues([0.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Tilts [\u00b0]'
+
+    def description(self):
+        return 'Tilt around the x-axis'
 
     def widget(self):
         return self._widget
@@ -55,25 +54,22 @@ class TiltField(Field):
     def setTiltsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class RotationField(Field):
+class RotationField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Rotation(s) [\u00b0]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
         decimals = tolerance_to_decimals(math.degrees(Sample.ROTATION_TOLERANCE_rad))
         self._widget.setRange(0.0, 360.0, decimals)
         self._widget.setValues([0.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Rotation(s) [\u00b0]'
 
     def widget(self):
         return self._widget
@@ -84,21 +80,45 @@ class RotationField(Field):
     def setRotationsDegree(self, rotations_deg):
         self._widget.setValues(rotations_deg)
 
-class MaterialField(Field):
+class AngleField(WidgetField):
+
+    def __init__(self):
+        super().__init__()
+
+        self.field_tilt = TiltField()
+        self.addLabelField(self.field_tilt)
+
+        self.field_rotation = RotationField()
+        self.addLabelField(self.field_rotation)
+
+    def title(self):
+        return 'Angles'
+
+    def tiltsDegree(self):
+        return self.field_tilt.tiltsDegree()
+
+    def setTiltsDegree(self, tilts_deg):
+        self.field_tilt.setTiltsDegree(tilts_deg)
+
+    def rotationsDegree(self):
+        return self.field_rotation.rotationsDegree()
+
+    def setRotationsDegree(self, rotations_deg):
+        self.field_rotation.setRotationsDegree(rotations_deg)
+
+class MaterialField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Material(s)')
-
         self._widget = MaterialListWidget()
 
         # Signals
-        self._widget.selectionChanged.connect(self.changed)
+        self._widget.selectionChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Material(s)'
 
     def widget(self):
         return self._widget
@@ -115,33 +135,50 @@ class MaterialField(Field):
     def setAvailableMaterials(self, materials):
         self._widget.setMaterials(materials)
 
-class DiameterField(Field):
+class MaterialWidgetField(WidgetField):
+
+    def __init__(self):
+        super().__init__()
+
+        self.field_material = MaterialField()
+        self.addGroupField(self.field_material)
+
+    def materials(self):
+        return self.field_material.materials()
+
+    def setMaterials(self, materials):
+        self.field_material.setMaterials(materials)
+
+    def availableMaterials(self):
+        return self.field_material.availableMaterials()
+
+    def setAvailableMaterials(self, materials):
+        self.field_material.setAvailableMaterials(materials)
+
+class DiameterField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Diameter(s) [nm]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
-        tolerance = self._get_tolerance_m() * 1e9
-        decimals = tolerance_to_decimals(tolerance)
-        self._widget.setRange(tolerance, float('inf'), decimals)
         self._widget.setValues([100.0])
 
         # Widgets
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
 
-    @abc.abstractmethod
-    def _get_tolerance_m(self):
-        raise NotImplementedError
-
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Diameter(s) [nm]'
 
     def widget(self):
         return self._widget
+
+    def tolerance(self):
+        return self._widget.bottom()
+
+    def setTolerance(self, tolerance):
+        decimals = tolerance_to_decimals(tolerance * 1e9)
+        self._widget.setRange(tolerance, float('inf'), decimals)
 
     def diametersMeter(self):
         return np.array(self._widget.values()) * 1e-9
@@ -150,21 +187,19 @@ class DiameterField(Field):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-class LayerBuilderField(Field):
+class LayerBuilderField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Layers')
-
         self._widget = LayerBuilderWidget()
 
         # Signals
-        self._widget.layerBuildersChanged.connect(self.changed)
+        self._widget.layerBuildersChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Layer(s)'
 
     def widget(self):
         return self._widget
@@ -560,12 +595,7 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
 
 #--- Base widgets
 
-class SampleWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
-
-    changed = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class SampleField(ToolBoxField):
 
     def isValid(self):
         return super().isValid() and bool(self.samples())

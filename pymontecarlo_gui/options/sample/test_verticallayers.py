@@ -10,7 +10,7 @@ from qtpy import QtTest
 
 # Local modules.
 from pymontecarlo_gui.testcase import TestCase
-from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWidget
+from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
 from pymontecarlo.options.sample.base import LayerBuilder
 
 # Globals and constants variables.
@@ -20,41 +20,41 @@ class TestVerticalLayerSampleWidget(TestCase):
     def setUp(self):
         super().setUp()
 
-        self.wdg = VerticalLayerSampleWidget()
+        self.field = VerticalLayerSampleField()
 
     def testsamples(self):
         materials = self.create_materials()
-        self.wdg.setAvailableMaterials(materials)
+        self.field.setAvailableMaterials(materials)
 
-        widget = self.wdg.field_left.widget()
+        widget = self.field.field_left.field_material.widget()
         widget.setSelectedMaterials(materials[-2:])
 
         builder = LayerBuilder()
         builder.add_material(materials[0])
         builder.add_material(materials[1])
         builder.add_thickness_m(10.0)
-        widget = self.wdg.field_layers.widget()
+        widget = self.field.field_layers.widget()
         widget.setLayerBuilders([builder])
 
-        widget = self.wdg.field_right.widget()
+        widget = self.field.field_right.field_material.widget()
         widget.setSelectedMaterials(materials[:2])
 
-        widget = self.wdg.field_depth.suffix()
+        widget = self.field.field_dimension.field_depth.suffix()
         self.checkBoxClick(widget)
 
-        widget = self.wdg.field_depth.widget()
+        widget = self.field.field_dimension.field_depth.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.wdg.field_tilt.widget()
+        widget = self.field.field_angle.field_tilt.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.wdg.field_rotation.widget()
+        widget = self.field.field_angle.field_rotation.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget, '3.3;4.4')
 
-        samples = self.wdg.samples()
+        samples = self.field.samples()
         self.assertEqual(2 ** 6, len(samples))
 
 if __name__ == '__main__': #pragma: no cover

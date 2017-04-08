@@ -9,59 +9,38 @@ from qtpy import QtWidgets
 from pymontecarlo.options.sample.horizontallayers import HorizontalLayerSampleBuilder
 
 from pymontecarlo_gui.options.sample.base import \
-    TiltField, RotationField, MaterialField, LayerBuilderField, SampleWidget
-from pymontecarlo_gui.widgets.field import FieldToolBox
+    AngleField, MaterialWidgetField, LayerBuilderField, SampleField
 
 # Globals and constants variables.
 
-class SubstrateMaterialField(MaterialField):
+class SubstrateField(MaterialWidgetField):
 
     def __init__(self):
         super().__init__()
-        self._widget.setRequiresSelection(False)
+        self.field_material._widget.setRequiresSelection(False)
 
-    def label(self):
-        return QtWidgets.QLabel("Substrate material(s) (optional)")
+    def title(self):
+        return "Substrate (optional)"
 
-class HorizontalLayerSampleWidget(SampleWidget):
+class HorizontalLayerSampleField(SampleField):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAccessibleName('Horizontal layered sample')
-        self.setAccessibleDescription('A multi-layer sample')
+    def __init__(self):
+        super().__init__()
 
-        # Widgets
         self.field_layers = LayerBuilderField()
+        self.addField(self.field_layers)
 
-        self.field_substrate = SubstrateMaterialField()
+        self.field_substrate = SubstrateField()
+        self.addField(self.field_substrate)
 
-        self.field_tilt = TiltField()
+        self.field_angle = AngleField()
+        self.addField(self.field_angle)
 
-        self.field_rotation = RotationField()
+    def title(self):
+        return 'Horizontal layered sample'
 
-        toolbox = FieldToolBox()
-        toolbox.addGroupField(self.field_layers)
-        toolbox.addGroupField(self.field_substrate)
-        toolbox.addLabelFields('Angles', self.field_tilt, self.field_rotation)
-
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(toolbox)
-        self.setLayout(layout)
-
-        # Signals
-        self.field_layers.changed.connect(self.changed)
-        self.field_substrate.changed.connect(self.changed)
-        self.field_tilt.changed.connect(self.changed)
-        self.field_rotation.changed.connect(self.changed)
-
-    def isValid(self):
-        return super().isValid() and \
-            self.field_layers.isValid() and \
-            self.field_substrate.isValid() and \
-            self.field_tilt.isValid() and \
-            self.field_rotation.isValid()
+    def description(self):
+        return 'A multi-layer sample'
 
     def setAvailableMaterials(self, materials):
         self.field_layers.setAvailableMaterials(materials)
@@ -76,10 +55,10 @@ class HorizontalLayerSampleWidget(SampleWidget):
         for material in self.field_substrate.materials():
             builder.add_substrate_material(material)
 
-        for tilt_deg in self.field_tilt.tiltsDegree():
+        for tilt_deg in self.field_angle.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_rotation.rotationsDegree():
+        for rotation_deg in self.field_angle.rotationsDegree():
             builder.add_rotation_deg(rotation_deg)
 
         return super().samples() + builder.build()
@@ -89,10 +68,10 @@ def run(): #pragma: no cover
 
     app = QtWidgets.QApplication(sys.argv)
 
-    table = HorizontalLayerSampleWidget()
+    field = HorizontalLayerSampleField()
 
     mainwindow = QtWidgets.QMainWindow()
-    mainwindow.setCentralWidget(table)
+    mainwindow.setCentralWidget(field.widget())
     mainwindow.show()
 
     app.exec_()

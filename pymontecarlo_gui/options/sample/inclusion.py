@@ -8,69 +8,53 @@ from qtpy import QtWidgets
 # Local modules.
 from pymontecarlo.options.sample.inclusion import InclusionSample, InclusionSampleBuilder
 
-from pymontecarlo_gui.widgets.field import FieldLayout
 from pymontecarlo_gui.options.sample.base import \
-    SampleWidget, TiltField, RotationField, MaterialField, DiameterField
+    SampleField, AngleField, MaterialWidgetField, DiameterField
 
 # Globals and constants variables.
 
-class SubstrateMaterialField(MaterialField):
+class SubstrateField(MaterialWidgetField):
 
     def title(self):
-        return 'Substrate material(s)'
+        return 'Substrate'
 
-class InclusionMaterialField(MaterialField):
+class InclusionField(MaterialWidgetField):
+
+    def __init__(self):
+        super().__init__()
+
+        self.field_diameter = DiameterField()
+        self.field_diameter.setTolerance(InclusionSample.INCLUSION_DIAMETER_TOLERANCE_m)
+        self.addLabelField(self.field_diameter)
 
     def title(self):
-        return 'Inclusion material(s)'
+        return 'Inclusion'
 
-class InclusionDiameterField(DiameterField):
+    def diametersMeter(self):
+        return self.field_diameter.diametersMeter()
 
-    def _get_tolerance_m(self):
-        return InclusionSample.INCLUSION_DIAMETER_TOLERANCE_m
+    def setDiametersMeter(self, diameters_m):
+        self.field_diameter.setDiametersMeter(diameters_m)
 
-class InclusionSampleWidget(SampleWidget):
+class InclusionSampleField(SampleField):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAccessibleName('Inclusion')
-        self.setAccessibleDescription('An half-sphere inclusion in a substrate')
+    def __init__(self):
+        super().__init__()
 
-        # Widgets
-        self.field_substrate = SubstrateMaterialField()
+        self.field_substrate = SubstrateField()
+        self.addField(self.field_substrate)
 
-        self.field_inclusion = InclusionMaterialField()
+        self.field_inclusion = InclusionField()
+        self.addField(self.field_inclusion)
 
-        self.field_diameter = InclusionDiameterField()
+        self.field_angle = AngleField()
+        self.addField(self.field_angle)
 
-        self.field_tilt = TiltField()
+    def title(self):
+        return 'Inclusion'
 
-        self.field_rotation = RotationField()
-
-        # Layouts
-        layout = FieldLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addGroupField(self.field_substrate)
-        layout.addGroupField(self.field_inclusion)
-        layout.addLabelField(self.field_diameter)
-        layout.addLabelField(self.field_tilt)
-        layout.addLabelField(self.field_rotation)
-        self.setLayout(layout)
-
-        # Signals
-        self.field_substrate.changed.connect(self.changed)
-        self.field_inclusion.changed.connect(self.changed)
-        self.field_diameter.changed.connect(self.changed)
-        self.field_tilt.changed.connect(self.changed)
-        self.field_rotation.changed.connect(self.changed)
-
-    def isValid(self):
-        return super().isValid() and \
-            self.field_substrate.isValid() and \
-            self.field_inclusion.isValid() and \
-            self.field_diameter.isValid() and \
-            self.field_tilt.isValid() and \
-            self.field_rotation.isValid()
+    def description(self):
+        return 'An half-sphere inclusion in a substrate'
 
     def setAvailableMaterials(self, materials):
         self.field_substrate.setAvailableMaterials(materials)
@@ -85,13 +69,13 @@ class InclusionSampleWidget(SampleWidget):
         for material in self.field_inclusion.materials():
             builder.add_inclusion_material(material)
 
-        for diameter_m in self.field_diameter.diametersMeter():
+        for diameter_m in self.field_inclusion.diametersMeter():
             builder.add_inclusion_diameter_m(diameter_m)
 
-        for tilt_deg in self.field_tilt.tiltsDegree():
+        for tilt_deg in self.field_angle.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_rotation.rotationsDegree():
+        for rotation_deg in self.field_angle.rotationsDegree():
             builder.add_rotation_deg(rotation_deg)
 
         return super().samples() + builder.build()
@@ -100,10 +84,10 @@ def run(): #pragma: no cover
     import sys
     app = QtWidgets.QApplication(sys.argv)
 
-    table = InclusionSampleWidget()
+    field = InclusionSampleField()
 
     mainwindow = QtWidgets.QMainWindow()
-    mainwindow.setCentralWidget(table)
+    mainwindow.setCentralWidget(field.widget())
     mainwindow.show()
 
     app.exec_()

@@ -5,37 +5,36 @@
 # Third party modules.
 from qtpy import QtWidgets
 
+import numpy as np
+
 # Local modules.
 from pymontecarlo.options.sample.verticallayers import \
     VerticalLayerSampleBuilder, VerticalLayerSample
 
 from pymontecarlo_gui.options.sample.base import \
-    TiltField, RotationField, MaterialField, LayerBuilderField, SampleWidget
-from pymontecarlo_gui.widgets.field import Field, FieldToolBox
+    AngleField, MaterialWidgetField, LayerBuilderField, SampleField
+from pymontecarlo_gui.widgets.field import MultiValueField, WidgetField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
 # Globals and constants variables.
 
-class LeftMaterialField(MaterialField):
+class LeftSubstrateField(MaterialWidgetField):
 
-    def label(self):
-        return QtWidgets.QLabel("Left material(s)")
+    def title(self):
+        return "Left substrate"
 
-class RightMaterialField(MaterialField):
+class RightSubstrateField(MaterialWidgetField):
 
-    def label(self):
-        return QtWidgets.QLabel("Right material(s)")
+    def title(self):
+        return "Right substrate"
 
-class DepthField(Field):
+class DepthField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Depth(s) [nm]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
         tolerance = VerticalLayerSample.DEPTH_TOLERANCE_m * 1e9
         decimals = tolerance_to_decimals(tolerance)
@@ -46,17 +45,17 @@ class DepthField(Field):
         self._suffix.setChecked(True)
 
         # Signals
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
         self._suffix.stateChanged.connect(self._on_infinite_changed)
 
     def _on_infinite_changed(self):
         is_infinite = self._suffix.isChecked()
         self._widget.setValues([])
         self._widget.setEnabled(not is_infinite)
-        self.changed.emit()
+        self.fieldChanged.emit()
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Depth(s) [nm]'
 
     def widget(self):
         return self._widget
@@ -64,64 +63,64 @@ class DepthField(Field):
     def suffix(self):
         return self._suffix
 
+    def isValid(self):
+        if self._suffix.isChecked():
+            return True
+        return super().isValid()
+
     def depthsMeter(self):
         if self._suffix.isChecked():
             return (float('inf'),)
         else:
-            return self._widget.values()
+            return np.array(self._widget.values()) * 1e-9
 
-    def setDepthsMeter(self, depths_deg):
-        self._widget.setValues(depths_deg)
+    def setDepthsMeter(self, depths_m):
+        values = np.array(depths_m) * 1e9
+        self._widget.setValues(values)
         self._suffix.setChecked(False)
 
-class VerticalLayerSampleWidget(SampleWidget):
+class DimensionField(WidgetField):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAccessibleName('Vertical layered sample')
-        self.setAccessibleDescription('YZ planes sandwiched between two infinite substrates')
-
-        # Widgets
-        self.field_left = LeftMaterialField()
-
-        self.field_layers = LayerBuilderField()
-
-        self.field_right = RightMaterialField()
+    def __init__(self):
+        super().__init__()
 
         self.field_depth = DepthField()
+        self.addLabelField(self.field_depth)
 
-        self.field_tilt = TiltField()
+    def title(self):
+        return 'Dimension'
 
-        self.field_rotation = RotationField()
+    def depthsMeter(self):
+        return self.field_depth.depthsMeter()
 
-        toolbox = FieldToolBox()
-        toolbox.addGroupField(self.field_left)
-        toolbox.addGroupField(self.field_layers)
-        toolbox.addGroupField(self.field_right)
-        toolbox.addLabelFields("Angles", self.field_tilt, self.field_rotation)
+    def setDepthsMeter(self, depths_m):
+        self.field_depth.setDepthsMeter(depths_m)
 
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(toolbox)
-        self.setLayout(layout)
+class VerticalLayerSampleField(SampleField):
 
-        # Signals
-        self.field_left.changed.connect(self.changed)
-        self.field_layers.changed.connect(self.changed)
-        self.field_right.changed.connect(self.changed)
-        self.field_depth.changed.connect(self.changed)
-        self.field_tilt.changed.connect(self.changed)
-        self.field_rotation.changed.connect(self.changed)
+    def __init__(self):
+        super().__init__()
 
-    def isValid(self):
-        return super().isValid() and \
-            self.field_left.isValid() and \
-            self.field_layers.isValid() and \
-            self.field_right.isValid() and \
-            self.field_depth.isValid() and \
-            self.field_tilt.isValid() and \
-            self.field_rotation.isValid()
+        self.field_left = LeftSubstrateField()
+        self.addField(self.field_left)
+
+        self.field_layers = LayerBuilderField()
+        self.addField(self.field_layers)
+
+        self.field_right = RightSubstrateField()
+        self.addField(self.field_right)
+
+        self.field_dimension = DimensionField()
+        self.addField(self.field_dimension)
+
+        self.field_angle = AngleField()
+        self.addField(self.field_angle)
+
+    def title(self):
+        return 'Vertical layered sample'
+
+    def description(self):
+        return 'YZ planes sandwiched between two infinite substrates'
 
     def setAvailableMaterials(self, materials):
         self.field_left.setAvailableMaterials(materials)
@@ -140,13 +139,13 @@ class VerticalLayerSampleWidget(SampleWidget):
         for material in self.field_right.materials():
             builder.add_right_material(material)
 
-        for depth_m in self.field_depth.depthsMeter():
+        for depth_m in self.field_dimension.depthsMeter():
             builder.add_depth_m(depth_m)
 
-        for tilt_deg in self.field_tilt.tiltsDegree():
+        for tilt_deg in self.field_angle.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_rotation.rotationsDegree():
+        for rotation_deg in self.field_angle.rotationsDegree():
             builder.add_rotation_deg(rotation_deg)
 
         return super().samples() + builder.build()
@@ -156,10 +155,10 @@ def run(): #pragma: no cover
 
     app = QtWidgets.QApplication(sys.argv)
 
-    table = VerticalLayerSampleWidget()
+    field = VerticalLayerSampleField()
 
     mainwindow = QtWidgets.QMainWindow()
-    mainwindow.setCentralWidget(table)
+    mainwindow.setCentralWidget(field.widget())
     mainwindow.show()
 
     app.exec_()

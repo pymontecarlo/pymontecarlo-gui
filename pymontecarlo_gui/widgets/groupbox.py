@@ -14,6 +14,8 @@ def create_group_box(title, *widgets_or_layouts, direction=None):
         direction = QtWidgets.QBoxLayout.TopToBottom
 
     layout = QtWidgets.QBoxLayout(direction)
+    layout.setContentsMargins(0, 0, 0, 0)
+
     for item in widgets_or_layouts:
         if isinstance(item, QtWidgets.QWidget):
             layout.addWidget(item)

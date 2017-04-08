@@ -133,6 +133,7 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
 
     def _on_validator_changed(self, *args):
         self._update_tooltip()
+        self.setValue(self.value())
 
     def _get_double_validator(self):
         return self.lineedit.validator()
@@ -276,6 +277,7 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
 
     def _on_validator_changed(self, *args):
         self._update_tooltip()
+        self.setValues(self.values())
 
     def _get_double_validator(self):
         return self.lineedit.validator()
