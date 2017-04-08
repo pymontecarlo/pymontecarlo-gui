@@ -26,6 +26,18 @@ from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
 
 #--- Widgets
 
+class WizardWidgetMixin:
+
+    def wizard(self):
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'wizard'):
+                return parent.wizard()
+            parent = parent.parent()
+        return None
+
+#--- Widgets
+
 class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
     def __init__(self, parent=None):
@@ -64,7 +76,7 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def count(self):
         return self._count
 
-class PreviewWidget(QtWidgets.QWidget):
+class PreviewWidget(QtWidgets.QWidget, WizardWidgetMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -77,14 +89,6 @@ class PreviewWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.wdg_figure)
         self.setLayout(layout)
-
-    def wizard(self):
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'wizard'):
-                return parent.wizard()
-            parent = parent.parent()
-        return None
 
     def update(self):
         self.wdg_figure.clear()
