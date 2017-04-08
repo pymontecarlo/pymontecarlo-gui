@@ -24,6 +24,8 @@ from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
 
 # Globals and constants variables.
 
+#--- Widgets
+
 class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
     def __init__(self, parent=None):
@@ -62,6 +64,48 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def count(self):
         return self._count
 
+class PreviewWidget(QtWidgets.QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Widgets
+        self.wdg_figure = SampleFigureWidget()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.wdg_figure)
+        self.setLayout(layout)
+
+    def wizard(self):
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'wizard'):
+                return parent.wizard()
+            parent = parent.parent()
+        return None
+
+    def update(self):
+        self.wdg_figure.clear()
+
+        wizard = self.wizard()
+        if not wizard:
+            return
+
+        list_options, _estimated = wizard._get_options_list(estimate=True)
+        if not list_options:
+            return
+
+        self.wdg_figure.sample_figure.sample = list_options[0].sample
+
+        for options in list_options:
+            self.wdg_figure.sample_figure.beams.append(options.beam)
+
+        self.wdg_figure.draw()
+
+#--- Pages
+
 class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
 
     def __init__(self, parent=None):
@@ -87,7 +131,7 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.wdg_sample = QtWidgets.QStackedWidget()
 
-        self.wdg_figure = SampleFigureWidget()
+        self.wdg_preview = PreviewWidget()
 
         # Layouts
         lyt_middle = QtWidgets.QVBoxLayout()
@@ -98,7 +142,7 @@ class SampleWizardPage(NewSimulationWizardPage):
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(create_group_box('Materials', self.wdg_materials), 1)
         layout.addWidget(create_group_box('Definition', lyt_middle), 1)
-        layout.addWidget(create_group_box('Preview', self.wdg_figure), 1)
+        layout.addWidget(create_group_box('Preview', self.wdg_preview), 1)
         self.setLayout(layout)
 
         # Signals
@@ -116,8 +160,8 @@ class SampleWizardPage(NewSimulationWizardPage):
         widget.setAvailableMaterials(self.wdg_materials.materials())
         self.lbl_sample_description.setText(widget.accessibleDescription())
 
-        self._update_figure()
         self.samplesChanged.emit()
+        self.wdg_preview.update()
 
     def _on_materials_changed(self):
         materials = self.wdg_materials.materials()
@@ -126,24 +170,16 @@ class SampleWizardPage(NewSimulationWizardPage):
         if widget:
             widget.setAvailableMaterials(materials)
 
-        self._update_figure()
         self.samplesChanged.emit()
+        self.wdg_preview.update()
 
     def _on_samples_changed(self):
-        self._update_figure()
         self.samplesChanged.emit()
+        self.wdg_preview.update()
 
-    def _update_figure(self):
-        widget = self.wdg_sample.currentWidget()
-
-        samples = []
-        if widget:
-            samples = widget.samples()
-
-        if samples:
-            self.wdg_figure.setSample(samples[0])
-        else:
-            self.wdg_figure.setSample(None)
+    def initializePage(self):
+        super().initializePage()
+        self.wdg_preview.update()
 
     def isComplete(self):
         widget = self.wdg_sample.currentWidget()
@@ -179,7 +215,7 @@ class AnalysisWizardPage(NewSimulationWizardPage):
 
         self.toolbox = AnalysisToolBox()
 
-        self.wdg_figure = SampleFigureWidget()
+        self.wdg_preview = PreviewWidget()
 
         # Layouts
         self.lyt_analyses = QtWidgets.QVBoxLayout()
@@ -188,13 +224,21 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self.lyt_analyses, 1)
         layout.addWidget(self.toolbox, 1)
-        layout.addWidget(self.wdg_figure, 1)
+        layout.addWidget(self.wdg_preview, 1)
         self.setLayout(layout)
 
         # Signals
-        self.toolbox.changed.connect(self.analysesChanged)
+        self.toolbox.changed.connect(self._on_analyses_changed)
 
         self.analysesChanged.connect(self.completeChanged)
+
+    def _on_analyses_changed(self):
+        self.analysesChanged.emit()
+        self.wdg_preview.update()
+
+    def initializePage(self):
+        super().initializePage()
+        self.wdg_preview.update()
 
     def isComplete(self):
         return len(self.analyses()) > 0 and self.toolbox.isValid()
@@ -208,7 +252,7 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.lyt_analyses.insertWidget(index, widget)
 
         # Signals
-        widget.changed.connect(self.analysesChanged)
+        widget.changed.connect(self._on_analyses_changed)
 
     def analyses(self):
         analyses = []
@@ -217,6 +261,8 @@ class AnalysisWizardPage(NewSimulationWizardPage):
             analyses.extend(widget.analyses())
 
         return analyses
+
+#--- Wizard
 
 class NewSimulationWizard(QtWidgets.QWizard):
 
@@ -277,29 +323,30 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.optionsChanged.emit()
 
     def _on_options_changed(self):
+        list_options, estimated = self._get_options_list(estimate=True)
+        count = len(list_options)
+        self.btn_count.setCount(count, estimated)
+
+    def _get_options_list(self, estimate):
         program_mock_added = False
-        if not self.builder.programs:
+        if estimate and not self.builder.programs:
             self.builder.add_program(ProgramMock())
             program_mock_added = True
 
         beam_mock_added = False
-        if not self.builder.beams:
+        if estimate and not self.builder.beams:
             self.builder.add_beam(Beam(0.0))
             beam_mock_added = True
 
         sample_mock_added = False
-        if not self.builder.samples:
+        if estimate and not self.builder.samples:
             self.builder.add_sample(SampleMock())
             sample_mock_added = True
 
         if program_mock_added and beam_mock_added and sample_mock_added:
-            count = 0
+            list_options = []
         else:
-            count = len(self.builder)
-
-        estimate = program_mock_added or beam_mock_added or sample_mock_added
-
-        self.btn_count.setCount(count, estimate=estimate)
+            list_options = self.builder.build()
 
         if program_mock_added:
             self.builder.programs.clear()
@@ -308,8 +355,13 @@ class NewSimulationWizard(QtWidgets.QWizard):
         if sample_mock_added:
             self.builder.samples.clear()
 
-    def options(self):
-        return self.builder.build()
+        estimated = program_mock_added or beam_mock_added or sample_mock_added
+
+        return list_options, estimated
+
+    def optionsList(self):
+        list_options, _estimated = self._get_options_list(estimate=False)
+        return list_options
 
 def run(): #pragma: no cover
     import sys
