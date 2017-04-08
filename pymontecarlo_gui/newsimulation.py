@@ -18,7 +18,7 @@ from pymontecarlo_gui.options.sample.substrate import SubstrateSampleWidget
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleWidget
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleWidget
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWidget
-from pymontecarlo_gui.options.analysis.base import AnalysisToolBox
+from pymontecarlo_gui.options.analysis.base import AnalysisToolBox, AnalysesWidget
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisWidget
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
 
@@ -211,25 +211,23 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.setTitle('Select type(s) of analysis')
 
         # Widgets
-        self.analysis_widgets = []
-
         self.toolbox = AnalysisToolBox()
+
+        self.wdg_analyses = AnalysesWidget()
+        self.wdg_analyses.setAnalysisToolBox(self.toolbox)
 
         self.wdg_preview = PreviewWidget()
 
         # Layouts
-        self.lyt_analyses = QtWidgets.QVBoxLayout()
-        self.lyt_analyses.addStretch()
-
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(self.lyt_analyses, 1)
-        layout.addWidget(self.toolbox, 1)
-        layout.addWidget(self.wdg_preview, 1)
+        layout.addWidget(create_group_box('Analyses', self.wdg_analyses), 1)
+        layout.addWidget(create_group_box('Definition', self.toolbox), 1)
+        layout.addWidget(create_group_box('Preview', self.wdg_preview), 1)
         self.setLayout(layout)
 
         # Signals
         self.toolbox.changed.connect(self._on_analyses_changed)
-
+        self.wdg_analyses.changed.connect(self._on_analyses_changed)
         self.analysesChanged.connect(self.completeChanged)
 
     def _on_analyses_changed(self):
@@ -241,26 +239,13 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.wdg_preview.update()
 
     def isComplete(self):
-        return len(self.analyses()) > 0 and self.toolbox.isValid()
+        return self.wdg_analyses.isValid() and self.toolbox.isValid()
 
     def registerAnalysisWidget(self, widget):
-        widget.setAnalysisToolBox(self.toolbox)
-        self.analysis_widgets.append(widget)
-
-        # Layouts
-        index = len(self.analysis_widgets) - 1
-        self.lyt_analyses.insertWidget(index, widget)
-
-        # Signals
-        widget.changed.connect(self._on_analyses_changed)
+        self.wdg_analyses.addAnalysisWidget(widget)
 
     def analyses(self):
-        analyses = []
-
-        for widget in self.analysis_widgets:
-            analyses.extend(widget.analyses())
-
-        return analyses
+        return self.wdg_analyses.analyses()
 
 #--- Wizard
 

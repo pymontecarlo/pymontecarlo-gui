@@ -95,7 +95,7 @@ class AnalysisToolBox(QtWidgets.QWidget, Validable):
     def photonDetectors(self):
         return self.field_photon_detector.detectors()
 
-class AnalysisWidget(QtWidgets.QWidget, metaclass=QABCMeta):
+class AnalysisWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
 
     changed = QtCore.Signal()
 
@@ -151,6 +151,15 @@ class AnalysisWidget(QtWidgets.QWidget, metaclass=QABCMeta):
         super().setAccessibleDescription(description)
         self.lbl_description.setText(description)
 
+    def isValid(self):
+        return super().isValid()
+
+    def isSelected(self):
+        return self.checkbox.isChecked()
+
+    def setSelection(self, selected):
+        self.checkbox.setChecked(selected)
+
     def analysisToolBox(self):
         return self._toolbox
 
@@ -160,3 +169,73 @@ class AnalysisWidget(QtWidgets.QWidget, metaclass=QABCMeta):
     @abc.abstractmethod
     def analyses(self):
         return []
+
+class AnalysesWidget(QtWidgets.QWidget, Validable):
+
+    changed = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Variables
+        self._widgets = []
+        self._toolbox = None
+
+        # Widgets
+        self.scrollarea = QtWidgets.QScrollArea()
+        self.scrollarea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.scrollarea.setLineWidth(0)
+        self.scrollarea.setFrameStyle(QtWidgets.QFrame.Plain)
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.scrollarea)
+        self.setLayout(layout)
+
+    def isValid(self):
+        selection = [widget for widget in self._widgets if widget.isSelected()]
+        if not selection:
+            return False
+
+        for widget in selection:
+            if not widget.isValid():
+                return False
+
+        return super().isValid()
+
+    def addAnalysisWidget(self, analysis_widget):
+        analysis_widget.setAnalysisToolBox(self.analysisToolBox())
+        self._widgets.append(analysis_widget)
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        for widget in self._widgets:
+            layout.addWidget(widget)
+        layout.addStretch()
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        self.scrollarea.setWidget(widget)
+
+        # Signals
+        analysis_widget.changed.connect(self.changed)
+
+    def analysisToolBox(self):
+        return self._toolbox
+
+    def setAnalysisToolBox(self, toolbox):
+        self._toolbox = toolbox
+        for widget in self._widgets:
+            widget.setAnalysisToolBox(toolbox)
+
+    def analyses(self):
+        analyses = []
+
+        for widget in self._widgets:
+            if not widget.isSelected():
+                continue
+            analyses.extend(widget.analyses())
+
+        return analyses

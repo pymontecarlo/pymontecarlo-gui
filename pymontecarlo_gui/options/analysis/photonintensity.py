@@ -19,9 +19,6 @@ class PhotonIntensityAnalysisWidget(PhotonAnalysisWidget):
         self.setAccessibleDescription('Simulates X-rays and records their generated and emitted intensities')
 
     def analyses(self):
-        if not self.checkbox.isChecked():
-            return super().analyses()
-
         builder = PhotonIntensityAnalysisBuilder()
 
         for detector in self.analysisToolBox().photonDetectors():

@@ -19,9 +19,6 @@ class KRatioAnalysisWidget(PhotonAnalysisWidget):
         self.setAccessibleDescription('Calculates k-ratios from X-ray intensities emitted from "unknown" and reference materials')
 
     def analyses(self):
-        if not self.checkbox.isChecked():
-            return super().analyses()
-
         builder = KRatioAnalysisBuilder()
 
         for detector in self.analysisToolBox().photonDetectors():
