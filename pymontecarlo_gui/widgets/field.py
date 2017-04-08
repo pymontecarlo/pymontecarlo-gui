@@ -69,19 +69,7 @@ class FieldLayout(QtWidgets.QGridLayout):
         groupbox = create_group_box(field.label().text(), *widgets)
         self.addWidget(groupbox, row, 0, 1, 3)
 
-class FieldToolBox(QtWidgets.QWidget):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Widgets
-        self.toolbox = QtWidgets.QToolBox()
-
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.toolbox)
-        self.setLayout(layout)
+class FieldToolBox(QtWidgets.QToolBox, Validable):
 
     def _on_field_changed(self, index, field):
         if field.isValid():
@@ -89,7 +77,17 @@ class FieldToolBox(QtWidgets.QWidget):
         else:
             icon = QtGui.QIcon.fromTheme("dialog-error")
 
-        self.toolbox.setItemIcon(index, icon)
+        self.setItemIcon(index, icon)
+
+    def isValid(self):
+        for index in range(self.count()):
+            widget = self.widget(index)
+            if not isinstance(widget, Validable):
+                continue
+            if not widget.isValid():
+                return False
+
+        return super().isValid()
 
     def addLabelFields(self, title, *fields):
         lyt_fields = FieldLayout()
@@ -98,18 +96,33 @@ class FieldToolBox(QtWidgets.QWidget):
             lyt_fields.addLabelField(field)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(lyt_fields)
         layout.addStretch()
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
 
-        index = self.toolbox.addItem(widget, title)
+        index = self.addItem(widget, title)
 
         for field in fields:
             field.changed.connect(functools.partial(self._on_field_changed, index, field))
 
+        return index
+
     def addGroupField(self, field):
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(field.widget())
+        layout.addStretch()
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+
         title = field.label().text()
-        index = self.toolbox.addItem(field.widget(), title)
+        index = self.addItem(widget, title)
+
         field.changed.connect(functools.partial(self._on_field_changed, index, field))
+
+        return index
+
