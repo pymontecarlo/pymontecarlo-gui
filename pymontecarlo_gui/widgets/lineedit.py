@@ -227,6 +227,8 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
             return QtGui.QValidator.Intermediate, input, pos
 
         for value in values:
+            if self.decimals() == 0:
+                value = int(value)
             state, _, _ = self.validator_value.validate(str(value), pos)
             if state != QtGui.QValidator.Acceptable:
                 return state, input, pos
