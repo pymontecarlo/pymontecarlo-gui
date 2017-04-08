@@ -106,23 +106,18 @@ class AnalysisWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
         self._toolbox = None
 
         # Widgets
-        self.checkbox = QtWidgets.QCheckBox()
-
-        self.lbl_name = QtWidgets.QLabel(self.accessibleName())
-        self.lbl_name.setWordWrap(True)
+        self.checkbox = QtWidgets.QCheckBox(self.accessibleName())
 
         self.lbl_description = QtWidgets.QLabel(self.accessibleDescription())
-        self.lbl_description.setWordWrap(True)
         font = self.lbl_description.font()
         font.setItalic(True)
         self.lbl_description.setFont(font)
+        self.lbl_description.setWordWrap(True)
 
         # Layouts
-        layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.checkbox, 0, 0)
-        layout.addWidget(self.lbl_name, 0, 1, QtCore.Qt.AlignLeft)
-        layout.addWidget(self.lbl_description, 1, 1, QtCore.Qt.AlignLeft)
-        layout.setColumnStretch(1, 1)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.checkbox, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.lbl_description, QtCore.Qt.AlignLeft)
         self.setLayout(layout)
 
         # Signals
@@ -145,7 +140,7 @@ class AnalysisWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
 
     def setAccessibleName(self, name):
         super().setAccessibleName(name)
-        self.lbl_name.setText(name)
+        self.checkbox.setText(name)
 
     def setAccessibleDescription(self, description):
         super().setAccessibleDescription(description)
