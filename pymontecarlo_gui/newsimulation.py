@@ -6,9 +6,10 @@
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
+import pymontecarlo
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock, SampleMock
-from pymontecarlo.options.beam.base import Beam
+from pymontecarlo.options.beam import GaussianBeam
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
@@ -21,6 +22,7 @@ from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleWi
 from pymontecarlo_gui.options.analysis.base import AnalysisToolBox, AnalysesWidget
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisWidget
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
+from pymontecarlo_gui.options.program import ProgramsWidget, ProgramLimitsToolBox
 
 # Globals and constants variables.
 
@@ -151,10 +153,7 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         # Signals
         self.cb_sample.currentIndexChanged.connect(self._on_selected_sample_changed)
-
         self.wdg_materials.materialsChanged.connect(self._on_materials_changed)
-
-        self.samplesChanged.connect(self.completeChanged)
 
     def _on_selected_sample_changed(self, index):
         widget_index = self.cb_sample.itemData(index)
@@ -166,6 +165,7 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.samplesChanged.emit()
         self.wdg_preview.update()
+        self.completeChanged.emit()
 
     def _on_materials_changed(self):
         materials = self.wdg_materials.materials()
@@ -176,10 +176,12 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.samplesChanged.emit()
         self.wdg_preview.update()
+        self.completeChanged.emit()
 
     def _on_samples_changed(self):
         self.samplesChanged.emit()
         self.wdg_preview.update()
+        self.completeChanged.emit()
 
     def initializePage(self):
         super().initializePage()
@@ -232,11 +234,11 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         # Signals
         self.toolbox.changed.connect(self._on_analyses_changed)
         self.wdg_analyses.changed.connect(self._on_analyses_changed)
-        self.analysesChanged.connect(self.completeChanged)
 
     def _on_analyses_changed(self):
         self.analysesChanged.emit()
         self.wdg_preview.update()
+        self.completeChanged.emit()
 
     def initializePage(self):
         super().initializePage()
@@ -249,7 +251,73 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.wdg_analyses.addAnalysisWidget(widget)
 
     def analyses(self):
-        return self.wdg_analyses.analyses()
+        return self.wdg_analyses.selectedAnalyses()
+
+class ProgramWizardPage(NewSimulationWizardPage):
+
+    programsChanged = QtCore.Signal()
+    limitsChanged = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle('Select program(s)')
+
+        # Widgets
+        self.wdg_programs = ProgramsWidget()
+
+        self.wdg_limits = ProgramLimitsToolBox()
+
+        # Layouts
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(create_group_box('Programs', self.wdg_programs), 1)
+        layout.addWidget(create_group_box('Limits', self.wdg_limits), 1)
+        layout.addWidget(QtWidgets.QWidget(), 1)
+        self.setLayout(layout)
+
+        # Signals
+        self.wdg_programs.changed.connect(self._on_programs_changed)
+        self.wdg_limits.changed.connect(self._on_limits_changed)
+
+    def _on_programs_changed(self):
+        programs = self.wdg_programs.selectedPrograms()
+        self.wdg_limits.setPrograms(programs)
+        self.programsChanged.emit()
+        self.completeChanged.emit()
+
+    def _on_limits_changed(self):
+        self.limitsChanged.emit()
+        self._update_errors()
+        self.completeChanged.emit()
+
+    def _update_errors(self):
+        list_options, _estimated = self.wizard()._get_options_list(estimate=True)
+        programs = self.wdg_programs.programs()
+
+        for program in programs:
+            validator = program.create_validator()
+            errors = set()
+
+            for options in list_options:
+                options.program = program
+                validator._validate_options(options, errors)
+
+            self.wdg_programs.setProgramErrors(program, errors)
+
+    def initializePage(self):
+        super().initializePage()
+        self._update_errors()
+
+    def isComplete(self):
+        return self.wdg_programs.isValid() and self.wdg_limits.isValid()
+
+    def registerProgram(self, program):
+        self.wdg_programs.addProgram(program)
+
+    def programs(self):
+        return self.wdg_programs.selectedPrograms()
+
+    def limits(self):
+        return self.wdg_limits.limits()
 
 #--- Wizard
 
@@ -299,6 +367,19 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         self.addPage(self.page_analysis)
 
+        # Programs
+        self.page_program = ProgramWizardPage()
+
+        for _class, program in pymontecarlo.settings.iter_programs():
+            if program is None:
+                continue
+            self.page_program.registerProgram(program)
+
+        self.page_program.programsChanged.connect(self._on_programs_changed)
+        self.page_program.limitsChanged.connect(self._on_limits_changed)
+
+        self.addPage(self.page_program)
+
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)
         self.optionsChanged.connect(self._on_options_changed)
@@ -309,6 +390,14 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
     def _on_analyses_changed(self):
         self.builder.analyses = self.page_analysis.analyses()
+        self.optionsChanged.emit()
+
+    def _on_programs_changed(self):
+        self.builder.programs = self.page_program.programs()
+        self.optionsChanged.emit()
+
+    def _on_limits_changed(self):
+        self.builder.limits = self.page_program.limits()
         self.optionsChanged.emit()
 
     def _on_options_changed(self):
@@ -324,7 +413,8 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         beam_mock_added = False
         if estimate and not self.builder.beams:
-            self.builder.add_beam(Beam(0.0))
+#            self.builder.add_beam(Beam(0.0)) #TODO: Change back
+            self.builder.add_beam(GaussianBeam(15e3, 10e-9))
             beam_mock_added = True
 
         sample_mock_added = False

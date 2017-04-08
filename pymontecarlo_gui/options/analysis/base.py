@@ -116,6 +116,7 @@ class AnalysisWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.checkbox, QtCore.Qt.AlignLeft)
         layout.addWidget(self.lbl_description, QtCore.Qt.AlignLeft)
         self.setLayout(layout)
@@ -225,7 +226,7 @@ class AnalysesWidget(QtWidgets.QWidget, Validable):
         for widget in self._widgets:
             widget.setAnalysisToolBox(toolbox)
 
-    def analyses(self):
+    def selectedAnalyses(self):
         analyses = []
 
         for widget in self._widgets:
