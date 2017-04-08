@@ -28,7 +28,7 @@ class ElevationField(Field):
         self._widget = ColoredMultiFloatLineEdit()
         decimals = tolerance_to_decimals(math.degrees(PhotonDetector.ELEVATION_TOLERANCE_rad))
         self._widget.setRange(-90.0, 90.0, decimals)
-        self._widget.setValues([0.0])
+        self._widget.setValues([40.0])
 
         # Signals
         self._widget.valuesChanged.connect(self.changed)
@@ -94,6 +94,11 @@ class PhotonDetectorWidget(DetectorWidget):
         # Signals
         self.field_elevation.changed.connect(self.changed)
         self.field_azimuth.changed.connect(self.changed)
+
+    def isValid(self):
+        return super().isValid() and \
+            self.field_elevation.isValid() and \
+            self.field_azimuth.isValid()
 
     def detectors(self):
         builder = PhotonDetectorBuilder()
