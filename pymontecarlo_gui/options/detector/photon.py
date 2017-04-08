@@ -78,6 +78,8 @@ class PhotonDetectorWidget(DetectorWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAccessibleName('Photon detector')
+        self.setAccessibleDescription('Detector to collect emitted X-rays')
 
         # widgets
         self.field_elevation = ElevationField()
