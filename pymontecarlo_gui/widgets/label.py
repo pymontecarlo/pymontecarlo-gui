@@ -11,14 +11,15 @@ from qtpy import QtCore, QtWidgets
 
 class LabelIcon(QtWidgets.QWidget):
 
-    def __init__(self, text, icon, parent=None):
+    def __init__(self, text='', icon=None, parent=None):
         super().__init__(parent)
 
         # Widgets
         self.lbl_text = QtWidgets.QLabel(text)
 
         self.lbl_icon = QtWidgets.QLabel()
-        self.setIcon(icon)
+        if icon:
+            self.setIcon(icon)
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
@@ -41,3 +42,9 @@ class LabelIcon(QtWidgets.QWidget):
         layout = self.layout()
         layout.itemAt(0).setAlignment(alignment | QtCore.Qt.AlignHCenter)
         layout.itemAt(1).setAlignment(alignment | QtCore.Qt.AlignLeft)
+
+    def wordWrap(self):
+        return self.lbl_text.wordWrap()
+
+    def setWordWrap(self, wrap):
+        self.lbl_text.setWordWrap(wrap)
