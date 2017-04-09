@@ -5,39 +5,32 @@ import abc
 import itertools
 
 # Third party modules.
-from qtpy import QtCore, QtWidgets
+from qtpy import QtWidgets
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import FieldToolBox, CheckField, WidgetField
+from pymontecarlo_gui.widgets.field import CheckField, WidgetField, ToolBoxField
 from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
 class AnalysesToolBoxMixin:
 
-    def analysesToolBox(self):
-        if not hasattr(self, '_toolbox'):
-            self._toolbox = None
-        return self._toolbox
+    def analysesToolBoxField(self):
+        if not hasattr(self, '_field_toolbox'):
+            self._field_toolbox = None
+        return self._field_toolbox
 
-    def setAnalysesToolBox(self, toolbox):
-        self._toolbox = toolbox
+    def setAnalysesToolBoxField(self, field):
+        self._field_toolbox = field
 
-class AnalysesToolBox(FieldToolBox):
+class AnalysesToolBoxField(ToolBoxField):
 
-    fieldChanged = QtCore.Signal()
+    def __init__(self):
+        super().__init__()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Variables
         self._registered_requirements = {}
 
-        # Fields
         self.field_photon_detector = PhotonDetectorField()
-
-        # Signals
-        self.field_photon_detector.fieldChanged.connect(self.fieldChanged)
 
     def _registerRequirement(self, analysis, field):
         if not self._registered_requirements.get(field, None):
@@ -53,6 +46,9 @@ class AnalysesToolBox(FieldToolBox):
 
         if not self._registered_requirements[field]:
             self.removeField(field)
+
+    def title(self):
+        return 'Definition'
 
     def registerPhotonDetectorRequirement(self, analysis):
         self._registerRequirement(analysis, self.field_photon_detector)
@@ -73,22 +69,19 @@ class AnalysisField(CheckField, AnalysesToolBoxMixin):
         self.fieldChanged.connect(self._on_field_changed)
 
     def _on_field_changed(self):
-        toolbox = self.analysesToolBox()
+        field_toolbox = self.analysesToolBoxField()
 
-        if toolbox is not None:
+        if field_toolbox is not None:
             if self.isChecked():
-                self._register_requirements(toolbox)
+                self._register_requirements(field_toolbox)
             else:
-                self._unregister_requirements(toolbox)
+                self._unregister_requirements(field_toolbox)
 
-    def _register_requirements(self, toolbox):
+    def _register_requirements(self, field_toolbox):
         pass
 
-    def _unregister_requirements(self, toolbox):
+    def _unregister_requirements(self, field_toolbox):
         pass
-
-    def widget(self):
-        return CheckField.widget(self)
 
     @abc.abstractmethod
     def analyses(self):
@@ -111,15 +104,14 @@ class AnalysesField(WidgetField, AnalysesToolBoxMixin):
         return True
 
     def addAnalysisField(self, field):
-        field.setAnalysesToolBox(self.analysesToolBox())
+        field.setAnalysesToolBoxField(self.analysesToolBoxField())
         self.addCheckField(field)
 
-    def setAnalysesToolBox(self, toolbox):
-        super().setAnalysesToolBox(toolbox)
+    def setAnalysesToolBoxField(self, field):
+        super().setAnalysesToolBoxField(field)
         for field in self.fields():
-            field.setAnalysesToolBox(toolbox)
+            field.setAnalysesToolBoxField(field)
 
     def selectedAnalyses(self):
-        return list(itertools.chain.from_iterable(field.analyses()
-                                    for field in self.fields()
-                                    if field.isChecked()))
+        it = (field.analyses() for field in self.fields() if field.isChecked())
+        return list(itertools.chain.from_iterable(it))

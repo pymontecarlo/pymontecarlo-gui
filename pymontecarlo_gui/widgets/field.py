@@ -49,11 +49,11 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
     def widget(self):
         return QtWidgets.QWidget()
 
-    def suffix(self):
+    def suffixWidget(self):
         return None
 
     def hasSuffix(self):
-        return self.suffix() is not None
+        return self.suffixWidget() is not None
 
     def isValid(self):
         if not super().isValid():
@@ -64,6 +64,16 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
             return False
 
         return True
+
+    def isEnabled(self):
+        return self.widget().isEnabled()
+
+    def setEnabled(self, enabled):
+        self.titleWidget().setEnabled(enabled)
+        self.descriptionWidget().setEnabled(enabled)
+        self.widget().setEnabled(enabled)
+        if self.hasSuffix():
+            self.suffixWidget().setEnabled(enabled)
 
 class MultiValueField(Field):
 
@@ -86,6 +96,9 @@ class CheckField(Field):
 
     def setChecked(self, checked):
         self.titleWidget().setChecked(checked)
+
+    def widget(self):
+        return QtWidgets.QWidget()
 
 class WidgetField(Field):
 
@@ -140,7 +153,10 @@ class ToolBoxField(Field):
     def addField(self, field):
         self._widget.addField(field)
         field.fieldChanged.connect(self.fieldChanged)
-        self._widget.adjustSize()
+
+    def removeField(self, field):
+        self._widget.removeField(field)
+        field.fieldChanged.disconnect(self.fieldChanged)
 
     def widget(self):
         return self._widget
@@ -167,18 +183,21 @@ class FieldLayout(QtWidgets.QVBoxLayout):
 
         # Suffix
         if has_suffix:
-            self.lyt_field.addWidget(field.suffix(), row, 2)
+            self.lyt_field.addWidget(field.suffixWidget(), row, 2)
 
     def addGroupField(self, field):
         row = self.lyt_field.rowCount()
         has_description = field.hasDescription()
         has_suffix = field.hasSuffix()
 
-        widgets = [field.widget()]
+        widgets = []
         if has_description:
             widgets.append(field.descriptionWidget())
+
+        widgets.append(field.widget())
+
         if has_suffix:
-            widgets.append(field.suffix())
+            widgets.append(field.suffixWidget())
 
         groupbox = create_group_box(field.title(), *widgets)
         self.lyt_field.addWidget(groupbox, row, 0, 1, 3)
@@ -188,18 +207,18 @@ class FieldLayout(QtWidgets.QVBoxLayout):
         has_description = field.hasDescription()
         has_suffix = field.hasSuffix()
 
-        self.lyt_field.addWidget(field.titleWidget(), row, 0, 1, 2)
+        self.lyt_field.addWidget(field.titleWidget(), row, 0, 1, 3)
         row += 1
 
         if has_description:
-            self.lyt_field.addWidget(field.descriptionWidget(), row, 0, 1, 2)
+            self.lyt_field.addWidget(field.descriptionWidget(), row, 0, 1, 3)
             row += 1
 
-        self.lyt_field.addWidget(field.widget(), row, 0, 1, 2)
+        self.lyt_field.addWidget(field.widget(), row, 0, 1, 3)
         row += 1
 
         if has_suffix:
-            self.lyt_field.addWidget(field.suffix(), row, 0, 1, 2)
+            self.lyt_field.addWidget(field.suffixWidget(), row, 0, 1, 3)
 
 class FieldToolBox(QtWidgets.QToolBox, Validable):
 
@@ -223,13 +242,9 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
         self.setItemIcon(index, icon)
 
     def isValid(self):
-        for index in range(self.count()):
-            widget = self.widget(index)
-            if not isinstance(widget, Validable):
-                continue
-            if not widget.isValid():
+        for field in self._fields:
+            if not field.isValid():
                 return False
-
         return super().isValid()
 
     def addField(self, field):
@@ -241,7 +256,7 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
         if field.hasDescription():
             layout.addWidget(field.descriptionWidget())
         if field.hasSuffix():
-            layout.addWidget(field.suffix())
+            layout.addWidget(field.suffixWidget())
         layout.addWidget(field.widget())
 
         widget = QtWidgets.QWidget()

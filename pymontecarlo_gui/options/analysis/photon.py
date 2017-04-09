@@ -11,10 +11,10 @@ from pymontecarlo_gui.options.analysis.base import AnalysisField
 
 class PhotonAnalysisField(AnalysisField):
 
-    def _register_requirements(self, toolbox):
-        super()._register_requirements(toolbox)
-        toolbox.registerPhotonDetectorRequirement(self)
+    def _register_requirements(self, field_toolbox):
+        super()._register_requirements(field_toolbox)
+        field_toolbox.registerPhotonDetectorRequirement(self)
 
-    def _unregister_requirements(self, toolbox):
-        super()._unregister_requirements(toolbox)
-        toolbox.unregisterPhotonDetectorRequirement(self)
+    def _unregister_requirements(self, field_toolbox):
+        super()._unregister_requirements(field_toolbox)
+        field_toolbox.unregisterPhotonDetectorRequirement(self)

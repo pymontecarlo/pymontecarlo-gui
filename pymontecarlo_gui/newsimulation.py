@@ -10,6 +10,7 @@ import pymontecarlo
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock, SampleMock
 from pymontecarlo.options.beam import GaussianBeam
+from pymontecarlo.options.limit.showers import ShowersLimit
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
@@ -20,10 +21,11 @@ from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
-from pymontecarlo_gui.options.analysis.base import AnalysesToolBox, AnalysesField
+from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
-from pymontecarlo_gui.options.program import ProgramsWidget, ProgramLimitsToolBox
+from pymontecarlo_gui.options.limit.showers import ShowersField
+from pymontecarlo_gui.options.program import ProgramsField, LimitsToolBoxField
 
 # Globals and constants variables.
 
@@ -197,22 +199,22 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.setTitle('Select type(s) of analysis')
 
         # Widgets
-        self.toolbox_analyses = AnalysesToolBox()
+        self.field_analyses_toolbox = AnalysesToolBoxField()
 
         self.field_analyses = AnalysesField()
-        self.field_analyses.setAnalysesToolBox(self.toolbox_analyses)
+        self.field_analyses.setAnalysesToolBoxField(self.field_analyses_toolbox)
 
         self.widget_preview = PreviewWidget()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(create_group_box('Analyses', self.field_analyses.widget()), 1)
-        layout.addWidget(create_group_box('Definition', self.toolbox_analyses), 1)
+        layout.addWidget(create_group_box('Definition', self.field_analyses_toolbox.widget()), 1)
         layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
-        self.toolbox_analyses.fieldChanged.connect(self._on_analyses_changed)
+        self.field_analyses_toolbox.fieldChanged.connect(self._on_analyses_changed)
         self.field_analyses.fieldChanged.connect(self._on_analyses_changed)
 
     def _on_analyses_changed(self):
@@ -225,7 +227,7 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.widget_preview.update()
 
     def isComplete(self):
-        return self.field_analyses.isValid() and self.toolbox_analyses.isValid()
+        return self.field_analyses.isValid() and self.field_analyses_toolbox.isValid()
 
     def registerAnalysisField(self, field):
         self.field_analyses.addAnalysisField(field)
@@ -243,24 +245,24 @@ class ProgramWizardPage(NewSimulationWizardPage):
         self.setTitle('Select program(s)')
 
         # Widgets
-        self.wdg_programs = ProgramsWidget()
+        self.field_programs = ProgramsField()
 
-        self.wdg_limits = ProgramLimitsToolBox()
+        self.field_limits = LimitsToolBoxField()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Programs', self.wdg_programs), 1)
-        layout.addWidget(create_group_box('Limits', self.wdg_limits), 1)
+        layout.addWidget(create_group_box('Programs', self.field_programs.widget()), 1)
+        layout.addWidget(create_group_box('Limits', self.field_limits.widget()), 1)
         layout.addWidget(QtWidgets.QWidget(), 1)
         self.setLayout(layout)
 
         # Signals
-        self.wdg_programs.changed.connect(self._on_programs_changed)
-        self.wdg_limits.changed.connect(self._on_limits_changed)
+        self.field_programs.fieldChanged.connect(self._on_programs_changed)
+        self.field_limits.fieldChanged.connect(self._on_limits_changed)
 
     def _on_programs_changed(self):
-        programs = self.wdg_programs.selectedPrograms()
-        self.wdg_limits.setPrograms(programs)
+        programs = self.field_programs.selectedPrograms()
+        self.field_limits.setPrograms(programs)
         self.programsChanged.emit()
         self.completeChanged.emit()
 
@@ -271,7 +273,7 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
     def _update_errors(self):
         list_options, _estimated = self.wizard()._get_options_list(estimate=True)
-        programs = self.wdg_programs.programs()
+        programs = self.field_programs.programs()
 
         for program in programs:
             validator = program.create_validator()
@@ -281,23 +283,26 @@ class ProgramWizardPage(NewSimulationWizardPage):
                 options.program = program
                 validator._validate_options(options, errors)
 
-            self.wdg_programs.setProgramErrors(program, errors)
+            self.field_programs.setProgramErrors(program, errors)
 
     def initializePage(self):
         super().initializePage()
         self._update_errors()
 
     def isComplete(self):
-        return self.wdg_programs.isValid() and self.wdg_limits.isValid()
+        return self.field_programs.isValid() and self.field_limits.isValid()
+
+    def registerLimitFieldClass(self, option_class, field_class):
+        self.field_limits.registerLimitFieldClass(option_class, field_class)
 
     def registerProgram(self, program):
-        self.wdg_programs.addProgram(program)
+        self.field_programs.addProgram(program)
 
     def programs(self):
-        return self.wdg_programs.selectedPrograms()
+        return self.field_programs.selectedPrograms()
 
     def limits(self):
-        return self.wdg_limits.limits()
+        return self.field_limits.limits()
 
 #--- Wizard
 
@@ -346,19 +351,21 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
 
         self.addPage(self.page_analysis)
-#
-#        # Programs
-#        self.page_program = ProgramWizardPage()
-#
-#        for _class, program in pymontecarlo.settings.iter_programs():
-#            if program is None:
-#                continue
-#            self.page_program.registerProgram(program)
-#
-#        self.page_program.programsChanged.connect(self._on_programs_changed)
-#        self.page_program.limitsChanged.connect(self._on_limits_changed)
-#
-#        self.addPage(self.page_program)
+
+        # Programs
+        self.page_program = ProgramWizardPage()
+
+        self.page_program.registerLimitFieldClass(ShowersLimit, ShowersField)
+
+        for _class, program in pymontecarlo.settings.iter_programs():
+            if program is None:
+                continue
+            self.page_program.registerProgram(program)
+
+        self.page_program.programsChanged.connect(self._on_programs_changed)
+        self.page_program.limitsChanged.connect(self._on_limits_changed)
+
+        self.addPage(self.page_program)
 
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)

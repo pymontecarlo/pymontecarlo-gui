@@ -22,7 +22,7 @@ class KRatioAnalysisField(PhotonAnalysisField):
     def analyses(self):
         builder = KRatioAnalysisBuilder()
 
-        for detector in self.analysesToolBox().photonDetectors():
+        for detector in self.analysesToolBoxField().photonDetectors():
             builder.add_photon_detector(detector)
 
         return super().analyses() + builder.build()
