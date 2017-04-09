@@ -15,18 +15,17 @@ class LabelIcon(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Widgets
-        self.lbl_text = QtWidgets.QLabel(text)
-
         self.lbl_icon = QtWidgets.QLabel()
         if icon:
             self.setIcon(icon)
+
+        self.lbl_text = QtWidgets.QLabel(text)
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.lbl_icon, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
-        layout.addWidget(self.lbl_text, 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        layout.addStretch()
+        layout.addWidget(self.lbl_text, 1)
         self.setLayout(layout)
 
     def text(self):
