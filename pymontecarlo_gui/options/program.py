@@ -12,7 +12,7 @@ from pymontecarlo.options.limit.showers import ShowersLimit
 from pymontecarlo_gui.util.validate import Validable
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.groupbox import create_group_box
-from pymontecarlo_gui.options.limit.showers import ShowersWidget
+from pymontecarlo_gui.options.limit.showers import ShowersField
 
 # Globals and constants variables.
 

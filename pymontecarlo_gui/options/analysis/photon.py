@@ -5,11 +5,11 @@
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.analysis.base import AnalysisWidget
+from pymontecarlo_gui.options.analysis.base import AnalysisField
 
 # Globals and constants variables.
 
-class PhotonAnalysisWidget(AnalysisWidget):
+class PhotonAnalysisField(AnalysisField):
 
     def _register_requirements(self, toolbox):
         super()._register_requirements(toolbox)

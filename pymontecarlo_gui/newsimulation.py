@@ -20,9 +20,9 @@ from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
-from pymontecarlo_gui.options.analysis.base import AnalysisToolBox, AnalysesWidget
-from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisWidget
-from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisWidget
+from pymontecarlo_gui.options.analysis.base import AnalysesToolBox, AnalysesField
+from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
+from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
 from pymontecarlo_gui.options.program import ProgramsWidget, ProgramLimitsToolBox
 
 # Globals and constants variables.
@@ -131,13 +131,13 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.wdg_sample = FieldChooser()
 
-        self.wdg_preview = PreviewWidget()
+        self.widget_preview = PreviewWidget()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(create_group_box('Materials', self.wdg_materials), 1)
         layout.addWidget(create_group_box('Definition', self.wdg_sample), 1)
-        layout.addWidget(create_group_box('Preview', self.wdg_preview), 1)
+        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
@@ -149,7 +149,7 @@ class SampleWizardPage(NewSimulationWizardPage):
         field.setAvailableMaterials(materials)
 
         self.samplesChanged.emit()
-        self.wdg_preview.update()
+        self.widget_preview.update()
         self.completeChanged.emit()
 
     def _on_materials_changed(self):
@@ -160,17 +160,17 @@ class SampleWizardPage(NewSimulationWizardPage):
             field.setAvailableMaterials(materials)
 
         self.samplesChanged.emit()
-        self.wdg_preview.update()
+        self.widget_preview.update()
         self.completeChanged.emit()
 
     def _on_samples_changed(self):
         self.samplesChanged.emit()
-        self.wdg_preview.update()
+        self.widget_preview.update()
         self.completeChanged.emit()
 
     def initializePage(self):
         super().initializePage()
-        self.wdg_preview.update()
+        self.widget_preview.update()
 
     def isComplete(self):
         field = self.wdg_sample.currentField()
@@ -197,41 +197,41 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.setTitle('Select type(s) of analysis')
 
         # Widgets
-        self.toolbox = AnalysisToolBox()
+        self.toolbox_analyses = AnalysesToolBox()
 
-        self.wdg_analyses = AnalysesWidget()
-        self.wdg_analyses.setAnalysisToolBox(self.toolbox)
+        self.field_analyses = AnalysesField()
+        self.field_analyses.setAnalysesToolBox(self.toolbox_analyses)
 
-        self.wdg_preview = PreviewWidget()
+        self.widget_preview = PreviewWidget()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Analyses', self.wdg_analyses), 1)
-        layout.addWidget(create_group_box('Definition', self.toolbox), 1)
-        layout.addWidget(create_group_box('Preview', self.wdg_preview), 1)
+        layout.addWidget(create_group_box('Analyses', self.field_analyses.widget()), 1)
+        layout.addWidget(create_group_box('Definition', self.toolbox_analyses), 1)
+        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
-        self.toolbox.changed.connect(self._on_analyses_changed)
-        self.wdg_analyses.changed.connect(self._on_analyses_changed)
+        self.toolbox_analyses.fieldChanged.connect(self._on_analyses_changed)
+        self.field_analyses.fieldChanged.connect(self._on_analyses_changed)
 
     def _on_analyses_changed(self):
         self.analysesChanged.emit()
-        self.wdg_preview.update()
+        self.widget_preview.update()
         self.completeChanged.emit()
 
     def initializePage(self):
         super().initializePage()
-        self.wdg_preview.update()
+        self.widget_preview.update()
 
     def isComplete(self):
-        return self.wdg_analyses.isValid() and self.toolbox.isValid()
+        return self.field_analyses.isValid() and self.toolbox_analyses.isValid()
 
-    def registerAnalysisWidget(self, widget):
-        self.wdg_analyses.addAnalysisWidget(widget)
+    def registerAnalysisField(self, field):
+        self.field_analyses.addAnalysisField(field)
 
     def analyses(self):
-        return self.wdg_analyses.selectedAnalyses()
+        return self.field_analyses.selectedAnalyses()
 
 class ProgramWizardPage(NewSimulationWizardPage):
 
@@ -337,15 +337,15 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         self.addPage(self.page_sample)
 
-#        # Analysis
-#        self.page_analysis = AnalysisWizardPage()
-#
-#        self.page_analysis.registerAnalysisWidget(PhotonIntensityAnalysisWidget())
-#        self.page_analysis.registerAnalysisWidget(KRatioAnalysisWidget())
-#
-#        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
-#
-#        self.addPage(self.page_analysis)
+        # Analysis
+        self.page_analysis = AnalysisWizardPage()
+
+        self.page_analysis.registerAnalysisField(PhotonIntensityAnalysisField())
+        self.page_analysis.registerAnalysisField(KRatioAnalysisField())
+
+        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
+
+        self.addPage(self.page_analysis)
 #
 #        # Programs
 #        self.page_program = ProgramWizardPage()

@@ -4,37 +4,33 @@
 import math
 
 # Third party modules.
-from qtpy import QtWidgets
 
 # Local modules.
 from pymontecarlo.options.detector.photon import PhotonDetector, PhotonDetectorBuilder
 
-from pymontecarlo_gui.widgets.field import Field, FieldLayout
+from pymontecarlo_gui.widgets.field import MultiValueField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
-from pymontecarlo_gui.options.detector.base import DetectorWidget
+from pymontecarlo_gui.options.detector.base import DetectorField
 
 # Globals and constants variables.
 
-class ElevationField(Field):
+class ElevationField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Elevations [\u00b0]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
         decimals = tolerance_to_decimals(math.degrees(PhotonDetector.ELEVATION_TOLERANCE_rad))
         self._widget.setRange(-90.0, 90.0, decimals)
         self._widget.setValues([40.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Elevations [\u00b0]'
 
     def widget(self):
         return self._widget
@@ -45,25 +41,22 @@ class ElevationField(Field):
     def setElevationsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class AzimuthField(Field):
+class AzimuthField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Azimuths [\u00b0]')
-        self._label.setStyleSheet('color: blue')
-
         self._widget = ColoredMultiFloatLineEdit()
         decimals = tolerance_to_decimals(math.degrees(PhotonDetector.AZIMUTH_TOLERANCE_rad))
         self._widget.setRange(0.0, 360.0, decimals)
         self._widget.setValues([0.0])
 
         # Signals
-        self._widget.valuesChanged.connect(self.changed)
+        self._widget.valuesChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Azimuths [\u00b0]'
 
     def widget(self):
         return self._widget
@@ -74,33 +67,22 @@ class AzimuthField(Field):
     def setAzimuthsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class PhotonDetectorWidget(DetectorWidget):
+class PhotonDetectorField(DetectorField):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAccessibleName('Photon detector')
-        self.setAccessibleDescription('Detector to collect emitted X-rays')
+    def __init__(self):
+        super().__init__()
 
-        # widgets
         self.field_elevation = ElevationField()
+        self.addLabelField(self.field_elevation)
 
         self.field_azimuth = AzimuthField()
+        self.addLabelField(self.field_azimuth)
 
-        # Layouts
-        layout = FieldLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLabelField(self.field_elevation)
-        layout.addLabelField(self.field_azimuth)
-        self.setLayout(layout)
+    def title(self):
+        return 'Photon detector'
 
-        # Signals
-        self.field_elevation.changed.connect(self.changed)
-        self.field_azimuth.changed.connect(self.changed)
-
-    def isValid(self):
-        return super().isValid() and \
-            self.field_elevation.isValid() and \
-            self.field_azimuth.isValid()
+    def description(self):
+        return 'Detector to collect emitted X-rays'
 
     def detectors(self):
         builder = PhotonDetectorBuilder()

@@ -2,7 +2,6 @@
 
 # Standard library modules.
 import abc
-import functools
 
 # Third party modules.
 from qtpy import QtWidgets, QtCore, QtGui
@@ -20,23 +19,28 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
     fieldChanged = QtCore.Signal()
 
+    def __init__(self):
+        super().__init__()
+
+        self.wdg_title = QtWidgets.QLabel(self.title())
+        self.wdg_title.setToolTip(self.description())
+
+        self.wdg_description = QtWidgets.QLabel(self.description())
+        self.wdg_description.setWordWrap(True)
+        make_italic(self.wdg_description)
+
     @abc.abstractmethod
     def title(self):
         return ''
 
-    def titleLabel(self):
-        label = QtWidgets.QLabel(self.title())
-        label.setToolTip(self.description())
-        return label
+    def titleWidget(self):
+        return self.wdg_title
 
     def description(self):
         return ''
 
-    def descriptionLabel(self):
-        label = QtWidgets.QLabel(self.description())
-        label.setWordWrap(True)
-        make_italic(label)
-        return label
+    def descriptionWidget(self):
+        return self.wdg_description
 
     def hasDescription(self):
         return bool(self.description())
@@ -63,10 +67,25 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
 class MultiValueField(Field):
 
-    def titleLabel(self):
-        label = super().titleLabel()
+    def titleWidget(self):
+        label = super().titleWidget()
         label.setStyleSheet('color: blue')
         return label
+
+class CheckField(Field):
+
+    def __init__(self):
+        super().__init__()
+
+        self.wdg_title = QtWidgets.QCheckBox(self.title())
+        self.wdg_title.setToolTip(self.description())
+        self.wdg_title.stateChanged.connect(self.fieldChanged)
+
+    def isChecked(self):
+        return self.titleWidget().isChecked()
+
+    def setChecked(self, checked):
+        self.titleWidget().setChecked(checked)
 
 class WidgetField(Field):
 
@@ -96,12 +115,19 @@ class WidgetField(Field):
         self._widget.layout().addGroupField(field)
         self._add_field(field)
 
+    def addCheckField(self, field):
+        self._widget.layout().addCheckField(field)
+        self._add_field(field)
+
     def widget(self):
         return self._widget
 
     def isValid(self):
         return super().isValid() and \
             all(field.isValid() for field in self._fields)
+
+    def fields(self):
+        return tuple(self._fields)
 
 class ToolBoxField(Field):
 
@@ -133,7 +159,7 @@ class FieldLayout(QtWidgets.QVBoxLayout):
         has_suffix = field.hasSuffix()
 
         # Label
-        self.lyt_field.addWidget(field.titleLabel(), row, 0)
+        self.lyt_field.addWidget(field.titleWidget(), row, 0)
 
         # Widget
         colspan = 1 if has_suffix else 2
@@ -150,16 +176,45 @@ class FieldLayout(QtWidgets.QVBoxLayout):
 
         widgets = [field.widget()]
         if has_description:
-            widgets.append(field.descriptionLabel())
+            widgets.append(field.descriptionWidget())
         if has_suffix:
             widgets.append(field.suffix())
 
         groupbox = create_group_box(field.title(), *widgets)
         self.lyt_field.addWidget(groupbox, row, 0, 1, 3)
 
+    def addCheckField(self, field):
+        row = self.lyt_field.rowCount()
+        has_description = field.hasDescription()
+        has_suffix = field.hasSuffix()
+
+        self.lyt_field.addWidget(field.titleWidget(), row, 0, 1, 2)
+        row += 1
+
+        if has_description:
+            self.lyt_field.addWidget(field.descriptionWidget(), row, 0, 1, 2)
+            row += 1
+
+        self.lyt_field.addWidget(field.widget(), row, 0, 1, 2)
+        row += 1
+
+        if has_suffix:
+            self.lyt_field.addWidget(field.suffix(), row, 0, 1, 2)
+
 class FieldToolBox(QtWidgets.QToolBox, Validable):
 
-    def _on_field_changed(self, index, field):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self._fields = {}
+
+    def _on_field_changed(self):
+        field = self.sender()
+        if field not in self._fields:
+            return
+
+        index = self._fields[field]
+
         if field.isValid():
             icon = QtGui.QIcon()
         else:
@@ -178,10 +233,13 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
         return super().isValid()
 
     def addField(self, field):
+        if field in self._fields:
+            raise ValueError('Field "{}" already added'.format(field))
+
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         if field.hasDescription():
-            layout.addWidget(field.descriptionLabel())
+            layout.addWidget(field.descriptionWidget())
         if field.hasSuffix():
             layout.addWidget(field.suffix())
         layout.addWidget(field.widget())
@@ -190,10 +248,19 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
         widget.setLayout(layout)
 
         index = self.addItem(widget, field.title())
+        self._fields[field] = index
 
-        field.fieldChanged.connect(functools.partial(self._on_field_changed, index, field))
+        field.fieldChanged.connect(self._on_field_changed)
 
         return index
+
+    def removeField(self, field):
+        if field not in self._fields:
+            return
+
+        index = self._fields.pop(field)
+        self.removeItem(index)
+        field.fieldChanged.disconnect(self._on_field_changed)
 
 class FieldChooser(QtWidgets.QWidget):
 
@@ -229,7 +296,6 @@ class FieldChooser(QtWidgets.QWidget):
         widget_index = self.combobox.itemData(index)
         self.widget.setCurrentIndex(widget_index)
 
-        print(index)
         field = self._fields[index]
         self.lbl_description.setText(field.description())
 

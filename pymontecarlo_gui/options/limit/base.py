@@ -4,20 +4,13 @@
 import abc
 
 # Third party modules.
-from qtpy import QtWidgets, QtCore
 
 # Local modules.
-from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.util.validate import Validable
+from pymontecarlo_gui.widgets.field import WidgetField
 
 # Globals and constants variables.
 
-class LimitWidget(QtWidgets.QWidget, Validable, metaclass=QABCMeta):
-
-    changed = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class LimitField(WidgetField):
 
     def isValid(self):
         return super().isValid() and bool(self.limits())

@@ -10,27 +10,27 @@ from qtpy import QtTest
 
 # Local modules.
 from pymontecarlo_gui.testcase import TestCase
-from pymontecarlo_gui.options.detector.photon import PhotonDetectorWidget
+from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
-class TestPhotonDetectorWidget(TestCase):
+class TestPhotonDetectorField(TestCase):
 
     def setUp(self):
         super().setUp()
 
-        self.wdg = PhotonDetectorWidget()
+        self.field = PhotonDetectorField()
 
     def testsamples(self):
-        widget = self.wdg.field_elevation.widget()
+        widget = self.field.field_elevation.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.wdg.field_azimuth.widget()
+        widget = self.field.field_azimuth.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget, '3.3;4.4')
 
-        detectors = self.wdg.detectors()
+        detectors = self.field.detectors()
         self.assertEqual(2 ** 2, len(detectors))
 
 if __name__ == '__main__': #pragma: no cover

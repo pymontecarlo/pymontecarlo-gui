@@ -104,8 +104,6 @@ class MaterialNameField(Field):
         self._composition = {}
 
         # Widgets
-        self._label = QtWidgets.QLabel("Name")
-
         self._widget = ColoredLineEdit()
         self._widget.setEnabled(False)
         self._widget.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"^(?!\s*$).+")))
@@ -114,7 +112,7 @@ class MaterialNameField(Field):
         self._suffix.setChecked(True)
 
         # Signals
-        self._widget.textChanged.connect(self.changed)
+        self._widget.textChanged.connect(self.fieldChanged)
         self._suffix.stateChanged.connect(self._on_auto_changed)
 
     def _on_auto_changed(self, *args):
@@ -132,8 +130,8 @@ class MaterialNameField(Field):
 
         self.setName(name, user_modified=False)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Name'
 
     def widget(self):
         return self._widget
@@ -147,7 +145,7 @@ class MaterialNameField(Field):
     def setName(self, name, user_modified=True):
         self._widget.setText(name)
         self._suffix.setChecked(not user_modified)
-        self.changed.emit()
+        self.fieldChanged.emit()
 
     def composition(self):
         return self._composition
@@ -162,17 +160,15 @@ class MaterialFormulaField(Field):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel("Formula")
-
         self._widget = ColoredLineEdit()
         self._widget.setValidator(FormulaValidator())
         self._widget.textChanged.emit('')
 
         # Signals
-        self._widget.textChanged.connect(self.changed)
+        self._widget.textChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Formula'
 
     def widget(self):
         return self._widget
@@ -192,8 +188,6 @@ class MaterialDensityField(Field):
         self._composition = {}
 
         # Widgets
-        self._label = QtWidgets.QLabel("Density [g/cm<sup>3</sup>]")
-
         self._widget = ColoredFloatLineEdit()
         decimals = tolerance_to_decimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3) + 3
         self._widget.setRange(0.0, float('inf'), decimals)
@@ -204,7 +198,7 @@ class MaterialDensityField(Field):
         self._suffix.setChecked(False)
 
         # Signals
-        self._widget.valueChanged.connect(self.changed)
+        self._widget.valueChanged.connect(self.fieldChanged)
         self._suffix.stateChanged.connect(self._on_user_defined_changed)
 
     def _on_user_defined_changed(self, *args):
@@ -222,8 +216,8 @@ class MaterialDensityField(Field):
 
         self.setDensity_kg_per_m3(density_kg_per_m3, user_modified=False)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Density [g/cm<sup>3</sup>]'
 
     def widget(self):
         return self._widget
@@ -237,7 +231,7 @@ class MaterialDensityField(Field):
     def setDensity_kg_per_m3(self, density_kg_per_m3, user_modified=True):
         self._widget.setValue(density_kg_per_m3 / 1e3)
         self._suffix.setChecked(user_modified)
-        self.changed.emit()
+        self.fieldChanged.emit()
 
     def composition(self):
         return self._composition
@@ -252,16 +246,14 @@ class MaterialColorField(Field):
         super().__init__()
 
         # Widgets
-        self._label = QtWidgets.QLabel('Color')
-
         self._widget = ColorDialogButton()
         self._widget.setColor(next(Material.COLOR_CYCLER))
 
         # Signals
-        self._widget.colorChanged.connect(self.changed)
+        self._widget.colorChanged.connect(self.fieldChanged)
 
-    def label(self):
-        return self._label
+    def title(self):
+        return 'Color'
 
     def widget(self):
         return self._widget
@@ -352,10 +344,10 @@ class MaterialFormulaWidget(MaterialWidget):
         self.setLayout(layout)
 
         # Signals
-        self.field_formula.changed.connect(self._on_formula_changed)
-        self.field_formula.changed.connect(self.materialsChanged)
-        self.field_density.changed.connect(self.materialsChanged)
-        self.field_color.changed.connect(self.materialsChanged)
+        self.field_formula.fieldChanged.connect(self._on_formula_changed)
+        self.field_formula.fieldChanged.connect(self.materialsChanged)
+        self.field_density.fieldChanged.connect(self.materialsChanged)
+        self.field_color.fieldChanged.connect(self.materialsChanged)
 
     def _on_formula_changed(self):
         try:
@@ -406,9 +398,9 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.setLayout(layout)
 
         # Signals
-        self.field_name.changed.connect(self.materialsChanged)
-        self.field_density.changed.connect(self.materialsChanged)
-        self.field_color.changed.connect(self.materialsChanged)
+        self.field_name.fieldChanged.connect(self.materialsChanged)
+        self.field_density.fieldChanged.connect(self.materialsChanged)
+        self.field_color.fieldChanged.connect(self.materialsChanged)
         self.tbl_composition.compositionChanged.connect(self.materialsChanged)
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
