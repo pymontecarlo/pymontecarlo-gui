@@ -71,6 +71,7 @@ class TestColoredFloatLineEdit(TestCase):
         self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
 
     def testkeyClicks(self):
+        self.wdg.clear()
         QtTest.QTest.keyClicks(self.wdg, '3')
         self.assertAlmostEqual(3.0, self.wdg.value(), 4)
         self.assertFalse(self.wdg.hasAcceptableInput())
@@ -89,6 +90,8 @@ class TestColoredFloatLineEdit(TestCase):
         self.assertAlmostEqual(33.0, receiver.args[0], 4)
 
     def testvalueChanged_keyClicks(self):
+        self.wdg.clear()
+
         receiver = self.connectSignal(self.wdg.valueChanged)
         QtTest.QTest.keyClicks(self.wdg, '33')
 
