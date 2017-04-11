@@ -3,17 +3,19 @@
 
 # Standard library modules.
 import sys
+import enum
 
 # Third party modules.
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QModelIndex
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, \
-    QComboBox, QRadioButton, QButtonGroup, QLineEdit, QTableWidget
+    QComboBox, QRadioButton, QButtonGroup, QLineEdit, QTableView, QPushButton
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 
 # Local modules.
-# from pymontecarlo.options.beam import GaussianBeam
+from pymontecarlo.options.beam import GaussianBeam
 
 # Globals and constants variables.
+
 
 class BeamWidget(QWidget):
 
@@ -25,7 +27,7 @@ class BeamWidget(QWidget):
         self._typeLabel = QLabel('Type:')
         self._typeCombo = QComboBox()
         self._typeCombo.addItem('-- Select Beam --', None)
-        self._typeCombo.addItem('GaussianBeam', None)
+        self._typeCombo.addItem('GaussianBeam', GaussianBeam)
         self._typeCombo.currentIndexChanged.connect(self._beamChanged)
 
         # Particle
@@ -95,6 +97,108 @@ class BeamWidget(QWidget):
         """
         return []
 
+
+class _Scan():
+    def __init__(self, start, end, steps):
+        # self._start = start
+        # self._end = end
+        self._startX, self._startY = start
+        self._endX, self._endY = end
+        self._steps = steps
+
+        # TODO we may add a buffered mode where positions are stored and can be modified
+
+    def __len__(self):
+        return self._steps + 1
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def positions(self):
+        for i in range(len(self)):
+            yield self.__getitem__(i)
+
+    edit = __init__
+
+
+class _LineScan(_Scan):
+    def __getitem__(self, item):
+        xi = self._startX + (self._endX - self._startX) * item / self._steps
+        yi = self._startY + (self._endY - self._startY) * item / self._steps
+        return xi, yi
+
+
+class _Positions():
+    def __init__(self):
+        self._scans = []
+
+    def __len__(self):
+        return sum((len(s) for s in self._scans))
+
+    def __getitem__(self, item):
+        item, scan = self.getScan(item)
+        return scan[item]
+
+    def positions(self):
+        for i in range(len(self)):
+            yield self.__getitem__(i)
+
+    def getScan(self, item):
+        if item >= len(self):
+            raise ValueError('Index is out of range')
+
+        for s in self._scans:
+            if item < len(s):
+                return item, s
+            item -= len(s)
+
+        return None
+
+    def addScan(self, scan):
+        if not isinstance(scan, _Scan):
+            raise ValueError('scan must be of type \'_Scan\'')
+        self._scans.append(scan)
+
+    def remScan(self, item):
+        try:
+            _, s = self.getScan(item)
+            self._scans.remove(s)
+        except Exception as _:
+            self._scans.remove(item)
+
+
+class _PositionsTableModel(QAbstractTableModel):
+    def __init__(self, positions, parent=None, *args):
+        QAbstractTableModel.__init__(self, parent, *args)
+
+        if positions is None:
+            raise ValueError('Positions cannot be None')
+
+        self._positions = positions
+
+    def rowCount(self, parent=None, *args, **kwargs):
+        return len(self._positions)
+
+    def columnCount(self, parent=None, *args, **kwargs):
+        return 2
+
+    def data(self, index, role=None):
+        if not index.isValid():
+            return QVariant()
+        elif role != Qt.DisplayRole:
+            return QVariant()
+        return QVariant(str(self._positions[index.row()][index.column()]))
+
+    def headerData(self, col, orientation, role=None):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return QVariant(('X', 'Y')[col])
+        return QVariant()
+
+    # def flags(self, QModelIndex):
+    #     # TODO handle selection
+    #     pass
+
+
 class BeamPositionWidget(QWidget):
 
     def __init__(self, parent=None):
@@ -105,11 +209,10 @@ class BeamPositionWidget(QWidget):
         self._titleLabel = QLabel('Initial positions')
 
         # Add scan
-        self._addLabel = QLabel('Add:')
-        self._addCombo = QComboBox()
-        self._addCombo.addItem('-- Select Scan --', None)
-        self._addCombo.addItem('Line Scan', None)
-        self._addCombo.currentIndexChanged.connect(self._scanChanged)
+        self._addScanLabel = QLabel('Add:')
+        self._addScanCombo = QComboBox()
+        self._addScanCombo.addItem('-- Select Scan --', None)
+        self._addScanCombo.addItem('Line Scan', _LineScan)
 
         # Start / end / steps (ses)
         self._sesXLabel = QLabel('X')
@@ -117,25 +220,37 @@ class BeamPositionWidget(QWidget):
         self._sesStartLabel = QLabel('Start')
         self._sesEndLabel = QLabel('End')
         self._sesStepsLabel = QLabel('Steps')
-        # TODO add slots
-        self._sesXStartEdit = QLineEdit()
-        self._sesXStartEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO parameters?
-        self._sesYStartEdit = QLineEdit()
-        self._sesYStartEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO parameters?
-        self._sesXEndEdit = QLineEdit()
-        self._sesXEndEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO parameters?
-        self._sesYEndEdit = QLineEdit()
-        self._sesYEndEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO parameters?
+        self._sesStartXEdit = QLineEdit()
+        self._sesStartXEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO default values for parameters?
+        self._sesStartYEdit = QLineEdit()
+        self._sesStartYEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
+        self._sesEndXEdit = QLineEdit()
+        self._sesEndXEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
+        self._sesEndYEdit = QLineEdit()
+        self._sesEndYEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
         self._sesStepsEdit = QLineEdit()
-        self._sesStepsEdit.setValidator(QIntValidator(0, 10))  # TODO parameters?
+        self._sesStepsEdit.setValidator(QIntValidator(0, 10))  # TODO -"-
 
         # Table
-        self._scansTable = QTableWidget()
+        self._positions = _Positions()
+        self._positions.addScan(_LineScan((0, 0), (3, 3), 3))
+        self._positions.addScan(_LineScan((0, 0), (4, 8), 2))
+        self._positions.addScan(_LineScan((0, 0), (3, 6), 3))
+        self._scansTable = QTableView()
+        self._scansTableModel = _PositionsTableModel(self._positions)
+        self._scansTable.setModel(self._scansTableModel)
+        # TODO native icons instead of text
+        self._posAddButton = QPushButton('Add')
+        self._posAddButton.clicked.connect(self._addScan)
+        self._posRemoveButton = QPushButton('Remove')
+        self._posRemoveButton.clicked.connect(self._removeScan)
+        self._posEditButton = QPushButton('Edit')
+        self._posEditButton.clicked.connect(self._editScan)
 
         # Layout
         addLayout = QHBoxLayout()
-        addLayout.addWidget(self._addLabel)
-        addLayout.addWidget(self._addCombo)
+        addLayout.addWidget(self._addScanLabel)
+        addLayout.addWidget(self._addScanCombo)
 
         sesLayout = QGridLayout()
         sesLayout.addWidget(self._sesXLabel, 0, 1)
@@ -143,37 +258,69 @@ class BeamPositionWidget(QWidget):
         sesLayout.addWidget(self._sesStartLabel, 1, 0)
         sesLayout.addWidget(self._sesEndLabel, 2, 0)
         sesLayout.addWidget(self._sesStepsLabel, 1, 3)
-        sesLayout.addWidget(self._sesXStartEdit, 1, 1)
-        sesLayout.addWidget(self._sesYStartEdit, 1, 2)
-        sesLayout.addWidget(self._sesXEndEdit, 2, 1)
-        sesLayout.addWidget(self._sesYEndEdit, 2, 2)
+        sesLayout.addWidget(self._sesStartXEdit, 1, 1)
+        sesLayout.addWidget(self._sesStartYEdit, 1, 2)
+        sesLayout.addWidget(self._sesEndXEdit, 2, 1)
+        sesLayout.addWidget(self._sesEndYEdit, 2, 2)
         sesLayout.addWidget(self._sesStepsEdit, 1, 4)
+
+        buttonLayout = QHBoxLayout()
+        buttonLayout.addWidget(self._posAddButton)
+        buttonLayout.addWidget(self._posEditButton)
+        buttonLayout.addWidget(self._posRemoveButton)
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self._titleLabel)
         mainLayout.addLayout(addLayout)
         mainLayout.addLayout(sesLayout)
+        mainLayout.addLayout(buttonLayout)
         mainLayout.addWidget(self._scansTable)
 
         self.setLayout(mainLayout)
 
-    def _scanChanged(self):
-        print('scan changed')
+        # Signals / Slots
+        self._scansTable.selectionModel().selectionChanged.connect(self._selectionChanged)
+
+    def _addScan(self):
+        try:
+            self._scansTableModel.modelAboutToBeReset.emit()
+
+            startX = int(self._sesStartXEdit.text())
+            startY = int(self._sesStartYEdit.text())
+            endX = int(self._sesEndXEdit.text())
+            endY = int(self._sesEndYEdit.text())
+            steps = int(self._sesStepsEdit.text())
+            scan = self._addScanCombo.currentData()((startX, startY), (endX, endY), steps)
+            self._positions.addScan(scan)
+
+            self._scansTableModel.modelReset.emit()
+        except Exception as _:
+            # TODO user may be warned that input was incorrect
+            pass
+
+    def _selectionChanged(self, selected, deselected):
+        print('selection changed')
+
+    def _editScan(self):
+        print('edit scan')
+
+    def _removeScan(self):
+        print('remove scan')
 
     def positions(self):
         """
         Returns a :class:`list` of :class:`tuple` for the x and y positions.
         """
-        return []
+        return list(self._positions.positions())
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    bw = BeamWidget()
+    # bw = BeamWidget()
     bsw = BeamPositionWidget()
 
-    bw.show()
+    # bw.show()
     bsw.show()
 
     sys.exit(app.exec_())
