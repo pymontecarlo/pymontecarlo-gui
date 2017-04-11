@@ -17,6 +17,7 @@ from pymontecarlo.util.path import get_config_dir
 import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.settings import SettingsMainWindow
+from pymontecarlo_gui.main import MainWindow
 
 # Globals and constants variables.
 
@@ -70,10 +71,10 @@ def _setup(ns):
     logger.info('processor = %s', platform.processor())
 
     # Catch all exceptions
-    def _excepthook(exc_type, exc_obj, exc_tb):
-        messagebox.exception(None, exc_obj)
-        sys.__excepthook__(exc_type, exc_obj, exc_tb)
-    sys.excepthook = _excepthook
+#    def _excepthook(exc_type, exc_obj, exc_tb):
+#        messagebox.exception(None, exc_obj)
+#        sys.__excepthook__(exc_type, exc_obj, exc_tb)
+#    sys.excepthook = _excepthook
 
     # Output sys.path
     logger.info("sys.path = %s", sys.path)
@@ -82,12 +83,19 @@ def _setup(ns):
     logger.info('ENVIRON = %s' % os.environ)
 
 def _parse(ns):
+    app = QtWidgets.QApplication(sys.argv)
+
     if ns.config:
-        app = QtWidgets.QApplication(sys.argv)
         window = SettingsMainWindow()
         window.setSettings(pymontecarlo.settings)
         window.show()
-        app.exec_()
+    else:
+        window = MainWindow()
+        window.show()
+
+        window.openProject('/tmp/example.mcsim')
+
+    app.exec_()
 
 def main():
     parser = _create_parser()

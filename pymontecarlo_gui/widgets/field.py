@@ -2,6 +2,7 @@
 
 # Standard library modules.
 import abc
+import functools
 
 # Third party modules.
 from qtpy import QtWidgets, QtCore, QtGui
@@ -12,6 +13,7 @@ from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.font import make_italic
 from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
+from pymontecarlo_gui.widgets.mdi import MdiSubWindow
 
 # Globals and constants variables.
 
@@ -44,6 +46,9 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
 
     def hasDescription(self):
         return bool(self.description())
+
+    def icon(self):
+        return QtGui.QIcon()
 
     @abc.abstractmethod
     def widget(self):
@@ -346,3 +351,134 @@ class FieldChooser(QtWidgets.QWidget):
         if index < 0:
             return None
         return self._fields[index]
+
+class FieldTree(QtWidgets.QWidget):
+
+    doubleClicked = QtCore.Signal(Field)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Variables
+        self._field_items = {}
+
+        # Widgets
+        self.tree = QtWidgets.QTreeWidget()
+        self.tree.header().close()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.tree)
+        self.setLayout(layout)
+
+        # Signals
+        self.tree.itemDoubleClicked.connect(self._on_item_double_clicked)
+
+    def _on_item_double_clicked(self, item):
+        field = item.data(0, QtCore.Qt.UserRole)
+        self.doubleClicked.emit(field)
+
+    def addField(self, field, parent_field=None):
+        if field in self._field_items:
+            raise ValueError('Field {} already in tree'.format(field))
+
+        if parent_field is None:
+            parent_field = self.tree
+        else:
+            parent_field = self._field_items[parent_field]
+
+        item = QtWidgets.QTreeWidgetItem(parent_field)
+        item.setText(0, field.title())
+        item.setToolTip(0, field.description())
+        item.setIcon(0, field.icon())
+        item.setData(0, QtCore.Qt.UserRole, field)
+
+        self._field_items[field] = item
+
+    def removeField(self, field):
+        if field not in self._field_items:
+            return
+
+        item = self._field_items.pop(field)
+        item.parent().removeChild(item)
+
+    def clear(self):
+        self._field_items.clear()
+        self.tree.clear()
+
+    def expandField(self, field):
+        if field not in self._field_items:
+            return
+        item = self._field_items[field]
+        self.tree.expandItem(item)
+
+    def collapseField(self, field):
+        if field not in self._field_items:
+            return
+        item = self._field_items[field]
+        self.tree.collapseItem(item)
+
+    def setFieldFont(self, field, font):
+        if field not in self._field_items:
+            return
+        item = self._field_items[field]
+        item.setFont(0, font)
+
+    def fieldFont(self, field):
+        if field not in self._field_items:
+            return
+        item = self._field_items[field]
+        return item.font(0)
+
+class FieldMdiArea(QtWidgets.QWidget):
+
+    windowOpened = QtCore.Signal(Field)
+    windowClosed = QtCore.Signal(Field)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Variables
+        self._field_windows = {}
+
+        # Widgets
+        self.mdiarea = QtWidgets.QMdiArea()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.mdiarea)
+        self.setLayout(layout)
+
+    def addField(self, field):
+        if field in self._field_windows:
+            window = self._field_windows[field]
+        else:
+            window = MdiSubWindow()
+            window.setWindowTitle(field.title())
+            window.setWindowIcon(field.icon())
+            window.setWidget(field.widget())
+            window.closed.connect(functools.partial(self.windowClosed.emit, field))
+
+            self._field_windows[field] = window
+
+        if window in self.mdiarea.subWindowList():
+            self.mdiarea.setActiveSubWindow(window)
+        else:
+            self.mdiarea.addSubWindow(window)
+
+        window.showNormal()
+        window.raise_()
+        self.windowOpened.emit(field)
+
+    def removeField(self, field):
+        if field not in self._field_windows:
+            return
+
+        window = self._field_windows.pop(field)
+        self.mdiarea.removeSubWindow(window)
+
+    def clear(self):
+        self._field_windows.clear()
+        self.mdiarea.closeAllSubWindows()
