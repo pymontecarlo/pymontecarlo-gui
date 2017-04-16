@@ -18,7 +18,7 @@ from pymontecarlo.runner.local import LocalSimulationRunner
 from pymontecarlo_gui.project import \
     (ProjectField, SimulationsField, SimulationField, OptionsField,
      ResultsField)
-from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea
+from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
 
 # Globals and constants variables.
@@ -99,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_project)
 
         self.table_runner = FutureTableWidget()
-        self.table_runner
+        self.table_runner.act_clear.setText('Clear done simulation(s)')
 
         self.dock_queue = QtWidgets.QDockWidget("Run")
         self.dock_queue.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
@@ -124,6 +124,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
+        self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
+
         # Defaults
         self._update_project(self._project)
 
@@ -135,11 +137,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_mdiarea_window_opened(self, field):
         font = self.tree.fieldFont(field)
+        if font is None:
+            return
         font.setUnderline(True)
         self.tree.setFieldFont(field, font)
 
     def _on_mdiarea_window_closed(self, field):
         font = self.tree.fieldFont(field)
+        if font is None:
+            return
         font.setUnderline(False)
         self.tree.setFieldFont(field, font)
 
@@ -200,6 +206,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_simulation_done(self, future):
         print('done')
+
+    def _on_table_runner_double_clicked(self, future):
+        if not future.done():
+            return
+
+        if not future.exception():
+            return
+
+        field = ExceptionField(future.exception())
+        self.mdiarea.addField(field)
 
     def _update_project(self, project):
         self.mdiarea.clear()

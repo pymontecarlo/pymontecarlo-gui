@@ -6,6 +6,8 @@
 from qtpy import QtCore, QtGui, QtWidgets
 
 # Local modules.
+from pymontecarlo.util.future import FutureAdapter
+
 from pymontecarlo_gui.widgets.color import check_color
 
 # Globals and constants variables.
@@ -66,8 +68,14 @@ class FutureModel(QtCore.QAbstractTableModel):
                 self._futures.pop(i)
         self.modelReset.emit()
 
+    def hasDoneFutures(self):
+        return any(future.done() for future in self._futures)
+
     def futures(self):
         return tuple(self._futures)
+
+    def future(self, row):
+        return self._futures[row]
 
 class FutureItemDelegate(QtWidgets.QItemDelegate):
 
@@ -154,6 +162,8 @@ class FutureItemDelegate(QtWidgets.QItemDelegate):
 
 class FutureTableWidget(QtWidgets.QWidget):
 
+    doubleClicked = QtCore.Signal(FutureAdapter)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -173,19 +183,24 @@ class FutureTableWidget(QtWidgets.QWidget):
         header.setDefaultSectionSize(20)
 
         toolbar = QtWidgets.QToolBar()
-        act_clear = toolbar.addAction(QtGui.QIcon.fromTheme('edit-clear'), "Clear done future")
+        self.act_clear = toolbar.addAction("Clear done future(s)")
+        self.act_clear.setIcon(QtGui.QIcon.fromTheme('edit-clear'))
+        self.act_clear.setEnabled(False)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.tableview)
-        layout.addWidget(toolbar)
+        layout.addWidget(toolbar, alignment=QtCore.Qt.AlignRight)
         self.setLayout(layout)
 
         # Signals
         self.timer.timeout.connect(self._on_timer_timeout)
 
-        act_clear.triggered.connect(self._on_clear)
+        self.tableview.model().modelReset.connect(self._on_model_reset)
+        self.tableview.doubleClicked.connect(self._on_tablewview_double_clicked)
+
+        self.act_clear.triggered.connect(self._on_clear)
 
     def _on_timer_timeout(self):
         model = self.tableview.model()
@@ -195,6 +210,16 @@ class FutureTableWidget(QtWidgets.QWidget):
 
         model.modelReset.emit()
 
+    def _on_model_reset(self):
+        model = self.tableview.model()
+        has_done_futures = model.hasDoneFutures()
+        self.act_clear.setEnabled(has_done_futures)
+
+    def _on_tablewview_double_clicked(self, index):
+        model = self.tableview.model()
+        future = model.future(index.row())
+        self.doubleClicked.emit(future)
+
     def _on_clear(self):
         model = self.tableview.model()
         model.clearDoneFutures()
@@ -203,6 +228,4 @@ class FutureTableWidget(QtWidgets.QWidget):
         model = self.tableview.model()
         model.addFuture(future)
         self.timer.start()
-
-
 

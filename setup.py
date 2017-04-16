@@ -246,7 +246,8 @@ with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
 PACKAGES = find_packages()
 PACKAGE_DATA = {}
 
-INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar', 'pyqttango']
+INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar',
+                    'pyqttango', 'pygments']
 EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download']}
 
 CMDCLASS = versioneer.get_cmdclass()

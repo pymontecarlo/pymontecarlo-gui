@@ -3,9 +3,14 @@
 # Standard library modules.
 import abc
 import functools
+import traceback
 
 # Third party modules.
 from qtpy import QtWidgets, QtCore, QtGui
+
+import pygments
+from pygments.lexers.python import Python3Lexer
+from pygments.formatters.html import HtmlFormatter
 
 # Local modules.
 from pymontecarlo_gui.util.validate import Validable
@@ -165,6 +170,39 @@ class ToolBoxField(Field):
 
     def widget(self):
         return self._widget
+
+class ExceptionField(Field):
+
+    def __init__(self, exception):
+        self._exception = exception
+        super().__init__()
+
+        stack = traceback.extract_tb(exception.__traceback__)
+        summary = traceback.StackSummary.from_list(stack)
+        lines = summary.format()
+        code = ''.join(lines)
+
+        lexer = Python3Lexer()
+        formatter = HtmlFormatter(full=True)
+        text = pygments.highlight(code, lexer, formatter)
+
+        # Widgets
+        self._widget = QtWidgets.QTextEdit()
+        self._widget.setReadOnly(True)
+        self._widget.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
+        self._widget.setHtml(text)
+
+    def title(self):
+        return str(self.exception())
+
+    def icon(self):
+        return QtGui.QIcon.fromTheme('dialog-error')
+
+    def widget(self):
+        return self._widget
+
+    def exception(self):
+        return self._exception
 
 class FieldLayout(QtWidgets.QVBoxLayout):
 
