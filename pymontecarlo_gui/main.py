@@ -19,7 +19,7 @@ from pymontecarlo_gui.project import \
     (ProjectField, SimulationsField, SimulationField, OptionsField,
      ResultsField)
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea
-from pymontecarlo_gui.widgets.future import FutureThread
+from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
 
 # Globals and constants variables.
 
@@ -90,26 +90,27 @@ class MainWindow(QtWidgets.QMainWindow):
         # Widgets
         self.tree = FieldTree()
 
-        dock_project = QtWidgets.QDockWidget("Project")
-        dock_project.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
-                                     QtCore.Qt.RightDockWidgetArea)
-        dock_project.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
-                                 QtWidgets.QDockWidget.DockWidgetMovable)
-        dock_project.setWidget(self.tree)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_project)
+        self.dock_project = QtWidgets.QDockWidget("Project")
+        self.dock_project.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
+                                          QtCore.Qt.RightDockWidgetArea)
+        self.dock_project.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
+                                      QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_project.setWidget(self.tree)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_project)
 
-        self.list_queue = QtWidgets.QWidget()
+        self.table_runner = FutureTableWidget()
+        self.table_runner
 
-        dock_queue = QtWidgets.QDockWidget("Queue")
-        dock_queue.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
-                                   QtCore.Qt.RightDockWidgetArea)
-        dock_queue.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
-                               QtWidgets.QDockWidget.DockWidgetMovable)
-        dock_queue.setWidget(self.list_queue)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_queue)
+        self.dock_queue = QtWidgets.QDockWidget("Run")
+        self.dock_queue.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
+                                        QtCore.Qt.RightDockWidgetArea)
+        self.dock_queue.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
+                                    QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_queue.setWidget(self.table_runner)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_queue)
 
-        self.tabifyDockWidget(dock_project, dock_queue)
-        dock_project.raise_()
+        self.tabifyDockWidget(self.dock_project, self.dock_queue)
+        self.dock_project.raise_()
 
         self.mdiarea = FieldMdiArea()
 
@@ -124,6 +125,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
         # Defaults
+        self._update_project(self._project)
+
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -188,7 +191,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         options = Options(program, beam, sample, [analysis], [limit])
         futures = self._runner.submit(options)
-        print(futures)
+
+        for future in futures:
+            future.add_done_callback(self._on_simulation_done)
+            self.table_runner.addFuture(future)
+
+        self.dock_queue.raise_()
+
+    def _on_simulation_done(self, future):
+        print('done')
 
     def _update_project(self, project):
         self.mdiarea.clear()
@@ -196,6 +207,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         field_project = ProjectField()
         self.tree.addField(field_project)
+
+        if not project.simulations:
+            return
 
         field_simulations = SimulationsField()
         self.tree.addField(field_simulations, field_project)
@@ -224,6 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         thread = FutureThread(future)
         thread.progressChanged.connect(dialog.setValue)
+        thread.statusChanged.connect(dialog.setLabelText)
         thread.finished.connect(dialog.close)
 
         thread.start()
@@ -290,7 +305,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._project = project
         self._dirpath_open = os.path.dirname(project.filepath)
 
+        self.dock_project.raise_()
         return True
-
-
 

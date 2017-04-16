@@ -93,8 +93,6 @@ def _parse(ns):
         window = MainWindow()
         window.show()
 
-        window.openProject('/tmp/example.mcsim')
-
     app.exec_()
 
 def main():
