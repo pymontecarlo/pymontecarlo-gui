@@ -436,7 +436,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def removeField(self, field):
         if field not in self._field_items:
-            return
+            raise ValueError('Field {} is not part of the tree'.format(field))
 
         item = self._field_items.pop(field)
         item.parent().removeChild(item)
@@ -445,29 +445,53 @@ class FieldTree(QtWidgets.QWidget):
         self._field_items.clear()
         self.tree.clear()
 
+    def containField(self, field):
+        return field in self._field_items
+
     def expandField(self, field):
         if field not in self._field_items:
-            return
+            raise ValueError('Field {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.expandItem(item)
 
     def collapseField(self, field):
         if field not in self._field_items:
-            return
+            raise ValueError('Field {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.collapseItem(item)
 
     def setFieldFont(self, field, font):
         if field not in self._field_items:
-            return
+            raise ValueError('Field {} is not part of the tree'.format(field))
         item = self._field_items[field]
         item.setFont(0, font)
 
     def fieldFont(self, field):
         if field not in self._field_items:
-            return
+            raise ValueError('Field {} is not part of the tree'.format(field))
         item = self._field_items[field]
         return item.font(0)
+
+    def topLevelFields(self):
+        fields = []
+
+        for index in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(index)
+            fields.append(item.data(0, QtCore.Qt.UserRole))
+
+        return fields
+
+    def childrenField(self, field):
+        if field not in self._field_items:
+            raise ValueError('Field {} is not part of the tree'.format(field))
+        item = self._field_items[field]
+
+        children = []
+        for index in range(item.childCount()):
+            childitem = item.child(index)
+            children.append(childitem.data(0, QtCore.Qt.UserRole))
+
+        return children
 
 class FieldMdiArea(QtWidgets.QWidget):
 

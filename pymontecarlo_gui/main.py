@@ -36,8 +36,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._dirpath_save = None
         self._should_save = False
 
-        self._project = Project()
-
         self._reader = HDF5Reader()
         self._reader.start()
 
@@ -101,15 +99,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.table_runner = FutureTableWidget()
         self.table_runner.act_clear.setText('Clear done simulation(s)')
 
-        self.dock_queue = QtWidgets.QDockWidget("Run")
-        self.dock_queue.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
-                                        QtCore.Qt.RightDockWidgetArea)
-        self.dock_queue.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
-                                    QtWidgets.QDockWidget.DockWidgetMovable)
-        self.dock_queue.setWidget(self.table_runner)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_queue)
+        self.dock_runner = QtWidgets.QDockWidget("Run")
+        self.dock_runner.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
+                                         QtCore.Qt.RightDockWidgetArea)
+        self.dock_runner.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
+                                     QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_runner.setWidget(self.table_runner)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_runner)
 
-        self.tabifyDockWidget(self.dock_project, self.dock_queue)
+        self.tabifyDockWidget(self.dock_project, self.dock_runner)
         self.dock_project.raise_()
 
         self.mdiarea = FieldMdiArea()
@@ -127,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
 
         # Defaults
-        self._update_project(self._project)
+        self.setProject(Project())
 
         self.timer_runner.start()
 
@@ -136,16 +134,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.mdiarea.addField(field)
 
     def _on_mdiarea_window_opened(self, field):
-        font = self.tree.fieldFont(field)
-        if font is None:
+        if not self.tree.containField(field):
             return
+        font = self.tree.fieldFont(field)
         font.setUnderline(True)
         self.tree.setFieldFont(field, font)
 
     def _on_mdiarea_window_closed(self, field):
-        font = self.tree.fieldFont(field)
-        if font is None:
+        if not self.tree.containField(field):
             return
+        font = self.tree.fieldFont(field)
         font.setUnderline(False)
         self.tree.setFieldFont(field, font)
 
@@ -202,13 +200,22 @@ class MainWindow(QtWidgets.QMainWindow):
             future.add_done_callback(self._on_simulation_done)
             self.table_runner.addFuture(future)
 
-        self.dock_queue.raise_()
+        self.dock_runner.raise_()
 
     def _on_simulation_done(self, future):
-        print('done')
+        if future.cancelled():
+            return
+
+        if future.exception():
+            return
+
+        self.addSimulation(future.result())
 
     def _on_table_runner_double_clicked(self, future):
         if not future.done():
+            return
+
+        if future.cancelled():
             return
 
         if not future.exception():
@@ -216,36 +223,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         field = ExceptionField(future.exception())
         self.mdiarea.addField(field)
-
-    def _update_project(self, project):
-        self.mdiarea.clear()
-        self.tree.clear()
-
-        field_project = ProjectField()
-        self.tree.addField(field_project)
-
-        if not project.simulations:
-            return
-
-        field_simulations = SimulationsField()
-        self.tree.addField(field_simulations, field_project)
-
-        for simulation in project.simulations:
-            field_simulation = SimulationField()
-            self.tree.addField(field_simulation, field_simulations)
-
-            field_options = OptionsField()
-            field_options.setOptions(simulation.options)
-            self.tree.addField(field_options, field_simulation)
-
-            if not simulation.results:
-                continue
-
-            field_results = ResultsField()
-            self.tree.addField(field_results, field_simulation)
-
-        self.tree.expandField(field_project)
-        self.tree.expandField(field_simulations)
 
     def _run_future_in_thread(self, future):
         dialog = QtWidgets.QProgressDialog()
@@ -282,6 +259,24 @@ class MainWindow(QtWidgets.QMainWindow):
     def project(self):
         return self._project
 
+    def setProject(self, project):
+        self._project = project
+
+        if project.filepath:
+            self._dirpath_open = os.path.dirname(project.filepath)
+
+        self.mdiarea.clear()
+        self.tree.clear()
+        self._runner.submitted_options.clear()
+
+        field_project = ProjectField()
+        self.tree.addField(field_project)
+
+        for simulation in project.simulations:
+            self.addSimulation(simulation)
+
+        self.tree.expandField(field_project)
+
     def openProject(self, filepath=None):
 #        if self._runner.running():
 #            caption = 'Open project'
@@ -316,11 +311,41 @@ class MainWindow(QtWidgets.QMainWindow):
         self._run_future_in_thread(future)
 
         project = future.result()
-        self._update_project(project)
-
-        self._project = project
-        self._dirpath_open = os.path.dirname(project.filepath)
+        self.setProject(project)
 
         self.dock_project.raise_()
         return True
 
+    def addSimulation(self, simulation):
+        toplevelfields = self.tree.topLevelFields()
+
+        for field_project in toplevelfields:
+            has_simulations_field = False
+            children = self.tree.childrenField(field_project)
+
+            for field in children:
+                if isinstance(field, SimulationsField):
+                    has_simulations_field = True
+                    field_simulations = field
+                    break
+
+            if not has_simulations_field:
+                field_simulations = SimulationsField()
+                self.tree.addField(field_simulations, field_project)
+
+            field_simulation = SimulationField()
+            self.tree.addField(field_simulation, field_simulations)
+
+            field_options = OptionsField()
+            field_options.setOptions(simulation.options)
+            self.tree.addField(field_options, field_simulation)
+
+            if not simulation.results:
+                continue
+
+            field_results = ResultsField()
+            self.tree.addField(field_results, field_simulation)
+
+            self.tree.tree.reset()
+            self.tree.expandField(field_project)
+            self.tree.expandField(field_simulations)
