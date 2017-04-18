@@ -55,19 +55,27 @@ class MainWindow(QtWidgets.QMainWindow):
         # Actions
         self.action_new_project = QtWidgets.QAction('New project')
         self.action_new_project.setIcon(QtGui.QIcon.fromTheme('document-new'))
+        self.action_new_project.setShortcut(QtGui.QKeySequence.New)
         self.action_new_project.triggered.connect(self.newProject)
 
         self.action_open_project = QtWidgets.QAction('Open project')
         self.action_open_project.setIcon(QtGui.QIcon.fromTheme('document-open'))
+        self.action_open_project.setShortcut(QtGui.QKeySequence.Open)
         self.action_open_project.triggered.connect(functools.partial(self.openProject, None))
 
         self.action_save_project = QtWidgets.QAction('Save project')
         self.action_save_project.setIcon(QtGui.QIcon.fromTheme('document-save'))
+        self.action_save_project.setShortcut(QtGui.QKeySequence.Save)
         self.action_save_project.triggered.connect(functools.partial(self.saveProject, None))
 
         self.action_settings = QtWidgets.QAction('Settings')
         self.action_settings.setIcon(QtGui.QIcon.fromTheme('preferences-system'))
+        self.action_settings.setShortcut(QtGui.QKeySequence.Preferences)
         self.action_settings.triggered.connect(self._on_settings)
+
+        self.action_quit = QtWidgets.QAction('Quit')
+        self.action_quit.setShortcut(QtGui.QKeySequence.Quit)
+        self.action_quit.triggered.connect(self.close)
 
         self.action_create_simulations = QtWidgets.QAction('Create new simulations')
         self.action_create_simulations.setIcon(load_icon('newsimulation.svg'))
@@ -94,6 +102,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addAction(self.action_save_project)
         menu_file.addSeparator()
         menu_file.addAction(self.action_settings)
+        menu_file.addSeparator()
+        menu_file.addAction(self.action_quit)
 
         menu_simulation = menu.addMenu('Simulation')
         menu_simulation.addAction(self.action_create_simulations)
