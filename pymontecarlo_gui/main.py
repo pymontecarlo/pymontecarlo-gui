@@ -36,6 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._dirpath_save = None
         self._should_save = False
 
+        self._project = Project()
+
         self._reader = HDF5Reader()
         self._reader.start()
 
@@ -47,9 +49,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self._runner.start()
 
         # Actions
+        self.action_new_project = QtWidgets.QAction('New project')
+        self.action_new_project.setIcon(QtGui.QIcon.fromTheme('document-new'))
+        self.action_new_project.triggered.connect(self.newProject)
+
         self.action_open_project = QtWidgets.QAction('Open project')
         self.action_open_project.setIcon(QtGui.QIcon.fromTheme('document-open'))
         self.action_open_project.triggered.connect(functools.partial(self.openProject, None))
+
+        self.action_save_project = QtWidgets.QAction('Save project')
+        self.action_save_project.setIcon(QtGui.QIcon.fromTheme('document-save'))
+        self.action_save_project.triggered.connect(functools.partial(self.saveProject, None))
 
         self.action_submit = QtWidgets.QAction('Submit')
         self.action_submit.triggered.connect(self._on_submit)
@@ -62,12 +72,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # Menus
         menu = self.menuBar()
         menu_file = menu.addMenu('File')
+        menu_file.addAction(self.action_new_project)
         menu_file.addAction(self.action_open_project)
+        menu_file.addAction(self.action_save_project)
 
         # Tool bar
         toolbar = self.addToolBar("main")
         toolbar.setMovable(False)
+        toolbar.addAction(self.action_new_project)
         toolbar.addAction(self.action_open_project)
+        toolbar.addAction(self.action_save_project)
         toolbar.addAction(self.action_submit)
 
         # Status bar
@@ -125,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
 
         # Defaults
-        self.setProject(Project())
+        self.setProject(self._project)
 
         self.timer_runner.start()
 
@@ -191,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow):
         photon_detector = PhotonDetector(math.radians(35.0))
         analysis = KRatioAnalysis(photon_detector)
 
-        limit = ShowersLimit(10000)
+        limit = ShowersLimit(1000)
 
         options = Options(program, beam, sample, [analysis], [limit])
         futures = self._runner.submit(options)
@@ -210,6 +224,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.addSimulation(future.result())
+        self.setShouldSave(True)
 
     def _on_table_runner_double_clicked(self, future):
         if not future.done():
@@ -224,9 +239,9 @@ class MainWindow(QtWidgets.QMainWindow):
         field = ExceptionField(future.exception())
         self.mdiarea.addField(field)
 
-    def _run_future_in_thread(self, future):
+    def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle('Open project')
+        dialog.setWindowTitle(title)
         dialog.setRange(0, 100)
 
         thread = FutureThread(future)
@@ -236,6 +251,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         thread.start()
         dialog.exec_()
+
+    def _check_save(self):
+        if not self.shouldSave():
+            return True
+
+        caption = 'Save current project'
+        message = 'Would you like to save the current project?'
+        buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
+
+        if answer == QtWidgets.QMessageBox.Yes:
+            return self.saveProject()
+
+        return True
 
     def openPath(self):
         if self._dirpath_open is None:
@@ -261,6 +290,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setProject(self, project):
         self._project = project
+        self._runner.project = project
 
         if project.filepath:
             self._dirpath_open = os.path.dirname(project.filepath)
@@ -277,6 +307,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tree.expandField(field_project)
 
+        self.setShouldSave(False)
+
+    def newProject(self):
+        if not self._check_save():
+            return False
+
+        self.setProject(Project())
+
+        self.dock_project.raise_()
+        return True
+
     def openProject(self, filepath=None):
 #        if self._runner.running():
 #            caption = 'Open project'
@@ -284,15 +325,8 @@ class MainWindow(QtWidgets.QMainWindow):
 #            QtWidgets.QMessageBox.critical(None, caption, message)
 #            return False
 
-        if self._should_save:
-            caption = 'Save current project'
-            message = 'Would you like to save the current project?'
-            buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-            answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
-
-            if answer == QtWidgets.QMessageBox.Yes:
-                if not self.saveProject():
-                    return False
+        if not self._check_save():
+            return False
 
         if filepath is None:
             caption = 'Open project'
@@ -308,7 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return False
 
         future = self._reader.submit(filepath)
-        self._run_future_in_thread(future)
+        self._run_future_in_thread(future, 'Open project')
 
         project = future.result()
         self.setProject(project)
@@ -316,36 +350,86 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dock_project.raise_()
         return True
 
+    def saveProject(self, filepath=None):
+        if filepath is None:
+            filepath = self._project.filepath
+
+        if filepath is None:
+            caption = 'Save project'
+            dirpath = self.savePath()
+            namefilters = 'Simulation project (*.mcsim)'
+            filepath, namefilter = \
+                QtWidgets.QFileDialog.getSaveFileName(None, caption, dirpath, namefilters)
+
+            if not namefilter:
+                return False
+
+            if not filepath:
+                return False
+
+        if not filepath.endswith('.mcsim'):
+            filepath += '.mcsim'
+
+        future = self._writer.submit(self._project, filepath)
+        self._run_future_in_thread(future, 'Save project')
+
+        self._project.filepath = filepath
+        self._dirpath_save = os.path.dirname(filepath)
+
+        caption = 'Save project'
+        message = 'Project saved'
+        QtWidgets.QMessageBox.information(None, caption, message)
+
+        self.setShouldSave(False)
+
+        return True
+
     def addSimulation(self, simulation):
         toplevelfields = self.tree.topLevelFields()
+        assert len(toplevelfields) == 1
 
-        for field_project in toplevelfields:
-            has_simulations_field = False
-            children = self.tree.childrenField(field_project)
+        field_project = toplevelfields[0]
 
-            for field in children:
-                if isinstance(field, SimulationsField):
-                    has_simulations_field = True
-                    field_simulations = field
-                    break
+        has_simulations_field = False
+        children = self.tree.childrenField(field_project)
 
-            if not has_simulations_field:
-                field_simulations = SimulationsField()
-                self.tree.addField(field_simulations, field_project)
+        for field in children:
+            if isinstance(field, SimulationsField):
+                has_simulations_field = True
+                field_simulations = field
+                break
 
-            field_simulation = SimulationField()
-            self.tree.addField(field_simulation, field_simulations)
+        if not has_simulations_field:
+            field_simulations = SimulationsField()
+            self.tree.addField(field_simulations, field_project)
 
-            field_options = OptionsField()
-            field_options.setOptions(simulation.options)
-            self.tree.addField(field_options, field_simulation)
+        field_simulation = SimulationField()
+        self.tree.addField(field_simulation, field_simulations)
 
-            if not simulation.results:
-                continue
+        field_options = OptionsField()
+        field_options.setOptions(simulation.options)
+        self.tree.addField(field_options, field_simulation)
 
-            field_results = ResultsField()
-            self.tree.addField(field_results, field_simulation)
+        if not simulation.results:
+            return
 
-            self.tree.tree.reset()
-            self.tree.expandField(field_project)
-            self.tree.expandField(field_simulations)
+        field_results = ResultsField()
+        self.tree.addField(field_results, field_simulation)
+
+        self.tree.tree.reset()
+        self.tree.expandField(field_project)
+        self.tree.expandField(field_simulations)
+
+    def shouldSave(self):
+        return self._should_save
+
+    def setShouldSave(self, should_save):
+        toplevelfields = self.tree.topLevelFields()
+        assert len(toplevelfields) == 1
+
+        field_project = toplevelfields[0]
+        font = self.tree.fieldFont(field_project)
+        font.setItalic(should_save)
+        self.tree.setFieldFont(field_project, font)
+
+        self._should_save = should_save
