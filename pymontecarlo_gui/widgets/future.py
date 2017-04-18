@@ -12,6 +12,15 @@ from pymontecarlo_gui.widgets.color import check_color
 
 # Globals and constants variables.
 
+class ExecutorCancelThread(QtCore.QThread):
+
+    def __init__(self, executor):
+        super().__init__()
+        self.executor = executor
+
+    def run(self):
+        self.executor.cancel()
+
 class FutureThread(QtCore.QThread):
 
     progressChanged = QtCore.Signal(int)
@@ -92,17 +101,20 @@ class FutureItemDelegate(QtWidgets.QItemDelegate):
         progressbaroption.progress = int(future.progress * 100)
         progressbaroption.text = future.status
 
-        if future.running():
-            color_highlight = QtGui.QColor(QtCore.Qt.green)
-        elif future.cancelled():
-            color_highlight = check_color("#ff9600") # orange
-        elif future.done():
-            if future.exception():
-                color_highlight = QtGui.QColor(QtCore.Qt.red)
+        try:
+            if future.running():
+                color_highlight = QtGui.QColor(QtCore.Qt.green)
+            elif future.cancelled():
+                color_highlight = check_color("#ff9600") # orange
+            elif future.done():
+                if future.exception():
+                    color_highlight = QtGui.QColor(QtCore.Qt.red)
+                else:
+                    color_highlight = QtGui.QColor(QtCore.Qt.blue)
             else:
-                color_highlight = QtGui.QColor(QtCore.Qt.blue)
-        else:
-            color_highlight = QtGui.QColor(QtCore.Qt.black)
+                color_highlight = QtGui.QColor(QtCore.Qt.black)
+        except:
+            color_highlight = QtGui.QColor(QtCore.Qt.red)
 
         palette = QtGui.QPalette()
         palette.setColor(QtGui.QPalette.Highlight, color_highlight)

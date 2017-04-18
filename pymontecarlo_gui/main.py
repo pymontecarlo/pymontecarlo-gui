@@ -19,7 +19,10 @@ from pymontecarlo_gui.project import \
     (ProjectField, SimulationsField, SimulationField, OptionsField,
      ResultsField)
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
-from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
+from pymontecarlo_gui.widgets.future import \
+    FutureThread, FutureTableWidget, ExecutorCancelThread
+from pymontecarlo_gui.widgets.icon import load_icon
+from pymontecarlo_gui.newsimulation import NewSimulationWizard
 
 # Globals and constants variables.
 
@@ -61,6 +64,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_save_project.setIcon(QtGui.QIcon.fromTheme('document-save'))
         self.action_save_project.triggered.connect(functools.partial(self.saveProject, None))
 
+        self.action_create_simulations = QtWidgets.QAction('Create new simulations')
+        self.action_create_simulations.setIcon(load_icon('newsimulation.svg'))
+        self.action_create_simulations.triggered.connect(self.showNewSimulationsWizard)
+
+        self.action_stop_simulations = QtWidgets.QAction('Stop all simulations')
+        self.action_stop_simulations.setIcon(QtGui.QIcon.fromTheme('media-playback-stop'))
+        self.action_stop_simulations.triggered.connect(self.stopAllSimulations)
+        self.action_stop_simulations.setEnabled(False)
+
         self.action_submit = QtWidgets.QAction('Submit')
         self.action_submit.triggered.connect(self._on_submit)
 
@@ -76,13 +88,20 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addAction(self.action_open_project)
         menu_file.addAction(self.action_save_project)
 
+        menu_simulation = menu.addMenu('Simulation')
+        menu_simulation.addAction(self.action_create_simulations)
+        menu_simulation.addAction(self.action_stop_simulations)
+
         # Tool bar
-        toolbar = self.addToolBar("main")
-        toolbar.setMovable(False)
-        toolbar.addAction(self.action_new_project)
-        toolbar.addAction(self.action_open_project)
-        toolbar.addAction(self.action_save_project)
-        toolbar.addAction(self.action_submit)
+        toolbar_file = self.addToolBar("File")
+        toolbar_file.addAction(self.action_new_project)
+        toolbar_file.addAction(self.action_open_project)
+        toolbar_file.addAction(self.action_save_project)
+        toolbar_file.addAction(self.action_submit)
+
+        toolbar_simulation = self.addToolBar("Simulation")
+        toolbar_simulation.addAction(self.action_create_simulations)
+        toolbar_simulation.addAction(self.action_stop_simulations)
 
         # Status bar
         self.statusbar_submitted = QtWidgets.QLabel()
@@ -187,6 +206,8 @@ class MainWindow(QtWidgets.QMainWindow):
             text = '{} simulations done'.format(done_count)
         self.statusbar_done.setText(text)
 
+        self.action_stop_simulations.setEnabled(self._runner.running())
+
     def _on_submit(self):
         import math
         from pymontecarlo.options.beam import GaussianBeam
@@ -205,7 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
         photon_detector = PhotonDetector(math.radians(35.0))
         analysis = KRatioAnalysis(photon_detector)
 
-        limit = ShowersLimit(1000)
+        limit = ShowersLimit(10000)
 
         options = Options(program, beam, sample, [analysis], [limit])
         futures = self._runner.submit(options)
@@ -433,3 +454,34 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.setFieldFont(field_project, font)
 
         self._should_save = should_save
+
+    def showNewSimulationsWizard(self):
+        wizard = NewSimulationWizard()
+
+        if not wizard.exec_():
+            return
+
+        for options in wizard.optionsList():
+            futures = self._runner.submit(options)
+
+            for future in futures:
+                future.add_done_callback(self._on_simulation_done)
+                self.table_runner.addFuture(future)
+
+        self.dock_runner.raise_()
+
+    def stopAllSimulations(self):
+        dialog = QtWidgets.QProgressDialog()
+        dialog.setWindowTitle('Stop')
+        dialog.setLabelText('Stopping all simulations')
+        dialog.setMinimum(0)
+        dialog.setMaximum(0)
+        dialog.setValue(0)
+        dialog.setCancelButton(None)
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
+
+        thread = ExecutorCancelThread(self._runner)
+        thread.finished.connect(dialog.close)
+
+        thread.start()
+        dialog.exec_()
