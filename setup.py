@@ -11,16 +11,6 @@ import zipfile
 # Third party modules.
 from setuptools import setup, find_packages
 
-try:
-    import requests_download
-except ImportError:
-    requests_download = None
-
-try:
-    import progressbar
-except ImportError:
-    progressbar = None
-
 # Local modules.
 import versioneer
 
@@ -111,10 +101,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             self.dist_dir = "dist"
 
     def download_file(self, url, filepath):
-        if not requests_download:
-            raise RuntimeError('Required package "requests_download"')
-        if not progressbar:
-            raise RuntimeError('Required package "progressbar2"')
+        import requests_download
+        import progressbar
         progress = progressbar.DataTransferBar()
         trackers = [requests_download.ProgressTracker(progress)]
         requests_download.download(url, filepath, trackers=trackers)
