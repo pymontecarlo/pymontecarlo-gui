@@ -513,6 +513,12 @@ class FieldMdiArea(QtWidgets.QWidget):
         layout.addWidget(self.mdiarea)
         self.setLayout(layout)
 
+    def _on_window_closed(self, field):
+        if field in self._field_windows:
+            field.widget().setParent(None)
+            self._field_windows.pop(field)
+            self.windowClosed.emit(field)
+
     def addField(self, field):
         if field in self._field_windows:
             window = self._field_windows[field]
@@ -521,7 +527,8 @@ class FieldMdiArea(QtWidgets.QWidget):
             window.setWindowTitle(field.title())
             window.setWindowIcon(field.icon())
             window.setWidget(field.widget())
-            window.closed.connect(functools.partial(self.windowClosed.emit, field))
+            window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            window.closed.connect(functools.partial(self._on_window_closed, field))
 
             self._field_windows[field] = window
 

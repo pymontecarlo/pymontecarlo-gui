@@ -16,8 +16,8 @@ from pymontecarlo.fileformat.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
 
 from pymontecarlo_gui.project import \
-    (ProjectField, SimulationsField, SimulationField, OptionsField,
-     ResultsField)
+    (ProjectField, ProjectSummaryTableField, SimulationsField, SimulationField,
+     OptionsField, ResultsField)
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.future import \
     FutureThread, FutureTableWidget, ExecutorCancelThread
@@ -249,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
         photon_detector = PhotonDetector(math.radians(35.0))
         analysis = KRatioAnalysis(photon_detector)
 
-        limit = ShowersLimit(10000)
+        limit = ShowersLimit(1000)
 
         options = Options(program, beam, sample, [analysis], [limit])
         futures = self._runner.submit(options)
@@ -375,7 +375,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.clear()
         self._runner.submitted_options.clear()
 
-        field_project = ProjectField()
+        field_project = ProjectField(project)
         self.tree.addField(field_project)
 
         for simulation in project.simulations:
@@ -461,29 +461,40 @@ class MainWindow(QtWidgets.QMainWindow):
         return True
 
     def addSimulation(self, simulation):
+        def _find_field(field_project, clasz):
+            children = self.tree.childrenField(field_project)
+
+            for field in children:
+                if isinstance(field, clasz):
+                    return field
+
+            return None
+
         toplevelfields = self.tree.topLevelFields()
         assert len(toplevelfields) == 1
 
         field_project = toplevelfields[0]
+        project = field_project.project()
 
-        has_simulations_field = False
-        children = self.tree.childrenField(field_project)
+        # Summary table
+        field_summary_table = _find_field(field_project, ProjectSummaryTableField)
+        if not field_summary_table:
+            field_summary_table = ProjectSummaryTableField(project)
+            self.tree.addField(field_summary_table, field_project)
 
-        for field in children:
-            if isinstance(field, SimulationsField):
-                has_simulations_field = True
-                field_simulations = field
-                break
+        field_summary_table.setProject(project)
 
-        if not has_simulations_field:
+        # Simulations
+        field_simulations = _find_field(field_project, SimulationsField)
+        if not field_simulations:
             field_simulations = SimulationsField()
             self.tree.addField(field_simulations, field_project)
 
+        # Simulation
         field_simulation = SimulationField()
         self.tree.addField(field_simulation, field_simulations)
 
-        field_options = OptionsField()
-        field_options.setOptions(simulation.options)
+        field_options = OptionsField(simulation.options)
         self.tree.addField(field_options, field_simulation)
 
         if not simulation.results:
