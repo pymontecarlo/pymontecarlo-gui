@@ -23,6 +23,7 @@ from pymontecarlo_gui.widgets.future import \
     FutureThread, FutureTableWidget, ExecutorCancelThread
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
+from pymontecarlo_gui.settings import SettingsDialog
 
 # Globals and constants variables.
 
@@ -64,13 +65,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_save_project.setIcon(QtGui.QIcon.fromTheme('document-save'))
         self.action_save_project.triggered.connect(functools.partial(self.saveProject, None))
 
+        self.action_settings = QtWidgets.QAction('Settings')
+        self.action_settings.setIcon(QtGui.QIcon.fromTheme('preferences-system'))
+        self.action_settings.triggered.connect(self._on_settings)
+
         self.action_create_simulations = QtWidgets.QAction('Create new simulations')
         self.action_create_simulations.setIcon(load_icon('newsimulation.svg'))
-        self.action_create_simulations.triggered.connect(self.showNewSimulationsWizard)
+        self.action_create_simulations.triggered.connect(self._on_create_new_simulations)
 
         self.action_stop_simulations = QtWidgets.QAction('Stop all simulations')
         self.action_stop_simulations.setIcon(QtGui.QIcon.fromTheme('media-playback-stop'))
-        self.action_stop_simulations.triggered.connect(self.stopAllSimulations)
+        self.action_stop_simulations.triggered.connect(self._on_stop_all_simulations)
         self.action_stop_simulations.setEnabled(False)
 
         self.action_submit = QtWidgets.QAction('Submit')
@@ -87,6 +92,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addAction(self.action_new_project)
         menu_file.addAction(self.action_open_project)
         menu_file.addAction(self.action_save_project)
+        menu_file.addSeparator()
+        menu_file.addAction(self.action_settings)
 
         menu_simulation = menu.addMenu('Simulation')
         menu_simulation.addAction(self.action_create_simulations)
@@ -146,6 +153,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea = FieldMdiArea()
 
         self.setCentralWidget(self.mdiarea)
+
+        # Dialogs
+        self.wizard_simulation = NewSimulationWizard()
+
+        self.dialog_settings = SettingsDialog()
+        self.dialog_settings.setSettings(self._settings)
 
         # Signals
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
@@ -259,6 +272,38 @@ class MainWindow(QtWidgets.QMainWindow):
 
         field = ExceptionField(future.exception())
         self.mdiarea.addField(field)
+
+    def _on_create_new_simulations(self):
+        if not self.wizard_simulation.exec_():
+            return
+
+        for options in self.wizard_simulation.optionsList():
+            futures = self._runner.submit(options)
+
+            for future in futures:
+                future.add_done_callback(self._on_simulation_done)
+                self.table_runner.addFuture(future)
+
+        self.dock_runner.raise_()
+
+    def _on_stop_all_simulations(self):
+        dialog = QtWidgets.QProgressDialog()
+        dialog.setWindowTitle('Stop')
+        dialog.setLabelText('Stopping all simulations')
+        dialog.setMinimum(0)
+        dialog.setMaximum(0)
+        dialog.setValue(0)
+        dialog.setCancelButton(None)
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
+
+        thread = ExecutorCancelThread(self._runner)
+        thread.finished.connect(dialog.close)
+
+        thread.start()
+        dialog.exec_()
+
+    def _on_settings(self):
+        self.dialog_settings.exec_()
 
     def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()
@@ -455,33 +500,4 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._should_save = should_save
 
-    def showNewSimulationsWizard(self):
-        wizard = NewSimulationWizard()
 
-        if not wizard.exec_():
-            return
-
-        for options in wizard.optionsList():
-            futures = self._runner.submit(options)
-
-            for future in futures:
-                future.add_done_callback(self._on_simulation_done)
-                self.table_runner.addFuture(future)
-
-        self.dock_runner.raise_()
-
-    def stopAllSimulations(self):
-        dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle('Stop')
-        dialog.setLabelText('Stopping all simulations')
-        dialog.setMinimum(0)
-        dialog.setMaximum(0)
-        dialog.setValue(0)
-        dialog.setCancelButton(None)
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
-
-        thread = ExecutorCancelThread(self._runner)
-        thread.finished.connect(dialog.close)
-
-        thread.start()
-        dialog.exec_()

@@ -532,3 +532,28 @@ class SettingsMainWindow(QtWidgets.QMainWindow):
 
     def setSettings(self, settings):
         self.wdg_central.setSettings(settings)
+
+class SettingsDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.setWindowTitle('Settings')
+
+        # Widgets
+        self.widget = SettingsCentralWidget()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.widget)
+        self.setLayout(layout)
+
+        # Signals
+        self.widget.saved.connect(self.close)
+        self.widget.aborted.connect(self.close)
+
+    def settings(self):
+        return self.widget.settings()
+
+    def setSettings(self, settings):
+        self.widget.setSettings(settings)
