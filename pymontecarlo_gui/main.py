@@ -11,8 +11,8 @@ from qtpy import QtCore, QtGui, QtWidgets
 # Local modules.
 import pymontecarlo
 from pymontecarlo.project import Project
-from pymontecarlo.fileformat.reader import HDF5Reader
-from pymontecarlo.fileformat.writer import HDF5Writer
+from pymontecarlo.formats.hdf5.reader import HDF5Reader
+from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
 
 from pymontecarlo_gui.project import \
