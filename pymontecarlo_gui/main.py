@@ -14,6 +14,7 @@ from pymontecarlo.project import Project
 from pymontecarlo.formats.hdf5.reader import HDF5Reader
 from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
+from pymontecarlo.util.future import FutureAdapter
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, SimulationsField, SimulationField,
@@ -28,6 +29,8 @@ from pymontecarlo_gui.settings import SettingsDialog
 # Globals and constants variables.
 
 class MainWindow(QtWidgets.QMainWindow):
+
+    simulationDone = QtCore.Signal(FutureAdapter)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -180,6 +183,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
 
+        self.simulationDone.connect(self._on_simulation_done)
+
         # Defaults
         self.setProject(self._project)
 
@@ -255,7 +260,7 @@ class MainWindow(QtWidgets.QMainWindow):
         futures = self._runner.submit(options)
 
         for future in futures:
-            future.add_done_callback(self._on_simulation_done)
+            future.add_done_callback(self.simulationDone.emit)
             self.table_runner.addFuture(future)
 
         self.dock_runner.raise_()
