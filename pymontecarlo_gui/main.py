@@ -246,7 +246,7 @@ class MainWindow(QtWidgets.QMainWindow):
         from pymontecarlo.options.limit import ShowersLimit
         from pymontecarlo.options.options import Options
 
-        program = pymontecarlo.settings.get_program('casino2')
+        program = self.settings().get_program('casino2')
         beam = GaussianBeam(15e3, 10e-9)
         mat1 = Material.pure(29)
         sample = SubstrateSample(mat1)
@@ -318,7 +318,10 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def _on_settings(self):
-        self.dialog_settings.exec_()
+        if not self.dialog_settings.exec_():
+            return
+
+        self._settings = self.dialog_settings.settings()
 
     def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()

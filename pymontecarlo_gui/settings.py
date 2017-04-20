@@ -549,8 +549,8 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # Signals
-        self.widget.saved.connect(self.close)
-        self.widget.aborted.connect(self.close)
+        self.widget.saved.connect(self.accept)
+        self.widget.aborted.connect(self.reject)
 
     def settings(self):
         return self.widget.settings()
