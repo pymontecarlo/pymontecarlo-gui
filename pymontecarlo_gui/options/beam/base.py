@@ -6,7 +6,8 @@ import sys
 import enum
 
 # Third party modules.
-from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QAbstractListModel, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QAbstractListModel, QItemSelection, \
+    QModelIndex, QItemSelectionModel, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, \
     QComboBox, QRadioButton, QButtonGroup, QLineEdit, QTableView, QPushButton, QAbstractItemView, \
     QListView
@@ -179,6 +180,7 @@ class _GridScan(_Scan):
         yi = self._startY + (self._endY - self._startY) * iy / self._stepsY
         return xi, yi
 
+
 class _Positions():
     def __init__(self):
         self._scans = []
@@ -192,12 +194,12 @@ class _Positions():
         :param i: :class:`int`
         :return: :class:`tuple` of :class:`float`
         """
-        item, scan = self.getScan(i)
-        return scan[item]
+        for s in self._scans:
+            if i < len(s):
+                return s[i]
+            i -= len(s)
 
-    @property
-    def scans(self):
-        return self._scans
+        raise IndexError
 
     def positions(self):
         """
@@ -207,40 +209,20 @@ class _Positions():
         for i in range(len(self)):
             yield self.__getitem__(i)
 
-    def getScan(self, i):
-        # TODO improve documentation
-        """
-        :param i: index of a position within a scan you want to access
-        :return: :class:`tuple` containing corresponding internal :class:`int` index of scan and
-        :class:`_Scan` itself
-        """
-        if i >= len(self):
-            raise ValueError('Index is out of range')
+    @property
+    def scans(self):
+        return self._scans
 
-        for s in self._scans:
-            if i < len(s):
-                return i, s
-            i -= len(s)
+    def scanIndexRange(self, i):
+        startIndex = 0
+        endIndex = 0
 
-        return None
+        for j in range(i + 1):
+            s = self._scans[j]
+            startIndex = endIndex
+            endIndex += len(s)
 
-    def addScan(self, scan):
-        """
-        :param scan: :class:`_Scan`
-        """
-        if not isinstance(scan, _Scan):
-            raise ValueError('scan must be of type \'_Scan\'')
-        self._scans.append(scan)
-
-    def remScan(self, i):
-        """
-        :param i: :class:`int`
-        """
-        try:
-            _, s = self.getScan(i)
-            self._scans.remove(s)
-        except Exception as _:
-            self._scans.remove(i)
+        return startIndex, endIndex
 
 
 class _PositionsListModel(QAbstractListModel):
@@ -288,10 +270,6 @@ class _PositionsTableModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return QVariant(('X', 'Y')[col])
         return QVariant()
-
-    # def flags(self, QModelIndex):
-    #     # TODO handle selection
-    #     pass
 
 
 class _ScanInputMaskWidget(QWidget):
@@ -535,36 +513,67 @@ class BeamPositionWidget(QWidget):
         self._scansList.selectionModel().selectionChanged.connect(self._selectionChanged)
 
         # add some dummy data
-        self._positions.addScan(_PointScan((0, 0)))  # TODO remove
-        self._positions.addScan(_LineScan((0, 0), (4, 8), 2))  # TODO -"-
-        self._positions.addScan(_GridScan((0, 0), (3, 6), 3, 3))  # TODO -"-
+        self._positions.scans.append(_PointScan((1, 0)))  # TODO remove
+        self._positions.scans.append(_LineScan((2, 0), (0, 0), 2))  # TODO -"-
+        self._positions.scans.append(_GridScan((3, 0), (0, 0), 3, 3))  # TODO -"-
 
         # init
         self._scansListModel.modelReset.emit()
         self._scansTableModel.modelReset.emit()
+
+    def _getSelectedScan(self):
+        indexes = self._scansList.selectionModel().selection().indexes()
+        if len(indexes) > 0:
+            return indexes[0].row()
+
+        raise IndexError
 
     def _addScan(self):
         scan = self._scanInputMask.getScan()
         if scan is not None:
             self._scansListModel.modelAboutToBeReset.emit()
             self._scansTableModel.modelAboutToBeReset.emit()
-            self._positions.addScan(scan)
+            self._positions.scans.append(scan)
             self._scansListModel.modelReset.emit()
             self._scansTableModel.modelReset.emit()
 
     def _editScan(self):
-        print('edit scan')
+        scan = self._scanInputMask.getScan()
+        if scan is not None:
+            try:
+                self._scansListModel.modelAboutToBeReset.emit()
+                self._scansTableModel.modelAboutToBeReset.emit()
+                self._positions.scans[self._getSelectedScan()] = scan
+                self._scansListModel.modelReset.emit()
+                self._scansTableModel.modelReset.emit()
+            except:
+                pass
 
     def _removeScan(self):
-        sm = self._scansList.selectionModel()
-        s = sm.selection()
-        i = s.indexes()
-        print(i)
+        try:
+            self._scansListModel.modelAboutToBeReset.emit()
+            self._scansTableModel.modelAboutToBeReset.emit()
+            del self._positions.scans[self._getSelectedScan()]
+            self._scansListModel.modelReset.emit()
+            self._scansTableModel.modelReset.emit()
+        except:
+            print('Oo')
+            pass
 
     def _selectionChanged(self, selected, deselected):
         if len(selected.indexes()) > 0:
-            scan = self._positions.scans[selected.indexes()[0].row()]
+            index = selected.indexes()[0].row()
+            scan = self._positions.scans[index]
             self._scanInputMask.scanChanged.emit(scan)
+
+            self._scansTable.selectionModel().select(self._scansTable.selectionModel().selection(),
+                                                     QItemSelectionModel.Deselect)
+            t, b = self._positions.scanIndexRange(index)
+            print(t, b)
+            tl = self._scansTableModel.index(t, 0)
+            br = self._scansTableModel.index(max(b - 1, 0), 1)
+            self._scansTable.selectionModel().select(QItemSelection(tl, br),
+                                                     QItemSelectionModel.Select)
 
     def positions(self):
         """
