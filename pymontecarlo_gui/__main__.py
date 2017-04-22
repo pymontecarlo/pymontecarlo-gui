@@ -84,6 +84,7 @@ def _setup(ns):
 
 def _parse(ns):
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('fusion')
 
     if ns.config:
         window = SettingsMainWindow()
