@@ -76,28 +76,15 @@ class BeamWidget(QWidget):
 
         self.setLayout(mainLayout)
 
-    def beams(self, positions=()):
+    def beams(self):
         """
         :param positions: :class:`list` of :class:`tuple` of :class:`float` 
         :return a :class:`list` of :class:`Beam`.
         """
+
         beams = list()
 
-        for x0_m, y0_m in positions:
-            energy_eV = self._energyEdit.text()
-            diameter_m = self._diameterEdit.text()
-            particle = Particle.ELECTRON if self._particleRadioElectron.isChecked() \
-                else Particle.PHOTON
-
-            try:
-                b = self._typeCombo.currentData()(energy_eV=energy_eV, diameter_m=diameter_m,
-                                                  particle=particle, x0_m=x0_m, y0_m=y0_m)
-                beams.append(b)
-            except Exception as _:
-                # TODO user my be warned
-                pass
-
-            return beams
+        return []
 
 
 class _Scan():
