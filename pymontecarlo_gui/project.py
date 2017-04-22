@@ -6,7 +6,7 @@
 from qtpy import QtGui
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import Field, WidgetField
+from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.results.summary import ResultSummaryTableWidget
 
@@ -39,8 +39,7 @@ class ProjectSummaryTableField(_ProjectDerivedField):
 
     def __init__(self, project):
         super().__init__(project)
-        self._widget = ResultSummaryTableWidget()
-        self._widget.setProject(self.project())
+        self._widget = None
 
     def title(self):
         return 'Summary table'
@@ -49,11 +48,15 @@ class ProjectSummaryTableField(_ProjectDerivedField):
         return load_icon('table.svg')
 
     def widget(self):
+        if self._widget is None:
+            self._widget = ResultSummaryTableWidget()
+            self._widget.setProject(self.project())
         return self._widget
 
     def setProject(self, project):
+        if self._widget is not None:
+            self._widget.setProject(project)
         super().setProject(project)
-        self._widget.setProject(project)
 
 class SimulationsField(Field):
 
@@ -76,21 +79,6 @@ class SimulationField(Field):
 
     def widget(self):
         return super().widget()
-
-class OptionsField(WidgetField):
-
-    def __init__(self, options):
-        super().__init__()
-        self._options = options
-
-    def title(self):
-        return 'Options'
-
-    def icon(self):
-        return QtGui.QIcon.fromTheme('document-properties')
-
-    def options(self):
-        return self._options
 
 class ResultsField(Field):
 

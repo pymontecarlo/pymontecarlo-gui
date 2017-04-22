@@ -18,7 +18,8 @@ from pymontecarlo.util.future import FutureAdapter
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, SimulationsField, SimulationField,
-     OptionsField, ResultsField)
+     ResultsField)
+from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.future import \
     FutureThread, FutureTableWidget, ExecutorCancelThread
@@ -251,7 +252,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mat1 = Material.pure(29)
         sample = SubstrateSample(mat1)
 
-        photon_detector = PhotonDetector(math.radians(35.0))
+        photon_detector = PhotonDetector('xray', math.radians(35.0))
         analysis = KRatioAnalysis(photon_detector)
 
         limit = ShowersLimit(1000)
