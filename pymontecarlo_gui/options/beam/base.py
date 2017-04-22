@@ -17,6 +17,7 @@ from pymontecarlo.options.particle import Particle
 
 
 # Globals and constants variables.
+MAX_INT_INPUT = 10000 # TODO find sane and less random limit
 
 class BeamWidget(QWidget):
     def __init__(self, parent=None):
@@ -290,11 +291,11 @@ class _ScanInputMaskWidget(QWidget):
         self._endYEdit = QLineEdit()
         self._endYEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
         self._stepsXEdit = QLineEdit()
-        self._stepsXEdit.setValidator(QIntValidator(1, sys.maxsize))
+        self._stepsXEdit.setValidator(QIntValidator(1, MAX_INT_INPUT))
         self._stepsYEdit = QLineEdit()
-        self._stepsYEdit.setValidator(QIntValidator(1, sys.maxsize))
+        self._stepsYEdit.setValidator(QIntValidator(1, MAX_INT_INPUT))
         self._stepsEdit = QLineEdit()
-        self._stepsEdit.setValidator(QIntValidator(1, sys.maxsize))
+        self._stepsEdit.setValidator(QIntValidator(1, MAX_INT_INPUT))
 
         # Layout
         scanComboLayout = QHBoxLayout()
