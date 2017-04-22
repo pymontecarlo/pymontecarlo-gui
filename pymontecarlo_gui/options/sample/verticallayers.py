@@ -145,8 +145,8 @@ class VerticalLayerSampleField(SampleField):
         for tilt_deg in self.field_angle.tiltsDegree():
             builder.add_tilt_deg(tilt_deg)
 
-        for rotation_deg in self.field_angle.rotationsDegree():
-            builder.add_rotation_deg(rotation_deg)
+        for azimuth_deg in self.field_angle.azimuthsDegree():
+            builder.add_azimuth_deg(azimuth_deg)
 
         return super().samples() + builder.build()
 

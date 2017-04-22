@@ -190,7 +190,7 @@ class MaterialDensityField(Field):
 
         # Widgets
         self._widget = ColoredFloatLineEdit()
-        decimals = tolerance_to_decimals(Material.DENSITY_SIGNIFICANT_TOLERANCE_kg_per_m3) + 3
+        decimals = tolerance_to_decimals(Material.DENSITY_TOLERANCE_kg_per_m3) + 3
         self._widget.setRange(0.0, float('inf'), decimals)
         self._widget.setValue(0.0)
         self._widget.setEnabled(False)

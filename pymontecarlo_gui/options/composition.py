@@ -94,7 +94,7 @@ class FractionValidator(QtGui.QDoubleValidator):
     """
 
     def __init__(self):
-        super().__init__(0.0, 100.0, Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE)
+        super().__init__(0.0, 100.0, Material.WEIGHT_FRACTION_TOLERANCE)
 
     def validate(self, input, pos):
         if input.strip() == '?':
@@ -116,7 +116,7 @@ class CompositionModel(QtCore.QAbstractTableModel, Validable):
 
     def isValid(self):
         total_wf = sum(self.composition().values())
-        tolerance = Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE
+        tolerance = Material.WEIGHT_FRACTION_TOLERANCE
         return math.isclose(total_wf, 1.0, abs_tol=tolerance)
 
     def rowCount(self, parent=None):
@@ -131,7 +131,7 @@ class CompositionModel(QtCore.QAbstractTableModel, Validable):
 
         row = index.row()
         column = index.column()
-        tolerance = Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE
+        tolerance = Material.WEIGHT_FRACTION_TOLERANCE
         fmt = '{{:.{:d}f}}'.format(max(0, tolerance_to_decimals(tolerance) - 2))
 
         if row < len(self._composition):
@@ -321,7 +321,7 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
             editor.setAtomicNumber(value)
 
         elif column == 1:
-            decimals = tolerance_to_decimals(Material.WEIGHT_FRACTION_SIGNIFICANT_TOLERANCE) - 2
+            decimals = tolerance_to_decimals(Material.WEIGHT_FRACTION_TOLERANCE) - 2
             fmt = '{{:.{}f}}'.format(decimals)
             if value == '?':
                 editor.setText(value)

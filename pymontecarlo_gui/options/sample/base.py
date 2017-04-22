@@ -40,7 +40,7 @@ class TiltField(MultiValueField):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Tilts [\u00b0]'
+        return 'Tilt(s) [\u00b0]'
 
     def description(self):
         return 'Tilt around the x-axis'
@@ -54,14 +54,14 @@ class TiltField(MultiValueField):
     def setTiltsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class RotationField(MultiValueField):
+class AzimuthField(MultiValueField):
 
     def __init__(self):
         super().__init__()
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(math.degrees(Sample.ROTATION_TOLERANCE_rad))
+        decimals = tolerance_to_decimals(math.degrees(Sample.AZIMUTH_TOLERANCE_rad))
         self._widget.setRange(0.0, 360.0, decimals)
         self._widget.setValues([0.0])
 
@@ -69,16 +69,16 @@ class RotationField(MultiValueField):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Rotation(s) [\u00b0]'
+        return 'Azimuth(s) [\u00b0]'
 
     def widget(self):
         return self._widget
 
-    def rotationsDegree(self):
+    def azimuthsDegree(self):
         return self._widget.values()
 
-    def setRotationsDegree(self, rotations_deg):
-        self._widget.setValues(rotations_deg)
+    def setAzimuthsDegree(self, azimuths_deg):
+        self._widget.setValues(azimuths_deg)
 
 class AngleField(WidgetField):
 
@@ -88,8 +88,8 @@ class AngleField(WidgetField):
         self.field_tilt = TiltField()
         self.addLabelField(self.field_tilt)
 
-        self.field_rotation = RotationField()
-        self.addLabelField(self.field_rotation)
+        self.field_azimuth = AzimuthField()
+        self.addLabelField(self.field_azimuth)
 
     def title(self):
         return 'Angles'
@@ -100,11 +100,11 @@ class AngleField(WidgetField):
     def setTiltsDegree(self, tilts_deg):
         self.field_tilt.setTiltsDegree(tilts_deg)
 
-    def rotationsDegree(self):
-        return self.field_rotation.rotationsDegree()
+    def azimuthsDegree(self):
+        return self.field_azimuth.azimuthsDegree()
 
-    def setRotationsDegree(self, rotations_deg):
-        self.field_rotation.setRotationsDegree(rotations_deg)
+    def setAzimuthsDegree(self, azimuths_deg):
+        self.field_azimuth.setAzimuthsDegree(azimuths_deg)
 
 class MaterialField(MultiValueField):
 

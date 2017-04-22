@@ -39,7 +39,7 @@ class TestInclusionSampleWidget(TestCase):
         widget.clear()
         QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.field.field_angle.field_rotation.widget()
+        widget = self.field.field_angle.field_azimuth.widget()
         widget.clear()
         QtTest.QTest.keyClicks(widget, '3.3;4.4')
 
