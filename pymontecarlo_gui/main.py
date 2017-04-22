@@ -387,8 +387,8 @@ class MainWindow(QtWidgets.QMainWindow):
         field_project = ProjectField(project)
         self.tree.addField(field_project)
 
-        for simulation in project.simulations:
-            self.addSimulation(simulation)
+        for index, simulation in enumerate(project.simulations, 1):
+            self.addSimulation(simulation, index)
 
         self.tree.expandField(field_project)
 
@@ -469,7 +469,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
-    def addSimulation(self, simulation):
+    def addSimulation(self, simulation, index=None):
         def _find_field(field_project, clasz):
             children = self.tree.childrenField(field_project)
 
@@ -500,7 +500,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tree.addField(field_simulations, field_project)
 
         # Simulation
-        field_simulation = SimulationField()
+        if index is None:
+            index = project.simulations.index(simulation) + 1
+        field_simulation = SimulationField(index, simulation)
         self.tree.addField(field_simulation, field_simulations)
 
         field_options = OptionsField(simulation.options)

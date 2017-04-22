@@ -71,14 +71,28 @@ class SimulationsField(Field):
 
 class SimulationField(Field):
 
+    def __init__(self, index, simulation):
+        self._index = index
+        self._simulation = simulation
+        super().__init__()
+
     def title(self):
-        return 'Simulation'
+        return 'Simulation #{:d}'.format(self.index())
+
+    def description(self):
+        return self.simulation().identifier
 
     def icon(self):
         return QtGui.QIcon.fromTheme('folder')
 
     def widget(self):
         return super().widget()
+
+    def index(self):
+        return self._index
+
+    def simulation(self):
+        return self._simulation
 
 class ResultsField(Field):
 
