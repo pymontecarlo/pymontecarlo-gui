@@ -235,7 +235,7 @@ PACKAGES = find_packages()
 PACKAGE_DATA = {}
 
 INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar',
-                    'pyqttango', 'pygments']
+                    'pyqttango', 'pygments', 'pandas']
 EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download']}
 
 CMDCLASS = versioneer.get_cmdclass()

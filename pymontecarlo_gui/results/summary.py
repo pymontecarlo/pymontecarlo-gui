@@ -8,6 +8,8 @@ import textwrap
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
 
+import pandas as pd
+
 # Local modules.
 from pymontecarlo_gui.results.base import ResultSummaryWidget
 from pymontecarlo_gui.widgets.groupbox import create_group_box
@@ -26,43 +28,29 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
         self._result_classes = []
         self._only_different_options = False
 
-        self._rows = []
-        self._columns = []
+        self._df = pd.DataFrame()
         self._column_width = 100
 
-        self._update_datarows()
+        self._update_dataframe()
 
-    def _update_datarows(self):
-        self._rows.clear()
-        self._columns.clear()
+    def _update_dataframe(self):
+        self._df = pd.DataFrame()
 
         if self._project is None:
             return
 
-        datarows_options = \
-            self._project.create_options_datarows(self._only_different_options)
-        datarows_results = \
-            self._project.create_results_datarows(self._result_classes)
+        df_options = \
+            self._project.create_options_dataframe(self._only_different_options)
+        df_results = \
+            self._project.create_results_dataframe(self._result_classes)
 
-        datarows = []
-        for datarow_options, datarow_results in \
-                zip(datarows_options, datarows_results):
-            datarows.append(datarow_options | datarow_results)
-
-        if not datarows:
-            return
-
-        datarow_union = functools.reduce(operator.or_, datarows)
-        columns = datarow_union.columns
-
-        self._rows = [dict(datarow.to_list(columns)) for datarow in datarows]
-        self._columns = list(map(operator.itemgetter(0), datarow_union.to_list(columns)))
+        self._df = pd.concat([df_options, df_results], axis=1)
 
     def rowCount(self, parent=None):
-        return len(self._rows)
+        return self._df.shape[0]
 
     def columnCount(self, parent=None):
-        return len(self._columns)
+        return self._df.shape[1]
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid():
@@ -71,12 +59,13 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
         row = index.row()
         column = index.column()
 
-        if row < 0 or row >= len(self._rows):
+        if row < 0 or row >= len(self._df):
             return None
 
         if role == QtCore.Qt.DisplayRole:
-            key = self._columns[column]
-            return '{:g}'.format(self._rows[row].get(key, float('nan')))
+            value = self._df.iloc[row, column]
+            columnobj = self._df.columns[column]
+            return columnobj.format_value(value)
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
@@ -86,7 +75,7 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
             return None
 
         if orientation == QtCore.Qt.Horizontal:
-            text = self._columns[section]
+            text = self._df.columns[section].fullname
             return '\n'.join(textwrap.wrap(text, self._textwidth))
 
         elif orientation == QtCore.Qt.Vertical:
@@ -102,7 +91,7 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
 
     def setProject(self, project):
         self._project = project
-        self._update_datarows()
+        self._update_dataframe()
         self.modelReset.emit()
 
     def resultClasses(self):
@@ -110,7 +99,7 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
 
     def setResultClasses(self, result_classes):
         self._result_classes = set(result_classes)
-        self._update_datarows()
+        self._update_dataframe()
         self.modelReset.emit()
 
     def isOnlyDifferentOptions(self):
@@ -118,7 +107,7 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
 
     def setOnlyDifferentOptions(self, answer):
         self._only_different_options = answer
-        self._update_datarows()
+        self._update_dataframe()
         self.modelReset.emit()
 
     def setColumnWidth(self, width):
