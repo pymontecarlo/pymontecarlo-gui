@@ -12,13 +12,14 @@ from pymontecarlo.options.material import Material, VACUUM
 from pymontecarlo.options.composition import \
     generate_name, calculate_density_kg_per_m3, from_formula
 from pymontecarlo.program.validator import Validator
+from pymontecarlo.util.tolerance import tolerance_to_decimals
+
 from pymontecarlo_gui.options.composition import CompositionTableWidget
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
-from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
     Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET

@@ -10,12 +10,12 @@ import numpy as np
 # Local modules.
 from pymontecarlo.options.sample.verticallayers import \
     VerticalLayerSampleBuilder, VerticalLayerSample
+from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.sample.base import \
     AngleField, MaterialWidgetField, LayerBuilderField, SampleField
 from pymontecarlo_gui.widgets.field import MultiValueField, WidgetField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
-from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 
 # Globals and constants variables.
 

@@ -7,10 +7,10 @@ import math
 
 # Local modules.
 from pymontecarlo.options.detector.photon import PhotonDetector, PhotonDetectorBuilder
+from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.widgets.field import MultiValueField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
-from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.options.detector.base import DetectorField
 
 # Globals and constants variables.

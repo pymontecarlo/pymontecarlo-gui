@@ -13,11 +13,11 @@ import numpy as np
 
 # Local modules.
 from pymontecarlo.options.sample.base import Sample, Layer, LayerBuilder
+from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.widgets.field import ToolBoxField, MultiValueField, WidgetField
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.widgets.label import LabelIcon
-from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
 from pymontecarlo_gui.options.material import MaterialListWidget
 

@@ -14,10 +14,10 @@ import pyxray
 # Local modules.
 from pymontecarlo.options.composition import to_atomic, process_wildcard
 from pymontecarlo.options.material import Material
+from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
-from pymontecarlo_gui.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
 
