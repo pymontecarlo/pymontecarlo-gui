@@ -3,25 +3,22 @@
 
 # Standard library modules.
 import sys
-import enum
 
 # Third party modules.
 from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QAbstractListModel, QItemSelection, \
-    QModelIndex, QItemSelectionModel, pyqtSignal, pyqtSlot
+    QItemSelectionModel, pyqtSignal
+from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, \
     QComboBox, QRadioButton, QButtonGroup, QLineEdit, QTableView, QPushButton, QAbstractItemView, \
-    QListView
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
-
+    QListView, QSpacerItem, QSizePolicy
 # Local modules.
 from pymontecarlo.options.beam import GaussianBeam
 from pymontecarlo.options.particle import Particle
 
+
 # Globals and constants variables.
 
-
 class BeamWidget(QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -45,12 +42,12 @@ class BeamWidget(QWidget):
         # Initial energy
         self._energyLabel = QLabel('Initial Energy:')
         self._energyEdit = QLineEdit()
-        self._energyEdit.setValidator(QDoubleValidator(0., 1., 2))  # TODO default values for parameters?
+        self._energyEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
 
         # Diameter
         self._diameterLabel = QLabel('Diameter:')
         self._diameterEdit = QLineEdit()
-        self._diameterEdit.setValidator(QDoubleValidator(0., 1., 2))  # TODO -""-
+        self._diameterEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
 
         # Layout
         typeLayout = QHBoxLayout()
@@ -189,11 +186,6 @@ class _Positions():
         return sum((len(s) for s in self._scans))
 
     def __getitem__(self, i):
-        # TODO improve documentation
-        """
-        :param i: :class:`int`
-        :return: :class:`tuple` of :class:`float`
-        """
         for s in self._scans:
             if i < len(s):
                 return s[i]
@@ -202,10 +194,6 @@ class _Positions():
         raise IndexError
 
     def positions(self):
-        """
-        Iterate over all positions of all scans belonging to this instance.
-        :return: :class:`Generator` that returns :class:`tuple` of :class:`float`
-        """
         for i in range(len(self)):
             yield self.__getitem__(i)
 
@@ -273,81 +261,77 @@ class _PositionsTableModel(QAbstractTableModel):
 
 
 class _ScanInputMaskWidget(QWidget):
-
     scanChanged = pyqtSignal(_Scan)
 
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
 
-        # Add scan # TODO rename
-        self._addScanLabel = QLabel('Add:')
-        self._addScanCombo = QComboBox()
-        self._addScanCombo.addItem('-- Select Scan --', None)
-        self._addScanCombo.addItem('Point Scan', _PointScan)
-        self._addScanCombo.addItem('Line Scan', _LineScan)
-        self._addScanCombo.addItem('Grid Scan', _GridScan)
+        # Add scan
+        self._scanLabel = QLabel('Add:')
+        self._scanCombo = QComboBox()
+        self._scanCombo.addItem('-- Select Scan --', None)
+        self._scanCombo.addItem('Point Scan', _PointScan)
+        self._scanCombo.addItem('Line Scan', _LineScan)
+        self._scanCombo.addItem('Grid Scan', _GridScan)
 
-        # Start / end / steps (ses) # TODO rename (remove 'ses')
-        self._sesXLabel = QLabel('X')
-        self._sesYLabel = QLabel('Y')
-        self._sesTotalLabel = QLabel('Total')
-        self._sesStartLabel = QLabel('Start')
-        self._sesEndLabel = QLabel('End')
-        self._sesStepsLabel = QLabel('Steps')
-        self._sesStartXEdit = QLineEdit()
-        self._sesStartXEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO default values for parameters?
-        self._sesStartYEdit = QLineEdit()
-        self._sesStartYEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
-        self._sesEndXEdit = QLineEdit()
-        self._sesEndXEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
-        self._sesEndYEdit = QLineEdit()
-        self._sesEndYEdit.setValidator(QDoubleValidator(0., 1, 2))  # TODO -"-
-        self._sesStepsXEdit = QLineEdit()
-        self._sesStepsXEdit.setValidator(QIntValidator(0, 10))  # TODO -"-
-        self._sesStepsYEdit = QLineEdit()
-        self._sesStepsYEdit.setValidator(QIntValidator(0, 10))  # TODO -"-
-        self._sesStepsEdit = QLineEdit()
-        self._sesStepsEdit.setValidator(QIntValidator(0, 10))  # TODO -"-
+        # Start / end / steps
+        self._xLabel = QLabel('X')
+        self._yLabel = QLabel('Y')
+        self._totalLabel = QLabel('Total')
+        self._startLabel = QLabel('Start')
+        self._endLabel = QLabel('End')
+        self._stepsLabel = QLabel('Steps')
+        self._startXEdit = QLineEdit()
+        self._startXEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
+        self._startYEdit = QLineEdit()
+        self._startYEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
+        self._endXEdit = QLineEdit()
+        self._endXEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
+        self._endYEdit = QLineEdit()
+        self._endYEdit.setValidator(QDoubleValidator(float('-inf'), float('inf'), 5))
+        self._stepsXEdit = QLineEdit()
+        self._stepsXEdit.setValidator(QIntValidator(1, sys.maxsize))
+        self._stepsYEdit = QLineEdit()
+        self._stepsYEdit.setValidator(QIntValidator(1, sys.maxsize))
+        self._stepsEdit = QLineEdit()
+        self._stepsEdit.setValidator(QIntValidator(1, sys.maxsize))
 
         # Layout
-        addLayout = QHBoxLayout()
-        addLayout.addWidget(self._addScanLabel)
-        addLayout.addWidget(self._addScanCombo)
+        scanComboLayout = QHBoxLayout()
+        scanComboLayout.addWidget(self._scanLabel)
+        scanComboLayout.addWidget(self._scanCombo)
 
-        sesLayout = QGridLayout()
-        sesLayout.addWidget(self._sesXLabel, 0, 1)
-        sesLayout.addWidget(self._sesYLabel, 0, 2)
-        sesLayout.addWidget(self._sesTotalLabel, 0, 3)
-        sesLayout.addWidget(self._sesStartLabel, 1, 0)
-        sesLayout.addWidget(self._sesEndLabel, 2, 0)
-        sesLayout.addWidget(self._sesStepsLabel, 3, 0)
-        sesLayout.addWidget(self._sesStartXEdit, 1, 1)
-        sesLayout.addWidget(self._sesStartYEdit, 1, 2)
-        sesLayout.addWidget(self._sesEndXEdit, 2, 1)
-        sesLayout.addWidget(self._sesEndYEdit, 2, 2)
-        sesLayout.addWidget(self._sesStepsXEdit, 3, 1)
-        sesLayout.addWidget(self._sesStepsYEdit, 3, 2)
-        sesLayout.addWidget(self._sesStepsEdit, 3, 3)
+        postionInputLayout = QGridLayout()
+        postionInputLayout.addWidget(self._xLabel, 0, 1)
+        postionInputLayout.addWidget(self._yLabel, 0, 2)
+        postionInputLayout.addWidget(self._totalLabel, 0, 3)
+        postionInputLayout.addWidget(self._startLabel, 1, 0)
+        postionInputLayout.addWidget(self._endLabel, 2, 0)
+        postionInputLayout.addWidget(self._stepsLabel, 3, 0)
+        postionInputLayout.addWidget(self._startXEdit, 1, 1)
+        postionInputLayout.addWidget(self._startYEdit, 1, 2)
+        postionInputLayout.addWidget(self._endXEdit, 2, 1)
+        postionInputLayout.addWidget(self._endYEdit, 2, 2)
+        postionInputLayout.addWidget(self._stepsXEdit, 3, 1)
+        postionInputLayout.addWidget(self._stepsYEdit, 3, 2)
+        postionInputLayout.addWidget(self._stepsEdit, 3, 3)
 
         mainLayout = QVBoxLayout()
-        mainLayout.addLayout(addLayout)
-        mainLayout.addLayout(sesLayout)
+        mainLayout.addLayout(scanComboLayout)
+        mainLayout.addLayout(postionInputLayout)
 
         self.setLayout(mainLayout)
 
         # Signals
         self.scanChanged.connect(self._scanChanged)
-        self._addScanCombo.currentIndexChanged.connect(
-            lambda : self._setInputMode(self._addScanCombo.currentData()))
+        self._scanCombo.currentIndexChanged.connect(
+            lambda: self._setInputMode(self._scanCombo.currentData()))
 
-        self._addScanCombo.currentIndexChanged.emit(0)
-        # self.scanChanged.emit(_PointScan((0, 0)))
-
-        # Init
+        self._scanCombo.currentIndexChanged.emit(0)
 
     def _scanChanged(self, scan=None):
         scanClass = scan.__class__
-        self._addScanCombo.setCurrentIndex(max(0, self._addScanCombo.findData(scanClass)))
+        self._scanCombo.setCurrentIndex(max(0, self._scanCombo.findData(scanClass)))
         self._setInputMode(scan.__class__)
         self._loadData(scan)
 
@@ -379,13 +363,13 @@ class _ScanInputMaskWidget(QWidget):
             stepsX = False
             stepsY = False
 
-        self._sesStartXEdit.setDisabled(startX)
-        self._sesStartYEdit.setDisabled(startY)
-        self._sesEndXEdit.setDisabled(endX)
-        self._sesEndYEdit.setDisabled(endY)
-        self._sesStepsXEdit.setDisabled(stepsX)
-        self._sesStepsYEdit.setDisabled(stepsY)
-        self._sesStepsEdit.setDisabled(steps)
+        self._startXEdit.setDisabled(startX)
+        self._startYEdit.setDisabled(startY)
+        self._endXEdit.setDisabled(endX)
+        self._endYEdit.setDisabled(endY)
+        self._stepsXEdit.setDisabled(stepsX)
+        self._stepsYEdit.setDisabled(stepsY)
+        self._stepsEdit.setDisabled(steps)
 
     def _loadData(self, scan=None):
         scanClass = scan.__class__
@@ -416,33 +400,33 @@ class _ScanInputMaskWidget(QWidget):
             stepsX = str(scan._stepsX)
             stepsY = str(scan._stepsY)
 
-        self._sesStartXEdit.setText(startX)
-        self._sesStartYEdit.setText(startY)
-        self._sesEndXEdit.setText(endX)
-        self._sesEndYEdit.setText(endY)
-        self._sesStepsXEdit.setText(stepsX)
-        self._sesStepsYEdit.setText(stepsY)
-        self._sesStepsEdit.setText(steps)
+        self._startXEdit.setText(startX)
+        self._startYEdit.setText(startY)
+        self._endXEdit.setText(endX)
+        self._endYEdit.setText(endY)
+        self._stepsXEdit.setText(stepsX)
+        self._stepsYEdit.setText(stepsY)
+        self._stepsEdit.setText(steps)
 
-    def getScan(self):
+    def generateScan(self):
         def myParse(lineEdit, type_=float):
             try:
                 return type_(lineEdit.text())
             except:
                 return None
 
-        startX = myParse(self._sesStartXEdit)
-        startY = myParse(self._sesStartYEdit)
-        endX = myParse(self._sesEndXEdit)
-        endY = myParse(self._sesEndYEdit)
-        stepsX = myParse(self._sesStepsXEdit, int)
-        stepsY = myParse(self._sesStepsYEdit, int)
-        steps = myParse(self._sesStepsEdit, int)
+        startX = myParse(self._startXEdit)
+        startY = myParse(self._startYEdit)
+        endX = myParse(self._endXEdit)
+        endY = myParse(self._endYEdit)
+        stepsX = myParse(self._stepsXEdit, int)
+        stepsY = myParse(self._stepsYEdit, int)
+        steps = myParse(self._stepsEdit, int)
 
         scan = None
 
         try:
-            scanClass = self._addScanCombo.currentData()
+            scanClass = self._scanCombo.currentData()
 
             if scanClass is _PointScan:
                 scan = _PointScan((startX, startY))
@@ -452,14 +436,13 @@ class _ScanInputMaskWidget(QWidget):
                 scan = _GridScan((startX, startY), (endX, endY), stepsX, stepsY)
 
         except:
-            # TODO user may be warned that input was incorrect
+            # TODO user may be warned
             pass
 
         return scan
 
 
 class BeamPositionWidget(QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -513,9 +496,9 @@ class BeamPositionWidget(QWidget):
         self._scansList.selectionModel().selectionChanged.connect(self._selectionChanged)
 
         # add some dummy data
-        self._positions.scans.append(_PointScan((1, 0)))  # TODO remove
-        self._positions.scans.append(_LineScan((2, 0), (0, 0), 2))  # TODO -"-
-        self._positions.scans.append(_GridScan((3, 0), (0, 0), 3, 3))  # TODO -"-
+        # self._positions.scans.append(_PointScan((1, 0)))
+        # self._positions.scans.append(_LineScan((2, 0), (0, 0), 2))
+        # self._positions.scans.append(_GridScan((3, 0), (0, 0), 3, 3))
 
         # init
         self._scansListModel.modelReset.emit()
@@ -529,7 +512,7 @@ class BeamPositionWidget(QWidget):
         raise IndexError
 
     def _addScan(self):
-        scan = self._scanInputMask.getScan()
+        scan = self._scanInputMask.generateScan()
         if scan is not None:
             self._scansListModel.modelAboutToBeReset.emit()
             self._scansTableModel.modelAboutToBeReset.emit()
@@ -538,7 +521,7 @@ class BeamPositionWidget(QWidget):
             self._scansTableModel.modelReset.emit()
 
     def _editScan(self):
-        scan = self._scanInputMask.getScan()
+        scan = self._scanInputMask.generateScan()
         if scan is not None:
             try:
                 self._scansListModel.modelAboutToBeReset.emit()
@@ -557,7 +540,6 @@ class BeamPositionWidget(QWidget):
             self._scansListModel.modelReset.emit()
             self._scansTableModel.modelReset.emit()
         except:
-            print('Oo')
             pass
 
     def _selectionChanged(self, selected, deselected):
@@ -569,7 +551,6 @@ class BeamPositionWidget(QWidget):
             self._scansTable.selectionModel().select(self._scansTable.selectionModel().selection(),
                                                      QItemSelectionModel.Deselect)
             t, b = self._positions.scanIndexRange(index)
-            print(t, b)
             tl = self._scansTableModel.index(t, 0)
             br = self._scansTableModel.index(max(b - 1, 0), 1)
             self._scansTable.selectionModel().select(QItemSelection(tl, br),
@@ -593,13 +574,23 @@ def testScans():
 
 
 if __name__ == "__main__":
-    # testScans()
     app = QApplication(sys.argv)
 
-    # bw = BeamWidget()
+    mainWindow = QWidget()
+    mainLayout = QHBoxLayout()
+
+    bw = BeamWidget()
     bsw = BeamPositionWidget()
 
-    # bw.show()
-    bsw.show()
+    leftLayout = QVBoxLayout()
+    leftLayout.addWidget(bw)
+    leftLayout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding))
+
+    mainLayout.addLayout(leftLayout)
+    mainLayout.addWidget(bsw)
+
+    mainWindow.setLayout(mainLayout)
+
+    mainWindow.show()
 
     sys.exit(app.exec_())
