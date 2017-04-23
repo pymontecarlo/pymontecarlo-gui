@@ -9,7 +9,7 @@ from qtpy import QtCore, QtWidgets
 import pymontecarlo
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock, SampleMock
-from pymontecarlo.options.beam import GaussianBeam
+from pymontecarlo.options.beam.base import Beam
 from pymontecarlo.options.limit.showers import ShowersLimit
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
@@ -21,6 +21,7 @@ from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
+from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
@@ -190,6 +191,59 @@ class SampleWizardPage(NewSimulationWizardPage):
             return []
         return field.samples()
 
+class BeamWizardPage(NewSimulationWizardPage):
+
+    beamsChanged = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle("Define incident beam(s)")
+
+        # Widgets
+        self.wdg_beam = FieldChooser()
+
+        self.widget_preview = PreviewWidget()
+
+        # Layouts
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(create_group_box('Materials', self.wdg_beam), 1)
+        #layout.addWidget(create_group_box('Definition', self.wdg_sample), 1)
+        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
+        self.setLayout(layout)
+
+        # Signals
+        self.wdg_beam.currentFieldChanged.connect(self._on_selected_beam_changed)
+
+    def _on_selected_beam_changed(self, field):
+        self.beamsChanged.emit()
+        self.widget_preview.update()
+        self.completeChanged.emit()
+
+    def _on_beams_changed(self):
+        self.beamsChanged.emit()
+        self.widget_preview.update()
+        self.completeChanged.emit()
+
+    def initializePage(self):
+        super().initializePage()
+        self.widget_preview.update()
+
+    def isComplete(self):
+        field = self.wdg_beam.currentField()
+        if not field:
+            return False
+        return field.isValid()
+
+    def registerBeamField(self, field):
+        self.wdg_beam.addField(field)
+        field.fieldChanged.connect(self._on_beams_changed)
+
+    def beams(self):
+        field = self.wdg_beam.currentField()
+        if not field:
+            return []
+        return field.beams()
+
 class AnalysisWizardPage(NewSimulationWizardPage):
 
     analysesChanged = QtCore.Signal()
@@ -342,6 +396,15 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         self.addPage(self.page_sample)
 
+        # Beam
+        self.page_beam = BeamWizardPage()
+
+        self.page_beam.registerBeamField(GaussianBeamField())
+
+        self.page_beam.beamsChanged.connect(self._on_beams_changed)
+
+        self.addPage(self.page_beam)
+
         # Analysis
         self.page_analysis = AnalysisWizardPage()
 
@@ -375,6 +438,10 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.builder.samples = self.page_sample.samples()
         self.optionsChanged.emit()
 
+    def _on_beams_changed(self):
+        self.builder.beams = self.page_beam.beams()
+        self.optionsChanged.emit()
+
     def _on_analyses_changed(self):
         self.builder.analyses = self.page_analysis.analyses()
         self.optionsChanged.emit()
@@ -400,8 +467,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         beam_mock_added = False
         if estimate and not self.builder.beams:
-#            self.builder.add_beam(Beam(0.0)) #TODO: Change back
-            self.builder.add_beam(GaussianBeam(15e3, 10e-9))
+            self.builder.add_beam(Beam(0.0)) #TODO: Change back
             beam_mock_added = True
 
         sample_mock_added = False

@@ -355,7 +355,9 @@ class FieldChooser(QtWidgets.QWidget):
         self.widget.setCurrentIndex(widget_index)
 
         field = self._fields[index]
-        self.lbl_description.setText(field.description())
+        description = field.description()
+        self.lbl_description.setText(description)
+        self.lbl_description.setVisible(bool(description))
 
         self.currentFieldChanged.emit(field)
 
@@ -389,6 +391,9 @@ class FieldChooser(QtWidgets.QWidget):
         if index < 0:
             return None
         return self._fields[index]
+
+    def fields(self):
+        return tuple(self._fields)
 
 class FieldTree(QtWidgets.QWidget):
 

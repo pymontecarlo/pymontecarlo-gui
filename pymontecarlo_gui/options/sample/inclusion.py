@@ -9,7 +9,8 @@ from qtpy import QtWidgets
 from pymontecarlo.options.sample.inclusion import InclusionSample, InclusionSampleBuilder
 
 from pymontecarlo_gui.options.sample.base import \
-    SampleField, AngleField, MaterialWidgetField, DiameterField
+    SampleField, AngleField, MaterialWidgetField
+from pymontecarlo_gui.options.base import DiameterField
 
 # Globals and constants variables.
 
@@ -24,7 +25,7 @@ class InclusionField(MaterialWidgetField):
         super().__init__()
 
         self.field_diameter = DiameterField()
-        self.field_diameter.setTolerance(InclusionSample.INCLUSION_DIAMETER_TOLERANCE_m)
+        self.field_diameter.setToleranceMeter(InclusionSample.INCLUSION_DIAMETER_TOLERANCE_m)
         self.addLabelField(self.field_diameter)
 
     def title(self):

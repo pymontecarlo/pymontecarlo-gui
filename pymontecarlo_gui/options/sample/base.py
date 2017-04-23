@@ -155,38 +155,6 @@ class MaterialWidgetField(WidgetField):
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)
 
-class DiameterField(MultiValueField):
-
-    def __init__(self):
-        super().__init__()
-
-        # Widgets
-        self._widget = ColoredMultiFloatLineEdit()
-        self._widget.setValues([100.0])
-
-        # Widgets
-        self._widget.valuesChanged.connect(self.fieldChanged)
-
-    def title(self):
-        return 'Diameter(s) [nm]'
-
-    def widget(self):
-        return self._widget
-
-    def tolerance(self):
-        return self._widget.bottom()
-
-    def setTolerance(self, tolerance):
-        decimals = tolerance_to_decimals(tolerance * 1e9)
-        self._widget.setRange(tolerance, float('inf'), decimals)
-
-    def diametersMeter(self):
-        return np.array(self._widget.values()) * 1e-9
-
-    def setDiametersMeter(self, diameters_m):
-        values = np.array(diameters_m) * 1e9
-        self._widget.setValues(values)
-
 class LayerBuilderField(MultiValueField):
 
     def __init__(self):
