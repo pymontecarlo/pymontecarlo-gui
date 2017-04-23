@@ -39,8 +39,8 @@ class DoubleValidatorAdapterMixin(metaclass=QABCMeta):
     def range(self):
         return self._get_double_validator().range()
 
-    def setRange(self, top, bottom, decimals=0):
-        self._get_double_validator().setRange(top, bottom, decimals)
+    def setRange(self, bottom, top, decimals=0):
+        self._get_double_validator().setRange(bottom, top, decimals)
 
     def top(self):
         return self._get_double_validator().top()
