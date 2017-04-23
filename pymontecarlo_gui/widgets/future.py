@@ -214,12 +214,11 @@ class FutureTableWidget(QtWidgets.QWidget):
 
         self.act_clear.triggered.connect(self._on_clear)
 
+        # Defaults
+        self.timer.start()
+
     def _on_timer_timeout(self):
         model = self.tableview.model()
-
-        if all(not future.running() for future in model.futures()):
-            self.timer.stop()
-
         model.modelReset.emit()
 
     def _on_model_reset(self):
@@ -239,5 +238,4 @@ class FutureTableWidget(QtWidgets.QWidget):
     def addFuture(self, future):
         model = self.tableview.model()
         model.addFuture(future)
-        self.timer.start()
 

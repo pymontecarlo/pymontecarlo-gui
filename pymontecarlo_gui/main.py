@@ -14,7 +14,6 @@ from pymontecarlo.project import Project
 from pymontecarlo.formats.hdf5.reader import HDF5Reader
 from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
-from pymontecarlo.util.future import FutureAdapter
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, SimulationsField, SimulationField,
@@ -30,8 +29,6 @@ from pymontecarlo_gui.settings import SettingsDialog
 # Globals and constants variables.
 
 class MainWindow(QtWidgets.QMainWindow):
-
-    simulationDone = QtCore.Signal(FutureAdapter)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -172,6 +169,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog_settings = SettingsDialog()
 
         # Signals
+        self._runner.submitted.connect(self._on_future_submitted)
+
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
 
         self.mdiarea.windowOpened.connect(self._on_mdiarea_window_opened)
@@ -180,8 +179,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
         self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
-
-        self.simulationDone.connect(self._on_simulation_done)
 
         # Defaults
         self.setProject(self._project)
@@ -255,23 +252,12 @@ class MainWindow(QtWidgets.QMainWindow):
         limit = ShowersLimit(1000)
 
         options = Options(program, beam, sample, [analysis], [limit])
-        futures = self._runner.submit(options)
-
-        for future in futures:
-            future.add_done_callback(self.simulationDone.emit)
-            self.table_runner.addFuture(future)
+        self._runner.submit(options)
 
         self.dock_runner.raise_()
 
-    def _on_simulation_done(self, future):
-        if future.cancelled():
-            return
-
-        if future.exception():
-            return
-
-        self.addSimulation(future.result())
-        self.setShouldSave(True)
+    def _on_future_submitted(self, future):
+        self.table_runner.addFuture(future)
 
     def _on_table_runner_double_clicked(self, future):
         if not future.done():
@@ -292,11 +278,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         list_options = self.wizard_simulation.optionsList()
-        futures = self._runner.submit(*list_options)
-
-        for future in futures:
-            future.add_done_callback(self._on_simulation_done)
-            self.table_runner.addFuture(future)
+        self._runner.submit(*list_options)
 
         self.dock_runner.raise_()
 
@@ -372,6 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setProject(self, project):
         self._project = project
+        self._project.simulation_added.connect(self.addSimulation)
         self._runner.project = project
 
         if project.filepath:
@@ -514,6 +497,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.tree.reset()
         self.tree.expandField(field_project)
         self.tree.expandField(field_simulations)
+
+        self.setShouldSave(True)
 
     def shouldSave(self):
         return self._should_save
