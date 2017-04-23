@@ -424,7 +424,16 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         self.canvas.draw()
 
     def update(self):
-        self.canvas.draw()
+        for index in range(self.combobox_xaxis.count()):
+            df = self.combobox_xaxis.itemData(index)
+            self.combobox_xaxis.setItemText(index, df.name.fullname)
+
+        for index in range(self.list_columns.count()):
+            item = self.list_columns.item(index)
+            data = item.data(QtCore.Qt.UserRole)
+            item.setText(data.name.name)
+
+        self.draw()
         super().update()
 
 def run():
