@@ -38,8 +38,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('pyMonteCarlo')
 
         # Variables
-        self._settings = pymontecarlo.settings
-
         self._dirpath_open = None
         self._dirpath_save = None
         self._should_save = False
@@ -172,7 +170,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wizard_simulation = NewSimulationWizard()
 
         self.dialog_settings = SettingsDialog()
-        self.dialog_settings.setSettings(self._settings)
 
         # Signals
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
@@ -247,7 +244,7 @@ class MainWindow(QtWidgets.QMainWindow):
         from pymontecarlo.options.limit import ShowersLimit
         from pymontecarlo.options.options import Options
 
-        program = self.settings().get_program('casino2')
+        program = pymontecarlo.settings.get_program('casino2')
         beam = GaussianBeam(15e3, 10e-9)
         mat1 = Material.pure(29)
         sample = SubstrateSample(mat1)
@@ -320,10 +317,12 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def _on_settings(self):
+        self.dialog_settings.setSettings(pymontecarlo.settings)
+
         if not self.dialog_settings.exec_():
             return
 
-        self._settings = self.dialog_settings.settings()
+        pymontecarlo.settings.update(self.dialog_settings.settings())
 
     def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()
@@ -367,9 +366,6 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self._dirpath_save = self._dirpath_open
         return self._dirpath_save
-
-    def settings(self):
-        return self._settings
 
     def project(self):
         return self._project
