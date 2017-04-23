@@ -10,6 +10,9 @@ import platform
 # Third party modules.
 from qtpy import QtWidgets
 
+import matplotlib
+matplotlib.use('qt5agg')
+
 # Local modules.
 import pymontecarlo
 from pymontecarlo.util.path import get_config_dir

@@ -2,19 +2,29 @@
 
 # Standard library modules.
 import textwrap
+import operator
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
 
 import pandas as pd
 
+import numpy as np
+
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
+
 # Local modules.
+from pymontecarlo.util.human import camelcase_to_words
+from pymontecarlo.formats.series.base import ErrorSeriesColumn
+
 from pymontecarlo_gui.results.base import ResultSummaryWidget
 from pymontecarlo_gui.widgets.groupbox import create_group_box
+from pymontecarlo_gui.widgets.list import CheckListToolBar
 
 # Globals and constants variables.
 
-class ResultSummaryModel(QtCore.QAbstractTableModel):
+class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
     def __init__(self, textwidth, project=None):
         super().__init__()
@@ -132,51 +142,20 @@ class ResultClassListWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Widgets
-        self.wdg_list = QtWidgets.QListWidget()
+        self.listwidget = QtWidgets.QListWidget()
 
-        self.toolbar = QtWidgets.QToolBar()
-        self.toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
-        self.act_selectall = self.toolbar.addAction('Select all')
-        self.act_unselectall = self.toolbar.addAction('Unselect all')
+        self.list_toolbar = CheckListToolBar()
+        self.list_toolbar.setListWidget(self.listwidget)
 
         # Layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.wdg_list)
-        layout.addWidget(self.toolbar, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.listwidget)
+        layout.addWidget(self.list_toolbar, 0, QtCore.Qt.AlignRight)
         self.setLayout(layout)
 
         # Signals
-        self.wdg_list.itemChanged.connect(self._on_list_item_changed)
-        self.act_selectall.triggered.connect(self._on_selectall)
-        self.act_unselectall.triggered.connect(self._on_unselectall)
-
-    def _on_list_item_changed(self, item):
-        self._update_toolbar()
-        self.selectionChanged.emit()
-
-    def _on_selectall(self):
-        for index in range(self.wdg_list.count()):
-            item = self.wdg_list.item(index)
-            item.setCheckState(QtCore.Qt.Checked)
-
-        self._update_toolbar()
-
-    def _on_unselectall(self):
-        for index in range(self.wdg_list.count()):
-            item = self.wdg_list.item(index)
-            item.setCheckState(QtCore.Qt.Unchecked)
-
-        self._update_toolbar()
-
-    def _update_toolbar(self):
-        rows = self.wdg_list.count()
-        has_rows = rows > 0
-        checked = sum(self.wdg_list.item(index).checkState() == QtCore.Qt.Checked
-                      for index in range(self.wdg_list.count()))
-
-        self.act_selectall.setEnabled(has_rows and checked < rows)
-        self.act_unselectall.setEnabled(has_rows and checked > 0)
+        self.listwidget.itemChanged.connect(self.selectionChanged)
 
     def setProject(self, project):
         self.setResultClasses(project.result_classes)
@@ -184,8 +163,8 @@ class ResultClassListWidget(QtWidgets.QWidget):
     def resultClasses(self):
         classes = []
 
-        for index in range(self.wdg_list.count()):
-            item = self.wdg_list.item(index)
+        for index in range(self.listwidget.count()):
+            item = self.listwidget.item(index)
             if item.checkState() != QtCore.Qt.Checked:
                 continue
             classes.append(item.data(QtCore.Qt.UserRole))
@@ -193,7 +172,7 @@ class ResultClassListWidget(QtWidgets.QWidget):
         return classes
 
     def setResultClasses(self, classes):
-        self.wdg_list.clear()
+        self.listwidget.clear()
 
         for clasz in classes:
             name = clasz.getname()
@@ -202,9 +181,7 @@ class ResultClassListWidget(QtWidgets.QWidget):
             item.setTextAlignment(QtCore.Qt.AlignLeft)
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
             item.setCheckState(QtCore.Qt.Unchecked)
-            self.wdg_list.addItem(item)
-
-        self._update_toolbar()
+            self.listwidget.addItem(item)
 
 class ResultSummaryTableWidget(ResultSummaryWidget):
 
@@ -224,7 +201,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         header.setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         textwidth = int(self.COLUMN_WIDTH / header.fontMetrics().width('a'))
-        model = ResultSummaryModel(textwidth)
+        model = ResultSummaryTableModel(textwidth)
         self.wdg_table.setModel(model)
 
         self.chk_diff_options = QtWidgets.QCheckBox("Only different columns")
@@ -281,6 +258,171 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         self.wdg_table.model().update()
         super().update()
 
+class ResultSummaryFigureWidget(ResultSummaryWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Variables
+
+        # Widgets
+        fig = Figure()
+        self.canvas = FigureCanvas(fig)
+
+        self.canvas_toolbar = NavigationToolbar2QT(self.canvas, self)
+
+        self.combobox_xaxis = QtWidgets.QComboBox()
+
+        self.combobox_yaxis = QtWidgets.QComboBox()
+
+        self.list_columns = QtWidgets.QListWidget()
+
+        self.list_toolbar = CheckListToolBar()
+        self.list_toolbar.setListWidget(self.list_columns)
+
+        self.checkbox_error = QtWidgets.QCheckBox('Show error columns')
+
+        # Layouts
+        layout_left = QtWidgets.QVBoxLayout()
+        layout_left.addWidget(self.canvas)
+        layout_left.addWidget(self.canvas_toolbar)
+
+        layout_yaxis = QtWidgets.QVBoxLayout()
+        layout_yaxis.addWidget(self.combobox_yaxis)
+        layout_yaxis.addWidget(self.list_columns)
+        layout_yaxis.addWidget(self.list_toolbar, alignment=QtCore.Qt.AlignRight)
+        layout_yaxis.addWidget(self.checkbox_error, alignment=QtCore.Qt.AlignRight)
+
+        layout_right = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(create_group_box('X axis', self.combobox_xaxis))
+        layout_right.addWidget(create_group_box('Y axis', layout_yaxis))
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(layout_left)
+        layout.addLayout(layout_right)
+        self.setLayout(layout)
+
+        # Signals
+        self.combobox_xaxis.currentIndexChanged.connect(self._on_xaxis_changed)
+
+        self.combobox_yaxis.currentIndexChanged.connect(self._on_yaxis_changed)
+
+        self.list_columns.itemChanged.connect(self._on_column_changed)
+
+        self.checkbox_error.stateChanged.connect(self._on_error_checked)
+
+    def _on_xaxis_changed(self):
+        self.draw()
+
+    def _on_yaxis_changed(self):
+        self._update_yaxis()
+        self.draw()
+
+    def _on_column_changed(self):
+        self.draw()
+
+    def _on_error_checked(self):
+        self._update_yaxis()
+        self.draw()
+
+    def _update_yaxis(self):
+        df = self.combobox_yaxis.currentData()
+        if df is None:
+            return
+
+        self.list_columns.clear()
+
+        for column in df.columns:
+            if isinstance(column, ErrorSeriesColumn) and \
+                    not self.checkbox_error.isChecked():
+                continue
+
+            item = QtWidgets.QListWidgetItem(column.name)
+            item.setData(QtCore.Qt.UserRole, df[column])
+            item.setTextAlignment(QtCore.Qt.AlignLeft)
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+            item.setCheckState(QtCore.Qt.Unchecked)
+            self.list_columns.addItem(item)
+
+    def setProject(self, project):
+        # Clear
+        self.combobox_xaxis.clear()
+        self.combobox_yaxis.clear()
+        self.list_columns.clear()
+        self.canvas.figure.clear()
+
+        # X axis
+        df = project.create_options_dataframe(only_different_columns=True)
+        for column in df.columns:
+            self.combobox_xaxis.addItem(column.fullname, df[column])
+
+        # Y axis
+        for result_class in sorted(project.result_classes, key=lambda c: c.__name__):
+            text = camelcase_to_words(result_class.__name__[:-6]).lower()
+            df = project.create_results_dataframe([result_class])
+            self.combobox_yaxis.addItem(text, df)
+
+    def draw(self):
+        # Clear
+        self.canvas.figure.clear()
+
+        # X axis
+        series_x = self.combobox_xaxis.currentData()
+
+        # Y axis
+        list_series_y = []
+        for index in range(self.list_columns.count()):
+            item = self.list_columns.item(index)
+            if item.checkState() != QtCore.Qt.Checked:
+                continue
+            list_series_y.append(item.data(QtCore.Qt.UserRole))
+
+        # Plot
+        fig = self.canvas.figure
+        ax = fig.add_subplot("111")
+
+        # Lines
+        if series_x is not None and list_series_y:
+            for series_y in list_series_y:
+                column_x = series_x.name
+                column_y = series_y.name
+
+                data = []
+                for x, y in zip(series_x.values, series_y.values):
+                    if np.isnan(x) or np.isnan(y):
+                        continue
+                    data.append([column_x.convert_value(x),
+                                 column_y.convert_value(y)])
+
+                data.sort(key=operator.itemgetter(0))
+                xs = list(map(operator.itemgetter(0), data))
+                ys = list(map(operator.itemgetter(1), data))
+
+                label = series_y.name.name
+                ax.plot(xs, ys, 'o-', label=label)
+
+        # Axes label
+        if series_x is not None:
+            ax.set_xlabel(series_x.name.fullname)
+
+        if len(list_series_y) == 1:
+            resultname = self.combobox_yaxis.currentText()
+            series_y = list_series_y[0]
+            ax.set_ylabel('{} {}'.format(resultname, series_y.name.fullname))
+        elif len(list_series_y) > 1:
+            resultname = self.combobox_yaxis.currentText()
+            series_y = list_series_y[0]
+            ax.set_ylabel('{} [{}]'.format(resultname, series_y.name.unitname))
+
+        if len(list_series_y) > 1:
+            ax.legend(loc='best')
+
+        self.canvas.draw()
+
+    def update(self):
+        self.canvas.draw()
+        super().update()
+
 def run():
     import sys
     app = QtWidgets.QApplication(sys.argv)
@@ -295,7 +437,7 @@ def run():
     pymontecarlo.settings.set_preferred_unit('eV')
     pymontecarlo.settings.set_preferred_unit('nm')
 
-    widget = ResultSummaryTableWidget()
+    widget = ResultSummaryFigureWidget()
     widget.setProject(project)
 
     mainwindow = QtWidgets.QMainWindow()

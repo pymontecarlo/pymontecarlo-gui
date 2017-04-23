@@ -16,8 +16,8 @@ from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
 
 from pymontecarlo_gui.project import \
-    (ProjectField, ProjectSummaryTableField, SimulationsField, SimulationField,
-     ResultsField)
+    (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
+     SimulationsField, SimulationField, ResultsField)
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.future import \
@@ -472,6 +472,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tree.addField(field_summary_table, field_project)
 
         field_summary_table.setProject(project)
+
+        # Summary figure
+        field_summary_figure = _find_field(field_project, ProjectSummaryFigureField)
+        if not field_summary_figure:
+            field_summary_figure = ProjectSummaryFigureField(project)
+            self.tree.addField(field_summary_figure, field_project)
+
+        field_summary_figure.setProject(project)
 
         # Simulations
         field_simulations = _find_field(field_project, SimulationsField)
