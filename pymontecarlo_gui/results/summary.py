@@ -13,6 +13,7 @@ import numpy as np
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
+from matplotlib.cbook import is_numlike
 
 # Local modules.
 from pymontecarlo.util.human import camelcase_to_words
@@ -20,7 +21,7 @@ from pymontecarlo.formats.series.base import ErrorSeriesColumn
 
 from pymontecarlo_gui.results.base import ResultSummaryWidget
 from pymontecarlo_gui.widgets.groupbox import create_group_box
-from pymontecarlo_gui.widgets.list import CheckListToolBar
+from pymontecarlo_gui.widgets.list import CheckListToolBar, SelectionListToolBar
 
 # Globals and constants variables.
 
@@ -148,14 +149,14 @@ class ResultClassListWidget(QtWidgets.QWidget):
         # Widgets
         self.listwidget = QtWidgets.QListWidget()
 
-        self.list_toolbar = CheckListToolBar()
-        self.list_toolbar.setListWidget(self.listwidget)
+        self.toolbar_columns = CheckListToolBar()
+        self.toolbar_columns.setListWidget(self.listwidget)
 
         # Layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.listwidget)
-        layout.addWidget(self.list_toolbar, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.toolbar_columns, 0, QtCore.Qt.AlignRight)
         self.setLayout(layout)
 
         # Signals
@@ -273,7 +274,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         fig = Figure()
         self.canvas = FigureCanvas(fig)
 
-        self.canvas_toolbar = NavigationToolbar2QT(self.canvas, self)
+        self.toolbar_canvas = NavigationToolbar2QT(self.canvas, self)
 
         self.combobox_xaxis = QtWidgets.QComboBox()
 
@@ -281,25 +282,37 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
 
         self.list_columns = QtWidgets.QListWidget()
 
-        self.list_toolbar = CheckListToolBar()
-        self.list_toolbar.setListWidget(self.list_columns)
+        self.toolbar_columns = CheckListToolBar()
+        self.toolbar_columns.setListWidget(self.list_columns)
 
         self.checkbox_error = QtWidgets.QCheckBox('Show error columns')
+
+        self.list_simulations = QtWidgets.QListWidget()
+        self.list_simulations.setSelectionBehavior(QtWidgets.QListWidget.SelectRows)
+        self.list_simulations.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+
+        self.toolbar_simulations = SelectionListToolBar()
+        self.toolbar_simulations.setListWidget(self.list_simulations)
 
         # Layouts
         layout_left = QtWidgets.QVBoxLayout()
         layout_left.addWidget(self.canvas)
-        layout_left.addWidget(self.canvas_toolbar)
+        layout_left.addWidget(self.toolbar_canvas)
 
         layout_yaxis = QtWidgets.QVBoxLayout()
         layout_yaxis.addWidget(self.combobox_yaxis)
         layout_yaxis.addWidget(self.list_columns)
-        layout_yaxis.addWidget(self.list_toolbar, alignment=QtCore.Qt.AlignRight)
+        layout_yaxis.addWidget(self.toolbar_columns, alignment=QtCore.Qt.AlignRight)
         layout_yaxis.addWidget(self.checkbox_error, alignment=QtCore.Qt.AlignRight)
+
+        layout_simulations = QtWidgets.QVBoxLayout()
+        layout_simulations.addWidget(self.list_simulations)
+        layout_simulations.addWidget(self.toolbar_simulations, alignment=QtCore.Qt.AlignRight)
 
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(create_group_box('X axis', self.combobox_xaxis))
         layout_right.addWidget(create_group_box('Y axis', layout_yaxis))
+        layout_right.addWidget(create_group_box('Simulations', layout_simulations))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_left)
@@ -311,9 +324,11 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
 
         self.combobox_yaxis.currentIndexChanged.connect(self._on_yaxis_changed)
 
-        self.list_columns.itemChanged.connect(self._on_column_changed)
+        self.list_columns.itemChanged.connect(self._on_columns_changed)
 
         self.checkbox_error.stateChanged.connect(self._on_error_checked)
+
+        self.list_simulations.itemSelectionChanged.connect(self._on_simulations_changed)
 
     def _on_xaxis_changed(self):
         self.draw()
@@ -322,7 +337,10 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         self._update_yaxis()
         self.draw()
 
-    def _on_column_changed(self):
+    def _on_columns_changed(self):
+        self.draw()
+
+    def _on_simulations_changed(self):
         self.draw()
 
     def _on_error_checked(self):
@@ -366,9 +384,21 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
             df = project.create_results_dataframe([result_class])
             self.combobox_yaxis.addItem(text, df)
 
+        # Simulations
+        for index in range(len(project.simulations)):
+            item = QtWidgets.QListWidgetItem('Simulation #{:d}'.format(index))
+            item.setTextAlignment(QtCore.Qt.AlignLeft)
+            self.list_simulations.addItem(item)
+
+        self.list_simulations.selectAll()
+
     def draw(self):
         # Clear
-        self.canvas.figure.clear()
+        try:
+            self.canvas.figure.clear()
+        except:
+            self.canvas.draw()
+            return
 
         # X axis
         series_x = self.combobox_xaxis.currentData()
@@ -381,6 +411,13 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
                 continue
             list_series_y.append(item.data(QtCore.Qt.UserRole))
 
+        # Simulations
+        indexes = []
+        for index in range(self.list_simulations.count()):
+            item = self.list_simulations.item(index)
+            if item.isSelected():
+                indexes.append(index)
+
         # Plot
         fig = self.canvas.figure
         ax = fig.add_subplot("111")
@@ -392,7 +429,11 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
                 column_y = series_y.name
 
                 data = []
-                for x, y in zip(series_x.values, series_y.values):
+                for index, (x, y) in enumerate(zip(series_x.values, series_y.values)):
+                    if index not in indexes:
+                        continue
+                    if not is_numlike(x) or not is_numlike(y):
+                        continue
                     if np.isnan(x) or np.isnan(y):
                         continue
                     data.append([column_x.convert_value(x),
