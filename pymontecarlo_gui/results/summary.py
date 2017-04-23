@@ -1,8 +1,6 @@
 """"""
 
 # Standard library modules.
-import operator
-import functools
 import textwrap
 
 # Third party modules.
@@ -277,6 +275,10 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
     def setProject(self, project):
         self.wdg_table.model().setProject(project)
         self.lst_results.setProject(project)
+
+    def update(self, *args):
+        self.wdg_table.model().modelReset.emit()
+        super().update()
 
 def run():
     import sys

@@ -6,6 +6,8 @@
 from qtpy import QtGui
 
 # Local modules.
+import pymontecarlo
+
 from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.results.summary import ResultSummaryTableWidget
@@ -47,10 +49,19 @@ class ProjectSummaryTableField(_ProjectDerivedField):
     def icon(self):
         return load_icon('table.svg')
 
+    def _create_widget(self):
+        widget = ResultSummaryTableWidget()
+        widget.setProject(self.project())
+
+        pymontecarlo.settings.preferred_units_changed.connect(widget.update)
+        pymontecarlo.settings.preferred_xrayline_notation_changed.connect(widget.update)
+        pymontecarlo.settings.preferred_xrayline_encoding_changed.connect(widget.update)
+
+        return widget
+
     def widget(self):
         if self._widget is None:
-            self._widget = ResultSummaryTableWidget()
-            self._widget.setProject(self.project())
+            self._widget = self._create_widget()
         return self._widget
 
     def setProject(self, project):
