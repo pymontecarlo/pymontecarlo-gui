@@ -290,15 +290,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
+        self.wizard_simulation.restart()
         if not self.wizard_simulation.exec_():
             return
 
-        for options in self.wizard_simulation.optionsList():
-            futures = self._runner.submit(options)
+        list_options = self.wizard_simulation.optionsList()
+        futures = self._runner.submit(*list_options)
 
-            for future in futures:
-                future.add_done_callback(self._on_simulation_done)
-                self.table_runner.addFuture(future)
+        for future in futures:
+            future.add_done_callback(self._on_simulation_done)
+            self.table_runner.addFuture(future)
 
         self.dock_runner.raise_()
 

@@ -368,6 +368,9 @@ class NewSimulationWizard(QtWidgets.QWizard):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
         self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
+        self.setMinimumSize(1000, 700)
+        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                           QtWidgets.QSizePolicy.MinimumExpanding)
 
         # Variables
         self.builder = OptionsBuilder()
