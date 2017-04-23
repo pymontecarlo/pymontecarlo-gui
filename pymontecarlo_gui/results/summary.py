@@ -123,10 +123,14 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
         out = []
 
         if include_header:
-            out.append(self._columns)
+            out.append([column.fullname for column in self._df.columns])
 
-        for row in self._rows:
-            out.append([row.get(key, float('nan')) for key in self._columns])
+        for _index, series in self._df.iterrows():
+            row = []
+            for column, value in series.iteritems():
+                value = column.convert_value(value)
+                row.append(value)
+            out.append(row)
 
         return out
 
