@@ -143,7 +143,7 @@ class LineScanPositionField(PositionField):
 class LineScanXPositionField(LineScanPositionField):
 
     def title(self):
-        return 'Line scan along  axis'
+        return 'Line scan along X axis'
 
     def positions(self):
         start_m = self.field_start.coordinateMeter()
