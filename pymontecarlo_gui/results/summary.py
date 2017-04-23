@@ -89,24 +89,21 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
 
     def setProject(self, project):
         self._project = project
-        self._update_dataframe()
-        self.modelReset.emit()
+        self.update()
 
     def resultClasses(self):
         return self._result_classes
 
     def setResultClasses(self, result_classes):
         self._result_classes = set(result_classes)
-        self._update_dataframe()
-        self.modelReset.emit()
+        self.update()
 
     def isOnlyDifferentOptions(self):
         return self._only_different_options
 
     def setOnlyDifferentOptions(self, answer):
         self._only_different_options = answer
-        self._update_dataframe()
-        self.modelReset.emit()
+        self.update()
 
     def setColumnWidth(self, width):
         self._column_width = width
@@ -122,6 +119,10 @@ class ResultSummaryModel(QtCore.QAbstractTableModel):
             out.append([row.get(key, float('nan')) for key in self._columns])
 
         return out
+
+    def update(self):
+        self._update_dataframe()
+        self.modelReset.emit()
 
 class ResultClassListWidget(QtWidgets.QWidget):
 
@@ -277,7 +278,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         self.lst_results.setProject(project)
 
     def update(self, *args):
-        self.wdg_table.model().modelReset.emit()
+        self.wdg_table.model().update()
         super().update()
 
 def run():
