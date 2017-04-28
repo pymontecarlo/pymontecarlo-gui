@@ -61,10 +61,10 @@ def _setup(ns):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-#    if not frozen:
-#        handler = logging.StreamHandler()
-#        handler.setFormatter(formatter)
-#        logger.addHandler(handler)
+    if not frozen:
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
     logger.info('Started pyMonteCarlo')
     logger.info('pymontecarlo version = %s', pymontecarlo.__version__)
@@ -74,10 +74,10 @@ def _setup(ns):
     logger.info('processor = %s', platform.processor())
 
     # Catch all exceptions
-#    def _excepthook(exc_type, exc_obj, exc_tb):
-#        messagebox.exception(None, exc_obj)
-#        sys.__excepthook__(exc_type, exc_obj, exc_tb)
-#    sys.excepthook = _excepthook
+    def _excepthook(exc_type, exc_obj, exc_tb):
+        messagebox.exception(None, exc_obj)
+        sys.__excepthook__(exc_type, exc_obj, exc_tb)
+    sys.excepthook = _excepthook
 
     # Output sys.path
     logger.info("sys.path = %s", sys.path)

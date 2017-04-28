@@ -47,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._writer = HDF5Writer()
         self._writer.start()
 
-        maxworkers = 1 #multiprocessing.cpu_count() - 1
+        maxworkers = multiprocessing.cpu_count() - 1
         self._runner = LocalSimulationRunner(self._project, maxworkers)
         self._runner.start()
 
@@ -85,8 +85,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_stop_simulations.triggered.connect(self._on_stop_all_simulations)
         self.action_stop_simulations.setEnabled(False)
 
-        self.action_submit = QtWidgets.QAction('Submit')
-        self.action_submit.triggered.connect(self._on_submit)
+        self.action_test = QtWidgets.QAction('Test')
+        self.action_test.triggered.connect(self._on_test)
 
         # Timers
         self.timer_runner = QtCore.QTimer()
@@ -107,13 +107,14 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_simulation = menu.addMenu('Simulation')
         menu_simulation.addAction(self.action_create_simulations)
         menu_simulation.addAction(self.action_stop_simulations)
+        menu_simulation.addSeparator()
+        menu_simulation.addAction(self.action_test)
 
         # Tool bar
         toolbar_file = self.addToolBar("File")
         toolbar_file.addAction(self.action_new_project)
         toolbar_file.addAction(self.action_open_project)
         toolbar_file.addAction(self.action_save_project)
-        toolbar_file.addAction(self.action_submit)
 
         toolbar_simulation = self.addToolBar("Simulation")
         toolbar_simulation.addAction(self.action_create_simulations)
@@ -231,7 +232,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.action_stop_simulations.setEnabled(self._runner.running())
 
-    def _on_submit(self):
+    def _on_test(self):
         import math
         from pymontecarlo.options.beam import GaussianBeam
         from pymontecarlo.options.material import Material
@@ -240,6 +241,9 @@ class MainWindow(QtWidgets.QMainWindow):
         from pymontecarlo.options.analysis import KRatioAnalysis
         from pymontecarlo.options.limit import ShowersLimit
         from pymontecarlo.options.options import Options
+
+        if not pymontecarlo.settings.has_program('casino2'):
+            return
 
         program = pymontecarlo.settings.get_program('casino2')
         beam = GaussianBeam(15e3, 10e-9)
@@ -273,6 +277,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
+        if not pymontecarlo.settings.programs:
+            title = 'New simulations'
+            message = 'No program is configured. ' + \
+                'Go to File > Settings to configure at least one program.'
+            QtWidgets.QMessageBox.critical(self, title, message)
+            return
+
         self.wizard_simulation.restart()
         if not self.wizard_simulation.exec_():
             return
