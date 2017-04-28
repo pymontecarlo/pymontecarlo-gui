@@ -19,7 +19,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 class bdist_windows(Command):
 
-    PYTHON_EMBED_URL = 'https://www.python.org/ftp/python/3.5.2/python-3.5.2-embed-amd64.zip'
+    PYTHON_EMBED_URL = 'https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip'
     GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py'
     PY_MAIN_EXE = """
 #include <windows.h>
