@@ -3,6 +3,7 @@
 # Standard library modules.
 import os
 import sys
+import glob
 from distutils.cmd import Command
 from distutils import log, sysconfig, dir_util, archive_util
 from distutils.command.build import show_compilers
@@ -19,7 +20,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 class bdist_windows(Command):
 
-    PYTHON_EMBED_URL = 'https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip'
+    PYTHON_EMBED_URL = 'https://www.python.org/ftp/python/3.5.3/python-3.5.3-embed-amd64.zip'
     GET_PIP_URL = 'https://bootstrap.pypa.io/get-pip.py'
     PY_MAIN_EXE = """
 #include <windows.h>
@@ -121,6 +122,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if os.path.exists(filepath):
                 os.remove(filepath)
 
+    def prepare_python(self, workdir):
+        log.info('extracting python3X.zip')
+
+        for filepath in glob.glob(os.path.join(workdir, 'python*.zip')):
+            with zipfile.ZipFile(filepath, 'r') as zf:
+                zf.extractall(os.path.join(workdir, 'Lib'))
+
+            os.remove(filepath)
+
     def install_pip(self, pythonexe):
         filepath = os.path.join(os.path.dirname(pythonexe), 'get-pip.py')
 
@@ -142,6 +152,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if command != 'bdist_wheel':
                 continue
             cmd.append(filepath)
+
+        if self.wheel_dir:
+            for filepath in glob.glob(os.path.join(self.wheel_dir, '*.whl')):
+                cmd.append(filepath)
 
         self.spawn(cmd, search_path=False)
 
@@ -174,7 +188,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if plat_py_include != py_include:
                 compiler.include_dirs.append(plat_py_include)
 
-            compiler.library_dirs.append(os.path.join(sys.exec_prefix, 'libs'))
+            compiler.library_dirs.append(os.path.join(sys.base_exec_prefix, 'libs'))
 
             objects = compiler.compile([c_filepath])
             output_progname = os.path.join(workdir, name)
@@ -204,6 +218,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         pythonexe = os.path.join(workdir, 'python.exe')
         if not os.path.exists(pythonexe):
             self.download_python_embedded(workdir)
+            self.prepare_python(workdir)
 
         # Install pip
         self.install_pip(pythonexe)
