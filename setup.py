@@ -232,7 +232,7 @@ with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
     LONG_DESCRIPTION = fp.read()
 
 PACKAGES = find_packages()
-PACKAGE_DATA = {}
+PACKAGE_DATA = {'pymontecarlo_gui': ['icons/*.svg']}
 
 INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar',
                     'pyqttango', 'pygments', 'pandas']
