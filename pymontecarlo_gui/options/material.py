@@ -20,6 +20,7 @@ from pymontecarlo_gui.widgets.lineedit import \
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import Field, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
+from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
     Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
@@ -577,7 +578,6 @@ class MaterialToolbar(QtWidgets.QToolBar):
 
     def __init__(self, listview, parent=None):
         super().__init__(parent)
-        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
         # Variables
         self.listview = listview
@@ -586,11 +586,11 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.act_add_pure = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Pure")
         self.act_add_pure.setToolTip('Add pure material')
 
-        self.act_add_formula = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Formula")
-        self.act_add_pure.setToolTip('Add material from a formula')
+        self.act_add_formula = self.addAction(load_icon('material-add-formula.svg'), "Formula")
+        self.act_add_formula.setToolTip('Add material from a formula')
 
-        self.act_add_material = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Advanced")
-        self.act_add_pure.setToolTip('Add material from composition')
+        self.act_add_material = self.addAction(load_icon('material-add-advanced.svg'), "Advanced")
+        self.act_add_material.setToolTip('Add material from composition')
 
         self.act_remove = QtWidgets.QAction()
         self.act_remove.setIcon(QtGui.QIcon.fromTheme("list-remove"))
