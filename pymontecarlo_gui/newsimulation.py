@@ -206,8 +206,7 @@ class BeamWizardPage(NewSimulationWizardPage):
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Materials', self.wdg_beam), 1)
-        #layout.addWidget(create_group_box('Definition', self.wdg_sample), 1)
+        layout.addWidget(create_group_box('Beams', self.wdg_beam), 1)
         layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
@@ -226,6 +225,7 @@ class BeamWizardPage(NewSimulationWizardPage):
 
     def initializePage(self):
         super().initializePage()
+        self.beamsChanged.emit()
         self.widget_preview.update()
 
     def isComplete(self):

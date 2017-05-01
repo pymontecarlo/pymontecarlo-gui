@@ -324,6 +324,7 @@ class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
 
         # Variables
         model = PositionsModel()
+        model.addPosition(Position(0.0, 0.0))
 
         # Actions
         self.action_remove = QtWidgets.QAction('Remove')
