@@ -18,6 +18,7 @@ from pymontecarlo.program.configurator import FileType, DirectoryType
 from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.label import LabelIcon
+from pymontecarlo_gui.widgets.font import make_italic
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.widgets.browse import FileBrowseWidget, DirectoryBrowseWidget
 
@@ -72,6 +73,11 @@ class ProgramWidget(QtWidgets.QWidget):
 
             widget.setToolTip(action.help)
             lyt_action.addRow(label, widget)
+
+        if not self.widgets_functions:
+            label = QtWidgets.QLabel('No parameters')
+            make_italic(label)
+            lyt_action.addWidget(label)
 
         # Widgets
         lbl_name = QtWidgets.QLabel(self.configurator.fullname)
