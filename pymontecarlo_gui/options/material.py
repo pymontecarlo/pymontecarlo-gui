@@ -138,7 +138,7 @@ class MaterialNameField(Field):
     def widget(self):
         return self._widget
 
-    def suffix(self):
+    def suffixWidget(self):
         return self._suffix
 
     def name(self):
@@ -224,7 +224,7 @@ class MaterialDensityField(Field):
     def widget(self):
         return self._widget
 
-    def suffix(self):
+    def suffixWidget(self):
         return self._suffix
 
     def density_kg_per_m3(self):

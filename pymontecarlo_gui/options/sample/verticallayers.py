@@ -60,7 +60,7 @@ class DepthField(MultiValueField):
     def widget(self):
         return self._widget
 
-    def suffix(self):
+    def suffixWidget(self):
         return self._suffix
 
     def isValid(self):
