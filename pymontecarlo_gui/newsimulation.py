@@ -307,7 +307,6 @@ class ProgramWizardPage(NewSimulationWizardPage):
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(create_group_box('Programs', self.field_programs.widget()), 1)
         layout.addWidget(create_group_box('Limits', self.field_limits.widget()), 1)
-        layout.addWidget(QtWidgets.QWidget(), 1)
         self.setLayout(layout)
 
         # Signals
