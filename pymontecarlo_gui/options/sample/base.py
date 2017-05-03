@@ -487,7 +487,7 @@ class LayerBuilderToolbar(QtWidgets.QToolBar):
 
         indexes = selection_model.selectedIndexes()
         model = self.table.model()
-        for row in reversed([index.row() for index in indexes]):
+        for row in sorted(set([index.row() for index in indexes]), reverse=True):
             builder = model.layerBuilder(row)
             model.removeLayerBuilder(builder)
 
