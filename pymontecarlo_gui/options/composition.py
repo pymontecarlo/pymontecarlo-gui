@@ -399,7 +399,7 @@ class CompositionToolBar(QtWidgets.QToolBar):
 
 class CompositionTableWidget(QtWidgets.QWidget, Validable):
 
-    compositionChanged = QtCore.Signal(dict)
+    compositionChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -440,7 +440,7 @@ class CompositionTableWidget(QtWidgets.QWidget, Validable):
         model.modelReset.connect(self._on_changed)
 
     def _on_changed(self, *args, **kwargs):
-        self.compositionChanged.emit(self.composition())
+        self.compositionChanged.emit()
 
     def isValid(self):
         return self.table.model().isValid()

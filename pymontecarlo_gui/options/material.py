@@ -406,7 +406,8 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.tbl_composition.compositionChanged.connect(self.materialsChanged)
         self.tbl_composition.compositionChanged.connect(self._on_composition_changed)
 
-    def _on_composition_changed(self, composition):
+    def _on_composition_changed(self):
+        composition = self.tbl_composition.composition()
         self.field_name.setComposition(composition)
         self.field_density.setComposition(composition)
 
