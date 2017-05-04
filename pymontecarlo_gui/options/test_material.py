@@ -103,7 +103,7 @@ class TestMaterialFormulaWidget(TestCase):
         widget = self.wdg.field_formula.widget()
         QtTest.QTest.keyClicks(widget, "Al")
 
-        widget = self.wdg.field_density.suffix()
+        widget = self.wdg.field_density.suffixWidget()
         self.checkBoxClick(widget)
 
         widget = self.wdg.field_density.widget()
@@ -141,7 +141,7 @@ class TestMaterialAdvancedWidget(TestCase):
                                material.density_kg_per_m3, 4)
 
     def testmaterials_user(self):
-        widget = self.wdg.field_name.suffix()
+        widget = self.wdg.field_name.suffixWidget()
         self.checkBoxClick(widget)
 
         widget = self.wdg.field_name.widget()
@@ -150,7 +150,7 @@ class TestMaterialAdvancedWidget(TestCase):
 
         self.wdg.tbl_composition.setComposition({13: 1.0})
 
-        widget = self.wdg.field_density.suffix()
+        widget = self.wdg.field_density.suffixWidget()
         self.checkBoxClick(widget)
 
         widget = self.wdg.field_density.widget()
@@ -170,13 +170,13 @@ class TestMaterialAdvancedWidget(TestCase):
         material = Material('foo', {13: 1.0}, 9000)
         self.wdg.setMaterial(material)
 
-        widget = self.wdg.field_name.suffix()
+        widget = self.wdg.field_name.suffixWidget()
         self.assertFalse(widget.isChecked())
 
         widget = self.wdg.field_name.widget()
         self.assertEqual(material.name, widget.text())
 
-        widget = self.wdg.field_density.suffix()
+        widget = self.wdg.field_density.suffixWidget()
         self.assertTrue(widget.isChecked())
 
         widget = self.wdg.field_density.widget()

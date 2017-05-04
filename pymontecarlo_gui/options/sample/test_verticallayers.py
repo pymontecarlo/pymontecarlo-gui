@@ -39,7 +39,7 @@ class TestVerticalLayerSampleWidget(TestCase):
         widget = self.field.field_right.field_material.widget()
         widget.setSelectedMaterials(materials[:2])
 
-        widget = self.field.field_dimension.field_depth.suffix()
+        widget = self.field.field_dimension.field_depth.suffixWidget()
         self.checkBoxClick(widget)
 
         widget = self.field.field_dimension.field_depth.widget()
