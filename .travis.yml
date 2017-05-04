@@ -1,0 +1,24 @@
+sudo: false
+language: python
+cache:
+  directories:
+  - $HOME/.pip-cache/
+matrix:
+  include:
+    - python: "3.5"
+      env: DEPLOY=yes
+      os: linux
+before_install:
+- "export DISPLAY=:99.0"
+- "sh -e /etc/init.d/xvfb start"
+- sleep 3
+install:
+- pip install --cache-dir $HOME/.pip-cache --upgrade pip codecov
+- pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git@emas2017
+- pip install --cache-dir $HOME/.pip-cache --upgrade -e .[develop]
+script:
+- nosetests
+after_success:
+- codecov
+notifications:
+  email: false
