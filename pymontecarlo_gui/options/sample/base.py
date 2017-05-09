@@ -4,7 +4,6 @@
 import math
 import abc
 import operator
-import locale
 
 # Third party modules.
 from qtpy import QtWidgets, QtCore, QtGui
@@ -195,10 +194,6 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, Validable):
 
         self._builders = []
 
-        tolerance = Layer.THICKNESS_TOLERANCE_m * 1e9
-        decimals = tolerance_to_decimals(tolerance)
-        self.thickness_format = '%.{}f'.format(decimals)
-
     def rowCount(self, *args, **kwargs):
         return len(self._builders)
 
@@ -223,7 +218,9 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, Validable):
             elif column == 1:
                 if len(builder.thicknesses_m) > 0:
                     values = np.array(sorted(builder.thicknesses_m)) * 1e9
-                    return ', '.join(locale.format(self.thickness_format, v) for v in values)
+                    locale = QtCore.QLocale.system()
+                    precision = tolerance_to_decimals(Layer.THICKNESS_TOLERANCE_m * 1e9)
+                    return ', '.join(locale.toString(v, 'f', precision) for v in values)
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter

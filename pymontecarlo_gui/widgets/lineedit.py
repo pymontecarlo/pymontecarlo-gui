@@ -3,7 +3,6 @@
 # Standard library modules.
 import re
 import math
-import locale
 import abc
 
 # Third party modules.
@@ -121,10 +120,11 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         self.lineedit.validator().changed.connect(self._on_validator_changed)
 
     def _update_tooltip(self):
-        fmt = '%.{}f'.format(self.decimals())
+        locale = QtCore.QLocale.system()
+        precision = self.decimals()
         tooltip = 'Value must be between [{}, {}]' \
-            .format(locale.format(fmt, self.bottom()),
-                    locale.format(fmt, self.top()))
+            .format(locale.toString(self.bottom(), 'f', precision),
+                    locale.toString(self.top(), 'f', precision))
         self.lineedit.setToolTip(tooltip)
         self.setToolTip(tooltip)
 
@@ -148,22 +148,28 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         if not self.lineedit.isValid():
             return False
 
-        try:
-            locale.atof(self.lineedit.text())
-        except:
+        locale = QtCore.QLocale.system()
+        _value, ok = locale.toDouble(self.lineedit.text())
+        if not ok:
             return False
 
         return True
 
     def value(self):
-        try:
-            return locale.atof(self.lineedit.text())
-        except ValueError:
+        locale = QtCore.QLocale.system()
+        value, ok = locale.toDouble(self.lineedit.text())
+        if not ok:
             return float('nan')
+        else:
+            return value
 
     def setValue(self, value):
-        fmt = '%.{}f'.format(self.decimals())
-        text = locale.format(fmt, value)
+        locale = QtCore.QLocale.system()
+        precision = self.decimals()
+        if precision == 0:
+            text = locale.toString(value)
+        else:
+            text = locale.toString(value, 'f', precision)
         self.lineedit.setText(text)
 
     def setEnabled(self, enabled):
@@ -171,9 +177,11 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         self.lineedit.setEnabled(enabled)
 
 MULTIFLOAT_SEPARATOR = ';'
-MULTIFLOAT_PATTERN = r'(?P<start>inf|[\de\.+\-]*)(?:\:(?P<stop>[\de\.+\-]*))?(?:\:(?P<step>[\de\.+\-]*))?'
+MULTIFLOAT_PATTERN = r'(?P<start>inf|[\de\.+\-\,]*)(?:\:(?P<stop>[\de\.+\-\,]*))?(?:\:(?P<step>[\de\.+\-\,]*))?'
 
 def parse_multifloat_text(text):
+    locale = QtCore.QLocale.system()
+
     values = []
 
     for part in text.split(MULTIFLOAT_SEPARATOR):
@@ -185,13 +193,19 @@ def parse_multifloat_text(text):
         if not match:
             raise ValueError('Invalid part: %s' % part)
 
-        start = locale.atof(match.group('start'))
+        start, _ok = locale.toDouble(match.group('start'))
 
         stop = match.group('stop')
-        stop = locale.atof(stop) if stop is not None else start + 1
+        if stop is None:
+            stop = start + 1
+        else:
+            stop, _ok = locale.toDouble(stop)
 
         step = match.group('step')
-        step = locale.atof(step) if step is not None else 1
+        if step is None:
+            step = 1
+        else:
+            step, _ok = locale.toDouble(step)
 
         if math.isinf(start):
             values.append(start)
@@ -229,8 +243,11 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
 
         for value in values:
             if self.decimals() == 0:
-                value = int(value)
-            state, _, _ = self.validator_value.validate(str(value), pos)
+                text = str(int(value))
+            else:
+                locale = QtCore.QLocale.system()
+                text = locale.toString(value, 'g', self.decimals())
+            state, _, _ = self.validator_value.validate(text, pos)
             if state != QtGui.QValidator.Acceptable:
                 return state, input, pos
 
@@ -265,10 +282,11 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         self.lineedit.validator().changed.connect(self._on_validator_changed)
 
     def _update_tooltip(self):
-        fmt = '%.{}f'.format(self.decimals())
-        tooltip = 'Value(s) must be between [{}, {}]' \
-            .format(locale.format(fmt, self.bottom()),
-                    locale.format(fmt, self.top()))
+        locale = QtCore.QLocale.system()
+        precision = self.decimals()
+        tooltip = 'Value must be between [{}, {}]' \
+            .format(locale.toString(self.bottom(), 'f', precision),
+                    locale.toString(self.top(), 'f', precision))
         self.lineedit.setToolTip(tooltip)
         self.setToolTip(tooltip)
 
@@ -306,8 +324,17 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
             return ()
 
     def setValues(self, values):
-        fmt = '%.{}f'.format(self.decimals())
-        text = MULTIFLOAT_SEPARATOR.join(locale.format(fmt, v) for v in values)
+        locale = QtCore.QLocale.system()
+        precision = self.decimals()
+
+        text_values = []
+        for value in values:
+            if precision == 0:
+                text_values.append(locale.toString(value))
+            else:
+                text_values.append(locale.toString(value, 'f', precision))
+
+        text = MULTIFLOAT_SEPARATOR.join(text_values)
         self.lineedit.setText(text)
 
     def setEnabled(self, enabled):

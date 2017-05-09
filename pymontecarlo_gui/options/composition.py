@@ -2,7 +2,6 @@
 
 # Standard library modules.
 import math
-import locale
 from collections import OrderedDict
 import abc
 
@@ -336,10 +335,12 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
         if column == 0:
             model.setData(index, editor.currentAtomicNumber())
         elif column == 1:
-            text = editor.text().strip()
-            if text != '?':
-                text = locale.atof(editor.text()) / 100.0
-            model.setData(index, text)
+            value = editor.text().strip()
+            if value != '?':
+                locale = QtCore.QLocale.system()
+                value, _ok = locale.toDouble(value)
+                value /= 100.0
+            model.setData(index, value)
         else:
             return super().setModelData(editor, model, index)
 
