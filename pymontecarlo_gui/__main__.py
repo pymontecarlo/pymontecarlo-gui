@@ -8,7 +8,7 @@ import logging
 import platform
 
 # Third party modules.
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 import matplotlib
 matplotlib.use('qt5agg')
@@ -21,6 +21,7 @@ import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.settings import SettingsMainWindow
 from pymontecarlo_gui.main import MainWindow
+from pymontecarlo_gui.widgets.icon import load_pixmap
 
 # Globals and constants variables.
 
@@ -89,6 +90,13 @@ def _parse(ns):
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle('fusion')
 
+    pixmap = load_pixmap('splash.svg')
+    message = 'Version: {}'.format(pymontecarlo_gui.__version__)
+    splash_screen = QtWidgets.QSplashScreen(pixmap)
+    splash_screen.showMessage(message, QtCore.Qt.AlignRight)
+    splash_screen.show()
+    app.processEvents()
+
     if ns.config:
         window = SettingsMainWindow()
         window.setSettings(pymontecarlo.settings)
@@ -96,6 +104,8 @@ def _parse(ns):
     else:
         window = MainWindow()
         window.show()
+
+    splash_screen.finish(window)
 
     app.exec_()
 
