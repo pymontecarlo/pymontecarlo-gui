@@ -277,10 +277,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
-        if not pymontecarlo.settings.programs:
+        if not pymontecarlo.settings.activated_programs:
             title = 'New simulations'
-            message = 'No program is configured. ' + \
-                'Go to File > Settings to configure at least one program.'
+            message = 'No program is activated. ' + \
+                'Go to File > Settings to activate at least one program.'
             QtWidgets.QMessageBox.critical(self, title, message)
             return
 
@@ -316,6 +316,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         pymontecarlo.settings.update(self.dialog_settings.settings())
+        self.wizard_simulation = NewSimulationWizard()
 
     def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()
