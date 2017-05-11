@@ -12,7 +12,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 # Local modules.
 import pymontecarlo
 from pymontecarlo._settings import Settings
-from pymontecarlo.exceptions import ValidationError
+from pymontecarlo.exceptions import ValidationError, ProgramNotFound
 from pymontecarlo.program.configurator import FileType, DirectoryType
 
 from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
@@ -268,7 +268,7 @@ class ProgramsWidget(QtWidgets.QWidget):
     def _add_to_available(self, fullname, widget_index):
         self.cb_available_programs.addItem(fullname, widget_index)
 
-    def setPrograms(self, programs):
+    def setActivatedPrograms(self, activated_programs):
         # Clear
         self.cb_available_programs.clear()
         self.lst_configured_programs.clear()
@@ -277,9 +277,16 @@ class ProgramsWidget(QtWidgets.QWidget):
         self.wdg_programs.addWidget(QtWidgets.QWidget()) # Empty widget
 
         # Create widget, add to appropriate list
-        for clasz, program in pymontecarlo.settings.iter_programs():
-            if program is not None and program not in programs:
-                continue
+        for clasz in pymontecarlo.settings.available_programs:
+            identifier = clasz.getidentifier()
+
+            try:
+                program = pymontecarlo.settings.get_activated_program(identifier)
+
+                if program not in activated_programs:
+                    continue
+            except ProgramNotFound:
+                program = None
 
             fullname = clasz.create_configurator().fullname
 
@@ -295,7 +302,7 @@ class ProgramsWidget(QtWidgets.QWidget):
         # Update buttons
         self._update_buttons()
 
-    def programs(self):
+    def activatedPrograms(self):
         programs = []
 
         for index in range(self.lst_configured_programs.count()):
@@ -448,7 +455,9 @@ class SettingsWidget(QtWidgets.QWidget):
     def settings(self):
         settings = Settings()
 
-        settings.programs = self.wdg_programs.programs()
+        settings.deactivate_all_programs()
+        for program in self.wdg_programs.activatedPrograms():
+            settings.activate_program(program)
 
         settings.preferred_xrayline_notation = self.wdg_preferred.xrayLineNotation()
 
@@ -459,7 +468,7 @@ class SettingsWidget(QtWidgets.QWidget):
         return settings
 
     def setSettings(self, settings):
-        self.wdg_programs.setPrograms(settings.programs)
+        self.wdg_programs.setActivatedPrograms(settings.activated_programs)
 
         self.wdg_preferred.setXrayLineNotation(settings.preferred_xrayline_notation)
 

@@ -422,9 +422,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         self.page_program.registerLimitFieldClass(ShowersLimit, ShowersField)
 
-        for _class, program in pymontecarlo.settings.iter_programs():
-            if program is None:
-                continue
+        for program in pymontecarlo.settings.activated_programs:
             self.page_program.registerProgram(program)
 
         self.page_program.programsChanged.connect(self._on_programs_changed)
