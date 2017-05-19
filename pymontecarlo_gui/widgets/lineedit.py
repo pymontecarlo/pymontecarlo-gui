@@ -167,6 +167,8 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         locale = QtCore.QLocale.system()
         precision = self.decimals()
         if precision == 0:
+            if not math.isfinite(value):
+                value = 0
             value = int(value)
             text = locale.toString(value)
         else:
