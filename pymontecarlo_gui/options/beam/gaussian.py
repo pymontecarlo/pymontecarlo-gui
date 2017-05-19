@@ -15,25 +15,48 @@ from pymontecarlo.options.beam.gaussian import GaussianBeamBuilder, GaussianBeam
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.beam.base import BeamField, EnergyField, ParticleField
-from pymontecarlo_gui.options.base import DiameterField
-from pymontecarlo_gui.widgets.field import WidgetField, Field, FieldChooser
-from pymontecarlo_gui.widgets.lineedit import ColoredFloatLineEdit
+from pymontecarlo_gui.options.base import ToleranceMixin
+from pymontecarlo_gui.widgets.field import \
+    WidgetField, Field, FieldChooser, MultiValueField
+from pymontecarlo_gui.widgets.lineedit import \
+    ColoredFloatLineEdit, ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
 Position = namedtuple('Position', ('x_m', 'y_m'))
 
-class ToleranceMixin:
+class DiameterField(MultiValueField, ToleranceMixin):
 
-    DEFAULT_TOLERANCE = 1e-12
+    def __init__(self):
+        super().__init__()
 
-    def toleranceMeter(self):
-        if not hasattr(self, '_tolerance_m'):
-            self._tolerance_m = self.DEFAULT_TOLERANCE
-        return self._tolerance_m
+        # Widgets
+        self._widget = ColoredMultiFloatLineEdit()
+        self._widget.setValues([100.0])
+
+        # Widgets
+        self._widget.valuesChanged.connect(self.fieldChanged)
+
+    def title(self):
+        return 'Diameter(s) FWHM [nm]'
+
+    def description(self):
+        return 'The diameter corresponds to the full width at half maximum (FWHM) of a two dimensional Gaussian distribution'
+
+    def widget(self):
+        return self._widget
 
     def setToleranceMeter(self, tolerance_m):
-        self._tolerance_m = tolerance_m
+        super().setToleranceMeter(tolerance_m)
+        decimals = tolerance_to_decimals(tolerance_m * 1e9)
+        self._widget.setRange(tolerance_m, float('inf'), decimals)
+
+    def diametersMeter(self):
+        return np.array(self._widget.values()) * 1e-9
+
+    def setDiametersMeter(self, diameters_m):
+        values = np.array(diameters_m) * 1e9
+        self._widget.setValues(values)
 
 class CoordinateField(Field, ToleranceMixin):
 

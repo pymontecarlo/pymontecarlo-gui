@@ -3,44 +3,19 @@
 # Standard library modules.
 
 # Third party modules.
-import numpy as np
 
 # Local modules.
-from pymontecarlo.util.tolerance import tolerance_to_decimals
-
-from pymontecarlo_gui.widgets.field import MultiValueField
-from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
-class DiameterField(MultiValueField):
+class ToleranceMixin:
 
-    def __init__(self):
-        super().__init__()
-
-        # Widgets
-        self._widget = ColoredMultiFloatLineEdit()
-        self._widget.setValues([100.0])
-
-        # Widgets
-        self._widget.valuesChanged.connect(self.fieldChanged)
-
-    def title(self):
-        return 'Diameter(s) [nm]'
-
-    def widget(self):
-        return self._widget
+    DEFAULT_TOLERANCE = 1e-12
 
     def toleranceMeter(self):
-        return self._widget.bottom()
+        if not hasattr(self, '_tolerance_m'):
+            self._tolerance_m = self.DEFAULT_TOLERANCE
+        return self._tolerance_m
 
     def setToleranceMeter(self, tolerance_m):
-        decimals = tolerance_to_decimals(tolerance_m * 1e9)
-        self._widget.setRange(tolerance_m, float('inf'), decimals)
-
-    def diametersMeter(self):
-        return np.array(self._widget.values()) * 1e-9
-
-    def setDiametersMeter(self, diameters_m):
-        values = np.array(diameters_m) * 1e9
-        self._widget.setValues(values)
+        self._tolerance_m = tolerance_m
