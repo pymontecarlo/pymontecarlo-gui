@@ -167,8 +167,10 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         locale = QtCore.QLocale.system()
         precision = self.decimals()
         if precision == 0:
+            value = int(value)
             text = locale.toString(value)
         else:
+            value = float(value)
             text = locale.toString(value, 'f', precision)
         self.lineedit.setText(text)
 
@@ -284,7 +286,7 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
     def _update_tooltip(self):
         locale = QtCore.QLocale.system()
         precision = self.decimals()
-        tooltip = 'Value must be between [{}, {}]' \
+        tooltip = 'Value(s) must be between [{}, {}]' \
             .format(locale.toString(self.bottom(), 'f', precision),
                     locale.toString(self.top(), 'f', precision))
         self.lineedit.setToolTip(tooltip)
@@ -330,8 +332,10 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         text_values = []
         for value in values:
             if precision == 0:
+                value = int(value)
                 text_values.append(locale.toString(value))
             else:
+                value = float(value)
                 text_values.append(locale.toString(value, 'f', precision))
 
         text = MULTIFLOAT_SEPARATOR.join(text_values)
