@@ -22,6 +22,7 @@ from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
 from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
+from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
@@ -402,6 +403,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.page_beam = BeamWizardPage()
 
         self.page_beam.registerBeamField(GaussianBeamField())
+        self.page_beam.registerBeamField(CylindricalBeamField())
 
         self.page_beam.beamsChanged.connect(self._on_beams_changed)
 
