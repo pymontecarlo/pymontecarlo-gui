@@ -17,7 +17,6 @@ from matplotlib.cbook import is_numlike
 
 # Local modules.
 from pymontecarlo.util.human import camelcase_to_words
-from pymontecarlo.formats.series.base import ErrorSeriesColumn
 
 from pymontecarlo_gui.results.base import ResultSummaryWidget
 from pymontecarlo_gui.widgets.groupbox import create_group_box
@@ -27,10 +26,11 @@ from pymontecarlo_gui.widgets.list import CheckListToolBar, SelectionListToolBar
 
 class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
-    def __init__(self, textwidth, project=None):
+    def __init__(self, settings, textwidth, project=None):
         super().__init__()
 
         # Variables
+        self._settings = settings
         self._textwidth = textwidth
 
         self._project = project
@@ -42,18 +42,28 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
         self._update_dataframe()
 
-    def _update_dataframe(self):
-        self._df = pd.DataFrame()
+        # Signals
+        settings.settings_changed.connect(self._on_settings_changed)
 
+    def _on_settings_changed(self):
+        self._update_dataframe()
+
+    def _update_dataframe(self):
         if self._project is None:
+            self._df = pd.DataFrame()
             return
 
-        df_options = \
-            self._project.create_options_dataframe(self._only_different_options)
-        df_results = \
-            self._project.create_results_dataframe(self._result_classes)
+        df_options = self._project.create_options_dataframe(self._settings, False, format_number=True)
+
+        if self._only_different_options:
+            columns = self._project.create_options_dataframe(self._settings, True).columns
+            df_options = df_options[columns]
+
+        df_results = self._project.create_results_dataframe(self._settings, self._result_classes, format_number=True)
 
         self._df = pd.concat([df_options, df_results], axis=1)
+
+        self.modelReset.emit()
 
     def rowCount(self, parent=None):
         return self._df.shape[0]
@@ -73,8 +83,7 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
         if role == QtCore.Qt.DisplayRole:
             value = self._df.iloc[row, column]
-            columnobj = self._df.columns[column]
-            return columnobj.format_value(value)
+            return value
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
@@ -84,7 +93,7 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
             return None
 
         if orientation == QtCore.Qt.Horizontal:
-            text = self._df.columns[section].fullname
+            text = self._df.columns[section]
             return '\n'.join(textwrap.wrap(text, self._textwidth))
 
         elif orientation == QtCore.Qt.Vertical:
@@ -100,21 +109,21 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
     def setProject(self, project):
         self._project = project
-        self.update()
+        self._update_dataframe()
 
     def resultClasses(self):
         return self._result_classes
 
     def setResultClasses(self, result_classes):
         self._result_classes = set(result_classes)
-        self.update()
+        self._update_dataframe()
 
     def isOnlyDifferentOptions(self):
         return self._only_different_options
 
     def setOnlyDifferentOptions(self, answer):
         self._only_different_options = answer
-        self.update()
+        self._update_dataframe()
 
     def setColumnWidth(self, width):
         self._column_width = width
@@ -124,20 +133,15 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
         out = []
 
         if include_header:
-            out.append([column.fullname for column in self._df.columns])
+            out.append([column for column in self._df.columns])
 
         for _index, series in self._df.iterrows():
             row = []
             for column, value in series.iteritems():
-                value = column.convert_value(value)
                 row.append(value)
             out.append(row)
 
         return out
-
-    def update(self):
-        self._update_dataframe()
-        self.modelReset.emit()
 
 class ResultClassListWidget(QtWidgets.QWidget):
 
@@ -192,7 +196,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
 
     COLUMN_WIDTH = 125
 
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
 
         # Widgets
@@ -206,7 +210,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         header.setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         textwidth = int(self.COLUMN_WIDTH / header.fontMetrics().width('a'))
-        model = ResultSummaryTableModel(textwidth)
+        model = ResultSummaryTableModel(settings, textwidth)
         self.wdg_table.setModel(model)
 
         self.chk_diff_options = QtWidgets.QCheckBox("Only different columns")
@@ -259,16 +263,14 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         self.wdg_table.model().setProject(project)
         self.lst_results.setProject(project)
 
-    def update(self, *args):
-        self.wdg_table.model().update()
-        super().update()
-
 class ResultSummaryFigureWidget(ResultSummaryWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
 
         # Variables
+        self._settings = settings
+        self._project = None
 
         # Widgets
         fig = Figure()
@@ -330,6 +332,8 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
 
         self.list_simulations.itemSelectionChanged.connect(self._on_simulations_changed)
 
+        settings.settings_changed.connect(self._on_settings_changed)
+
     def _on_xaxis_changed(self):
         self.draw()
 
@@ -347,6 +351,10 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         self._update_yaxis()
         self.draw()
 
+    def _on_settings_changed(self):
+        self.setProject(self._project)
+        self.draw()
+
     def _update_yaxis(self):
         df = self.combobox_yaxis.currentData()
         if df is None:
@@ -355,11 +363,10 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         self.list_columns.clear()
 
         for column in df.columns:
-            if isinstance(column, ErrorSeriesColumn) and \
-                    not self.checkbox_error.isChecked():
+            if column.startswith('\u03C3(') and not self.checkbox_error.isChecked():
                 continue
 
-            item = QtWidgets.QListWidgetItem(column.name)
+            item = QtWidgets.QListWidgetItem(column)
             item.setData(QtCore.Qt.UserRole, df[column])
             item.setTextAlignment(QtCore.Qt.AlignLeft)
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
@@ -371,17 +378,23 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         self.combobox_xaxis.clear()
         self.combobox_yaxis.clear()
         self.list_columns.clear()
+        self.list_simulations.clear()
         self.canvas.figure.clear()
 
+        self._project = project
+
+        if project is None:
+            return
+
         # X axis
-        df = project.create_options_dataframe(only_different_columns=True)
+        df = project.create_options_dataframe(self._settings, only_different_columns=True)
         for column in df.columns:
-            self.combobox_xaxis.addItem(column.fullname, df[column])
+            self.combobox_xaxis.addItem(column, df[column])
 
         # Y axis
         for result_class in sorted(project.result_classes, key=lambda c: c.__name__):
             text = camelcase_to_words(result_class.__name__[:-6]).lower()
-            df = project.create_results_dataframe([result_class])
+            df = project.create_results_dataframe(self._settings, [result_class])
             self.combobox_yaxis.addItem(text, df)
 
         # Simulations
@@ -391,6 +404,9 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
             self.list_simulations.addItem(item)
 
         self.list_simulations.selectAll()
+
+    def project(self):
+        return self._project
 
     def draw(self):
         # Clear
@@ -425,9 +441,6 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
         # Lines
         if series_x is not None and list_series_y:
             for series_y in list_series_y:
-                column_x = series_x.name
-                column_y = series_y.name
-
                 data = []
                 for index, (x, y) in enumerate(zip(series_x.values, series_y.values)):
                     if index not in indexes:
@@ -436,46 +449,31 @@ class ResultSummaryFigureWidget(ResultSummaryWidget):
                         continue
                     if np.isnan(x) or np.isnan(y):
                         continue
-                    data.append([column_x.convert_value(x),
-                                 column_y.convert_value(y)])
+                    data.append([x, y])
 
                 data.sort(key=operator.itemgetter(0))
                 xs = list(map(operator.itemgetter(0), data))
                 ys = list(map(operator.itemgetter(1), data))
 
-                label = series_y.name.name
+                label = series_y.name
                 ax.plot(xs, ys, 'o-', label=label)
 
         # Axes label
         if series_x is not None:
-            ax.set_xlabel(series_x.name.fullname)
+            ax.set_xlabel(series_x.name)
 
         if len(list_series_y) == 1:
             resultname = self.combobox_yaxis.currentText()
             series_y = list_series_y[0]
-            ax.set_ylabel('{} {}'.format(resultname, series_y.name.fullname))
+            ax.set_ylabel('{} {}'.format(resultname, series_y.name))
         elif len(list_series_y) > 1:
             resultname = self.combobox_yaxis.currentText()
-            series_y = list_series_y[0]
-            ax.set_ylabel('{} [{}]'.format(resultname, series_y.name.unitname))
+            ax.set_ylabel('{}'.format(resultname))
 
         if len(list_series_y) > 1:
             ax.legend(loc='best')
 
         self.canvas.draw()
-
-    def update(self):
-        for index in range(self.combobox_xaxis.count()):
-            df = self.combobox_xaxis.itemData(index)
-            self.combobox_xaxis.setItemText(index, df.name.fullname)
-
-        for index in range(self.list_columns.count()):
-            item = self.list_columns.item(index)
-            data = item.data(QtCore.Qt.UserRole)
-            item.setText(data.name.name)
-
-        self.draw()
-        super().update()
 
 def run():
     import sys
@@ -487,11 +485,13 @@ def run():
     testcase.setUp()
     project = testcase.create_basic_project()
 
-    import pymontecarlo
-    pymontecarlo.settings.set_preferred_unit('eV')
-    pymontecarlo.settings.set_preferred_unit('nm')
+    from pymontecarlo.settings import Settings, XrayNotation
+    settings = Settings()
+    settings.set_preferred_unit('eV')
+    settings.set_preferred_unit('nm')
+    settings.preferred_xray_notation = XrayNotation.SIEGBAHN
 
-    widget = ResultSummaryFigureWidget()
+    widget = ResultSummaryFigureWidget(settings)
     widget.setProject(project)
 
     mainwindow = QtWidgets.QMainWindow()

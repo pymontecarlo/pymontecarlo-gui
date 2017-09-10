@@ -6,15 +6,15 @@
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
-import pymontecarlo
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock, SampleMock
 from pymontecarlo.options.beam.base import Beam
-from pymontecarlo.options.limit.showers import ShowersLimit
+from pymontecarlo.util.entrypoint import resolve_entrypoints
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
+from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 from pymontecarlo_gui.widgets.groupbox import create_group_box
-from pymontecarlo_gui.widgets.field import FieldChooser
+from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
 from pymontecarlo_gui.options.material import MaterialsWidget
 from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
@@ -26,8 +26,7 @@ from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
-from pymontecarlo_gui.options.limit.showers import ShowersField
-from pymontecarlo_gui.options.program import ProgramsField, LimitsToolBoxField
+from pymontecarlo_gui.options.program.base import ProgramsField
 
 # Globals and constants variables.
 
@@ -293,7 +292,6 @@ class AnalysisWizardPage(NewSimulationWizardPage):
 class ProgramWizardPage(NewSimulationWizardPage):
 
     programsChanged = QtCore.Signal()
-    limitsChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -302,61 +300,60 @@ class ProgramWizardPage(NewSimulationWizardPage):
         # Widgets
         self.field_programs = ProgramsField()
 
-        self.field_limits = LimitsToolBoxField()
+        self.field_toolbox = FieldToolBox()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Programs', self.field_programs.widget()), 1)
-        layout.addWidget(create_group_box('Limits', self.field_limits.widget()), 1)
+        layout.addWidget(create_group_box(self.field_programs.title(), self.field_programs.widget()), 1)
+        layout.addWidget(create_group_box('Definition', self.field_toolbox), 1)
         self.setLayout(layout)
 
         # Signals
-        self.field_programs.fieldChanged.connect(self._on_programs_changed)
-        self.field_limits.fieldChanged.connect(self._on_limits_changed)
+        self.field_programs.fieldChanged.connect(self._on_selected_programs_changed)
 
-    def _on_programs_changed(self):
-        programs = self.field_programs.selectedPrograms()
-        self.field_limits.setPrograms(programs)
+    def _on_selected_programs_changed(self):
+        # Remove toolbox fields
+        for field in self.field_toolbox.fields():
+            self.field_toolbox.setFieldEnabled(field, False)
+            field.setEnabled(False)
+            field.titleWidget().setEnabled(True)
+
+        # Add toolbox fields
+        fields = self.field_programs.selectedProgramFields()
+        for field in fields:
+            self.field_toolbox.setFieldEnabled(field, True)
+            field.setEnabled(True)
+
         self.programsChanged.emit()
         self.completeChanged.emit()
 
-    def _on_limits_changed(self):
-        self.limitsChanged.emit()
-        self._update_errors()
+    def _on_program_changed(self):
+        self.programsChanged.emit()
         self.completeChanged.emit()
 
     def _update_errors(self):
         list_options, _estimated = self.wizard()._get_options_list(estimate=True)
-        programs = self.field_programs.programs()
-
-        for program in programs:
-            validator = program.create_validator()
-            errors = set()
-
-            for options in list_options:
-                options.program = program
-                validator._validate_options(options, errors)
-
-            self.field_programs.setProgramErrors(program, errors)
+        self.field_programs.updateErrors(list_options)
 
     def initializePage(self):
         super().initializePage()
         self._update_errors()
 
     def isComplete(self):
-        return self.field_programs.isValid() and self.field_limits.isValid()
+        return self.field_programs.isValid()
 
-    def registerLimitFieldClass(self, option_class, field_class):
-        self.field_limits.registerLimitFieldClass(option_class, field_class)
+    def registerProgramField(self, field):
+        self.field_programs.addProgramField(field)
 
-    def registerProgram(self, program):
-        self.field_programs.addProgram(program)
+        self.field_toolbox.addField(field)
+        self.field_toolbox.setFieldEnabled(field, False)
+        field.setEnabled(False)
+        field.titleWidget().setEnabled(True)
+
+        field.fieldChanged.connect(self._on_program_changed)
 
     def programs(self):
-        return self.field_programs.selectedPrograms()
-
-    def limits(self):
-        return self.field_limits.limits()
+        return self.field_programs.programs()
 
 #--- Wizard
 
@@ -388,53 +385,63 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.setButton(QtWidgets.QWizard.CustomButton1, self.btn_count)
 
         # Sample
-        self.page_sample = SampleWizardPage()
-
-        self.page_sample.registerSampleField(SubstrateSampleField())
-        self.page_sample.registerSampleField(InclusionSampleField())
-        self.page_sample.registerSampleField(HorizontalLayerSampleField())
-        self.page_sample.registerSampleField(VerticalLayerSampleField())
-
+        self.page_sample = self._create_sample_page()
         self.page_sample.samplesChanged.connect(self._on_samples_changed)
-
         self.addPage(self.page_sample)
 
         # Beam
-        self.page_beam = BeamWizardPage()
-
-        self.page_beam.registerBeamField(GaussianBeamField())
-        self.page_beam.registerBeamField(CylindricalBeamField())
-
+        self.page_beam = self._create_beam_page()
         self.page_beam.beamsChanged.connect(self._on_beams_changed)
-
         self.addPage(self.page_beam)
 
         # Analysis
-        self.page_analysis = AnalysisWizardPage()
-
-        self.page_analysis.registerAnalysisField(PhotonIntensityAnalysisField())
-        self.page_analysis.registerAnalysisField(KRatioAnalysisField())
-
+        self.page_analysis = self._create_analysis_page()
         self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
-
         self.addPage(self.page_analysis)
 
         # Programs
-        self.page_program = ProgramWizardPage()
-
-        self.page_program.registerLimitFieldClass(ShowersLimit, ShowersField)
-
-        for program in pymontecarlo.settings.activated_programs:
-            self.page_program.registerProgram(program)
-
+        self.page_program = self._create_program_page()
         self.page_program.programsChanged.connect(self._on_programs_changed)
-        self.page_program.limitsChanged.connect(self._on_limits_changed)
-
         self.addPage(self.page_program)
 
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)
         self.optionsChanged.connect(self._on_options_changed)
+
+    def _create_sample_page(self):
+        page = SampleWizardPage()
+
+        page.registerSampleField(SubstrateSampleField())
+        page.registerSampleField(InclusionSampleField())
+        page.registerSampleField(HorizontalLayerSampleField())
+        page.registerSampleField(VerticalLayerSampleField())
+
+        return page
+
+    def _create_beam_page(self):
+        page = BeamWizardPage()
+
+        page.registerBeamField(GaussianBeamField())
+        page.registerBeamField(CylindricalBeamField())
+
+        return page
+
+    def _create_analysis_page(self):
+        page = AnalysisWizardPage()
+
+        page.registerAnalysisField(PhotonIntensityAnalysisField())
+        page.registerAnalysisField(KRatioAnalysisField())
+
+        return page
+
+    def _create_program_page(self):
+        page = ProgramWizardPage()
+
+        for ep in resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS).values():
+            field = ep.resolve()()
+            page.registerProgramField(field)
+
+        return page
 
     def _on_samples_changed(self):
         self.builder.samples = self.page_sample.samples()
@@ -450,10 +457,6 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
     def _on_programs_changed(self):
         self.builder.programs = self.page_program.programs()
-        self.optionsChanged.emit()
-
-    def _on_limits_changed(self):
-        self.builder.limits = self.page_program.limits()
         self.optionsChanged.emit()
 
     def _on_options_changed(self):
@@ -499,6 +502,9 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
 def run(): #pragma: no cover
     import sys
+
+    from pymontecarlo_gui.testcase import TestCase
+    TestCase.setUpClass()
 
     app = QtWidgets.QApplication(sys.argv)
 

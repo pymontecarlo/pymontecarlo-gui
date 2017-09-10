@@ -19,7 +19,6 @@ from pymontecarlo.util.path import get_config_dir
 
 import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
-from pymontecarlo_gui.settings import SettingsMainWindow
 from pymontecarlo_gui.main import MainWindow
 from pymontecarlo_gui.widgets.icon import load_pixmap
 
@@ -32,8 +31,6 @@ def _create_parser():
 
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Run in debug mode')
-    parser.add_argument('-c', '--config', action='store_true',
-                        help='Open only settings dialog')
 
     return parser
 
@@ -97,13 +94,8 @@ def _parse(ns):
     splash_screen.show()
     app.processEvents()
 
-    if ns.config:
-        window = SettingsMainWindow()
-        window.setSettings(pymontecarlo.settings)
-        window.show()
-    else:
-        window = MainWindow()
-        window.show()
+    window = MainWindow()
+    window.show()
 
     splash_screen.finish(window)
 

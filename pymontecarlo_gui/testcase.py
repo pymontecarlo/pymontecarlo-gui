@@ -6,8 +6,14 @@ import unittest
 # Third party modules.
 from qtpy import QtWidgets, QtTest, QtCore
 
+import pkg_resources
+
 # Local modules.
 from pymontecarlo.options.material import Material
+from pymontecarlo.util.entrypoint import reset_entrypoints
+import pymontecarlo.testcase
+
+from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 
 # Globals and constants variables.
 
@@ -26,10 +32,29 @@ class MockReceiver(object):
     def wasCalled(self, expected_count=1):
         return self.call_count == expected_count
 
-class TestCase(unittest.TestCase):
+class TestCase(pymontecarlo.testcase.TestCase):
     '''Helper class to provide QApplication instances'''
 
     qapplication = True
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        # Add program mock field
+        requirement = pkg_resources.Requirement('pymontecarlo_gui')
+        distribution = pkg_resources.working_set.find(requirement)
+
+        entry_point = pkg_resources.EntryPoint('mock', 'pymontecarlo_gui.mock',
+                                               attrs=('ProgramFieldMock',),
+                                               dist=distribution)
+
+        entry_map = distribution.get_entry_map()
+        entry_map.setdefault(ENTRYPOINT_GUI_PROGRAMS, {})
+        entry_map[ENTRYPOINT_GUI_PROGRAMS]['mock'] = entry_point
+
+        # Reset entry points
+        reset_entrypoints()
 
     def setUp(self):
         super().setUp()

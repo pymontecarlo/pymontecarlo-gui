@@ -312,13 +312,15 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
 
         return index
 
-    def removeField(self, field):
+    def setFieldEnabled(self, field, enabled):
         if field not in self._fields:
             return
 
-        index = self._fields.pop(field)
-        self.removeItem(index)
-        field.fieldChanged.disconnect(self._on_field_changed)
+        index = self._fields[field]
+        self.setItemEnabled(index, enabled)
+
+    def fields(self):
+        return tuple(self._fields.keys())
 
 class FieldChooser(QtWidgets.QWidget):
 

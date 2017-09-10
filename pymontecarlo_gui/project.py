@@ -3,11 +3,9 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtGui
+from qtpy import QtCore, QtGui
 
 # Local modules.
-import pymontecarlo
-
 from pymontecarlo_gui.widgets.field import Field
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.results.summary import \
@@ -15,10 +13,21 @@ from pymontecarlo_gui.results.summary import \
 
 # Globals and constants variables.
 
-class _ProjectDerivedField(Field):
+class _SettingsBasedField(Field):
 
-    def __init__(self, project):
+    settingsChanged = QtCore.Signal()
+
+    def __init__(self, settings):
         super().__init__()
+        self._settings = settings
+
+    def settings(self):
+        return self._settings
+
+class _ProjectDerivedField(_SettingsBasedField):
+
+    def __init__(self, settings, project):
+        super().__init__(settings)
         self._project = project
 
     def project(self):
@@ -40,8 +49,8 @@ class ProjectField(_ProjectDerivedField):
 
 class ProjectSummaryTableField(_ProjectDerivedField):
 
-    def __init__(self, project):
-        super().__init__(project)
+    def __init__(self, settings, project):
+        super().__init__(settings, project)
         self._widget = None
 
     def title(self):
@@ -51,13 +60,8 @@ class ProjectSummaryTableField(_ProjectDerivedField):
         return load_icon('table.svg')
 
     def _create_widget(self):
-        widget = ResultSummaryTableWidget()
+        widget = ResultSummaryTableWidget(self.settings())
         widget.setProject(self.project())
-
-        pymontecarlo.settings.preferred_units_changed.connect(widget.update)
-        pymontecarlo.settings.preferred_xrayline_notation_changed.connect(widget.update)
-        pymontecarlo.settings.preferred_xrayline_encoding_changed.connect(widget.update)
-
         return widget
 
     def widget(self):
@@ -72,8 +76,8 @@ class ProjectSummaryTableField(_ProjectDerivedField):
 
 class ProjectSummaryFigureField(_ProjectDerivedField):
 
-    def __init__(self, project):
-        super().__init__(project)
+    def __init__(self, settings, project):
+        super().__init__(settings, project)
         self._widget = None
 
     def title(self):
@@ -83,13 +87,8 @@ class ProjectSummaryFigureField(_ProjectDerivedField):
         return load_icon('figure.svg')
 
     def _create_widget(self):
-        widget = ResultSummaryFigureWidget()
+        widget = ResultSummaryFigureWidget(self.settings())
         widget.setProject(self.project())
-
-        pymontecarlo.settings.preferred_units_changed.connect(widget.update)
-        pymontecarlo.settings.preferred_xrayline_notation_changed.connect(widget.update)
-        pymontecarlo.settings.preferred_xrayline_encoding_changed.connect(widget.update)
-
         return widget
 
     def widget(self):

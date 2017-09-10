@@ -11,7 +11,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from pymontecarlo.options.material import Material, VACUUM
 from pymontecarlo.options.composition import \
     generate_name, calculate_density_kg_per_m3, from_formula
-from pymontecarlo.program.validator import Validator
+from pymontecarlo.mock import ValidatorMock
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.composition import CompositionTableWidget
@@ -26,7 +26,7 @@ from pymontecarlo_gui.util.validate import \
     Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
-DEFAULT_VALIDATOR = Validator()
+DEFAULT_VALIDATOR = ValidatorMock()
 
 #--- Mix-ins
 

@@ -5,80 +5,43 @@
 # Third party modules.
 from qtpy import QtGui, QtWebEngineWidgets
 
-import dominate
-import dominate.tags as tags
-
 # Local modules.
-from pymontecarlo_gui.widgets.field import Field
-from pymontecarlo.formats.html.base import find_convert_htmlhandler
+from pymontecarlo.formats.document.helper import publish_html
+from pymontecarlo.formats.document.builder import DocumentBuilder
+from pymontecarlo.formats.document.options.options import OptionsDocumentHandler
+
+from pymontecarlo_gui.project import _SettingsBasedField
 
 # Globals and constants variables.
 
-class OptionsField(Field):
+class OptionsField(_SettingsBasedField):
 
-    CSS = """
-h1 {
-        font-size: 1.2em;
-        margin: 10px 0;
-    }
-  
-    h2 {
-        font-size: 1.1em;
-        color: #404040;
-        margin: 10px 0 5px 0;
-    }
-  
-    h3 {
-        font-size: 1em;
-        text-decoration: underline;
-    }
-  
-    dl {
-        margin: 0 0 0 1em;
-    }
-  
-    dt {
-        float: left;
-        clear: left;
-        text-align: left;
-        font-variant: small-caps;
-        padding-right: 2em;
-    }
-  
-    table {
-        border-collapse: collapse;
-        border-spacing: 0;
-        empty-cells: show;
-        border: 1px solid #cbcbcb;
-        border-bottom: 1px solid #cbcbcb;
-    }
+    def __init__(self, options, settings):
+        super().__init__(settings)
 
-    td, th {
-        border-left: 1px solid #cbcbcb;
-        border-bottom: 1px solid #cbcbcb;
-        border-width: 0 1px 0 1px;
-        font-size: inherit;
-        margin: 0;
-        overflow: visible;
-        padding: 0.4em 1em;
-    }
-
-    thead {
-        background-color: #e0e0e0;
-        color: #000;
-        text-align: left;
-        vertical-align: bottom;
-    }
-    
-    tbody {
-        text-align: left;
-    }
-"""
-
-    def __init__(self, options):
-        super().__init__()
         self._options = options
         self._widget = None
+
+        # Signals
+        settings.settings_changed.connect(self._on_settings_changed)
+
+    def _on_settings_changed(self):
+        if self._widget is not None:
+            self._widget.setHtml(self._render_html())
+
+    def _render_html(self):
+        options = self.options()
+        builder = DocumentBuilder(self.settings())
+
+        handler = OptionsDocumentHandler()
+        handler.convert(options, builder)
+
+        return publish_html(builder).decode('utf8')
+
+    def _create_widget(self):
+        widget = QtWebEngineWidgets.QWebEngineView()
+        widget.setHtml(self._render_html())
+        return widget
 
     def title(self):
         return 'Options'
@@ -88,15 +51,7 @@ h1 {
 
     def widget(self):
         if self._widget is None:
-            options = self.options()
-
-            doc = dominate.document('Options')
-            doc.head += tags.style(self.CSS)
-            doc.body += find_convert_htmlhandler(options).convert(options).children
-            html = doc.render()
-
-            self._widget = QtWebEngineWidgets.QWebEngineView()
-            self._widget.setHtml(html)
+            self._widget = self._create_widget()
         return self._widget
 
     def options(self):

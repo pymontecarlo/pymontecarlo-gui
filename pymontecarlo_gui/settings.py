@@ -1,317 +1,19 @@
 """"""
 
 # Standard library modules.
-import functools
 import logging
 logger = logging.getLogger(__name__)
-import argparse
 
 # Third party modules.
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 # Local modules.
 import pymontecarlo
-from pymontecarlo._settings import Settings
-from pymontecarlo.exceptions import ValidationError, ProgramNotFound
-from pymontecarlo.program.configurator import FileType, DirectoryType
+from pymontecarlo.settings import Settings, XrayNotation
 
-from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
-from pymontecarlo_gui.widgets.groupbox import create_group_box
-from pymontecarlo_gui.widgets.label import LabelIcon
-from pymontecarlo_gui.widgets.font import make_italic
 import pymontecarlo_gui.widgets.messagebox as messagebox
-from pymontecarlo_gui.widgets.browse import FileBrowseWidget, DirectoryBrowseWidget
 
 # Globals and constants variables.
-
-class ProgramWidget(QtWidgets.QWidget):
-
-    edited = QtCore.Signal(object)
-
-    def __init__(self, program_class, parent=None):
-        super().__init__(parent)
-
-        # Variables
-        self.program_class = program_class
-        self.configurator = program_class.create_configurator()
-
-        self.widgets_functions = {}
-
-        _parser, actions = self._create_dummy_parser()
-
-        # Program widgets
-        lyt_action = QtWidgets.QFormLayout()
-
-        for action in actions:
-            label = action.option_strings[0].replace('-', '').capitalize()
-
-            if action.type is FileType:
-                widget = FileBrowseWidget()
-
-                widget.pathChanged.connect(self._on_edited)
-
-                getfunc = lambda : widget.path()
-                setfunc = lambda value: widget.setPath(value)
-
-            elif action.type is DirectoryType:
-                widget = DirectoryBrowseWidget()
-
-                widget.pathChanged.connect(self._on_edited)
-
-                getfunc = lambda : widget.path()
-                setfunc = lambda value: widget.setPath(value)
-
-            else:
-                widget = QtWidgets.QLineEdit()
-
-                widget.textChanged.connect(self._on_edited)
-
-                getfunc = lambda : widget.text()
-                setfunc = lambda value: widget.setText(value)
-
-            self.widgets_functions[action.dest] = (getfunc, setfunc)
-
-            widget.setToolTip(action.help)
-            lyt_action.addRow(label, widget)
-
-        if not self.widgets_functions:
-            label = QtWidgets.QLabel('No parameters')
-            make_italic(label)
-            lyt_action.addWidget(label)
-
-        # Widgets
-        lbl_name = QtWidgets.QLabel(self.configurator.fullname)
-        font = lbl_name.font()
-        font.setBold(True)
-        font.setPointSize(14)
-        lbl_name.setFont(font)
-
-        self.lbl_error = LabelIcon('', QtGui.QIcon.fromTheme("dialog-error"))
-        self.lbl_error.setVisible(False)
-
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(lbl_name)
-        layout.addLayout(lyt_action)
-        layout.addStretch()
-        layout.addWidget(self.lbl_error)
-
-        self.setLayout(layout)
-
-    def _create_dummy_parser(self, program=None):
-        parser = argparse.ArgumentParser()
-        self.configurator.prepare_parser(parser, program)
-
-        actions = [a for a in parser._actions if isinstance(a, argparse._StoreAction)]
-
-        return parser, actions
-
-    def _on_edited(self, *args):
-        try:
-            program = self.program()
-
-            validator = program.create_validator()
-            validator.validate_program(program, None)
-        except Exception as ex:
-            self.lbl_error.setText(str(ex))
-            self.lbl_error.setVisible(True)
-            self.edited.emit(None)
-        else:
-            self.lbl_error.setVisible(False)
-            self.edited.emit(program)
-
-    def setProgram(self, program):
-        _parser, actions = self._create_dummy_parser(program)
-
-        for action in actions:
-            if action.dest not in self.widgets_functions:
-                continue
-            setfunc = self.widgets_functions[action.dest][1]
-            setfunc(action.default)
-
-        self._on_edited()
-
-    def program(self):
-        parser, actions = self._create_dummy_parser()
-
-        args = []
-        for action in actions:
-            if action.dest not in self.widgets_functions:
-                continue
-
-            getfunc = self.widgets_functions[action.dest][0]
-            value = getfunc()
-
-            args += [action.option_strings[0], value]
-
-        namespace = parser.parse_args(args)
-
-        return self.configurator.create_program(namespace, self.program_class)
-
-class ProgramsWidget(QtWidgets.QWidget):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Variables
-
-        # Widgets
-        self.cb_available_programs = QtWidgets.QComboBox()
-        self.cb_available_programs.setMinimumWidth(175)
-
-        self.lst_configured_programs = QtWidgets.QListWidget()
-        self.lst_configured_programs.setIconSize(QtCore.QSize(16, 16))
-        self.lst_configured_programs.setMaximumWidth(175)
-
-        self.btn_activate = QtWidgets.QPushButton('Activate')
-
-        self.btn_deactivate = QtWidgets.QPushButton('Deactivate')
-
-        self.wdg_programs = QtWidgets.QStackedWidget()
-
-        # Layouts
-        lyt_top = QtWidgets.QHBoxLayout()
-        lyt_top.addWidget(QtWidgets.QLabel('Available program(s)'))
-        lyt_top.addWidget(self.cb_available_programs, 1)
-        lyt_top.addWidget(self.btn_activate)
-
-        lyt_right = QtWidgets.QVBoxLayout()
-        lyt_right.addWidget(QtWidgets.QLabel('Configured program(s)'))
-        lyt_right.addWidget(self.lst_configured_programs)
-        lyt_right.addWidget(self.btn_deactivate)
-
-        layout = QtWidgets.QGridLayout()
-        layout.addLayout(lyt_top, 0, 1)
-        layout.addLayout(lyt_right, 1, 0)
-        layout.addWidget(self.wdg_programs, 1, 1)
-        layout.setColumnStretch(0, 0)
-        layout.setColumnStretch(1, 2)
-        self.setLayout(layout)
-
-        # Signals
-        self.lst_configured_programs.clicked.connect(self._on_configured_programs_clicked)
-        self.btn_activate.clicked.connect(self._on_activate)
-        self.btn_deactivate.clicked.connect(self._on_deactivate)
-
-    def _on_program_edited(self, item, program):
-        if program is None:
-            item.setIcon(QtGui.QIcon.fromTheme("dialog-error"))
-        else:
-            item.setIcon(QtGui.QIcon())
-
-    def _on_configured_programs_clicked(self, index):
-        item = self.lst_configured_programs.item(index.row())
-        widget_index = item.data(QtCore.Qt.UserRole)
-        self.wdg_programs.setCurrentIndex(widget_index)
-
-    def _on_deactivate(self):
-        index = self.lst_configured_programs.currentIndex()
-        row = index.row()
-        if row < 0:
-            return
-
-        # Remove from configured
-        item = self.lst_configured_programs.takeItem(row)
-
-        # Add to available
-        fullname = item.text()
-        widget_index = item.data(QtCore.Qt.UserRole)
-        self._add_to_available(fullname, widget_index)
-
-        # Check current widget
-        if self.wdg_programs.currentIndex() == widget_index:
-            self.wdg_programs.setCurrentIndex(0)
-
-        # Update buttons
-        self._update_buttons()
-
-    def _on_activate(self):
-        index = self.cb_available_programs.currentIndex()
-        if index < 0:
-            return
-
-        # Remove from available
-        widget_index = self.cb_available_programs.itemData(index, QtCore.Qt.UserRole)
-        fullname = self.cb_available_programs.itemText(index)
-        self.cb_available_programs.removeItem(index)
-
-        # Add to configured
-        item = self._add_to_configured(fullname, widget_index)
-
-        # Update current widget
-        self.lst_configured_programs.setCurrentItem(item)
-        self.wdg_programs.setCurrentIndex(widget_index)
-
-        # Update buttons
-        self._update_buttons()
-
-    def _update_buttons(self):
-        has_configured = self.lst_configured_programs.count() > 0
-        self.btn_deactivate.setEnabled(has_configured)
-
-        has_available = self.cb_available_programs.count() > 0
-        self.btn_activate.setEnabled(has_available)
-
-    def _add_to_configured(self, fullname, widget_index):
-        item = QtWidgets.QListWidgetItem(fullname)
-        item.setData(QtCore.Qt.UserRole, widget_index)
-        item.setTextAlignment(QtCore.Qt.AlignCenter)
-        self.lst_configured_programs.addItem(item)
-
-        wdg_program = self.wdg_programs.widget(widget_index)
-        wdg_program.edited.connect(functools.partial(self._on_program_edited, item))
-
-        wdg_program._on_edited() # To refresh status
-
-        return item
-
-    def _add_to_available(self, fullname, widget_index):
-        self.cb_available_programs.addItem(fullname, widget_index)
-
-    def setActivatedPrograms(self, activated_programs):
-        # Clear
-        self.cb_available_programs.clear()
-        self.lst_configured_programs.clear()
-        clear_stackedwidget(self.wdg_programs)
-
-        self.wdg_programs.addWidget(QtWidgets.QWidget()) # Empty widget
-
-        # Create widget, add to appropriate list
-        for clasz in pymontecarlo.settings.available_programs:
-            identifier = clasz.getidentifier()
-
-            try:
-                program = pymontecarlo.settings.get_activated_program(identifier)
-
-                if program not in activated_programs:
-                    continue
-            except ProgramNotFound:
-                program = None
-
-            fullname = clasz.create_configurator().fullname
-
-            wdg_program = ProgramWidget(clasz)
-            widget_index = self.wdg_programs.addWidget(wdg_program)
-
-            if program is None:
-                self._add_to_available(fullname, widget_index)
-            else:
-                self._add_to_configured(fullname, widget_index)
-                wdg_program.setProgram(program)
-
-        # Update buttons
-        self._update_buttons()
-
-    def activatedPrograms(self):
-        programs = []
-
-        for index in range(self.lst_configured_programs.count()):
-            item = self.lst_configured_programs.item(index)
-            widget_index = item.data(QtCore.Qt.UserRole)
-            widget = self.wdg_programs.widget(widget_index)
-            programs.append(widget.program())
-
-        return programs
 
 class PreferredUnitsWidget(QtWidgets.QWidget):
 
@@ -382,15 +84,15 @@ class PreferredUnitsWidget(QtWidgets.QWidget):
                 if index >= 0:
                     widget.setCurrentIndex(index)
 
-class PreferredXrayLineWidget(QtWidgets.QWidget):
+class PreferredXrayWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         # Widgets
         self.cb_notation = QtWidgets.QComboBox()
-        self.cb_notation.addItem('IUPAC', 'iupac')
-        self.cb_notation.addItem('Siegbahn', 'siegbahn')
+        self.cb_notation.addItem('IUPAC', XrayNotation.IUPAC)
+        self.cb_notation.addItem('Siegbahn', XrayNotation.SIEGBAHN)
 
         # Layout
         layout = QtWidgets.QFormLayout()
@@ -405,148 +107,41 @@ class PreferredXrayLineWidget(QtWidgets.QWidget):
         index = self.cb_notation.findData(notation, QtCore.Qt.UserRole)
         self.cb_notation.setCurrentIndex(index)
 
-class PreferredWidget(QtWidgets.QWidget):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Widgets
-        self.wdg_units = PreferredUnitsWidget()
-
-        self.wdg_xrayline = PreferredXrayLineWidget()
-
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(create_group_box('Units', self.wdg_units))
-        layout.addWidget(create_group_box('X-ray line', self.wdg_xrayline))
-        self.setLayout(layout)
-
-    def units(self):
-        return self.wdg_units.units()
-
-    def setUnits(self, units):
-        self.wdg_units.setUnits(units)
-
-    def xrayLineNotation(self):
-        return self.wdg_xrayline.notation()
-
-    def setXrayLineNotation(self, notation):
-        self.wdg_xrayline.setNotation(notation)
-
 class SettingsWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         # Widgets
-        self.wdg_programs = ProgramsWidget()
+        self.wdg_preferred_units = PreferredUnitsWidget()
 
-        self.wdg_preferred = PreferredWidget()
+        self.wdg_preferred_xray = PreferredXrayWidget()
 
         self.wdg_tab = QtWidgets.QTabWidget()
-        self.wdg_tab.addTab(self.wdg_programs, 'Programs')
-        self.wdg_tab.addTab(self.wdg_preferred, 'Preference')
+        self.wdg_tab.addTab(self.wdg_preferred_units, 'Units')
+        self.wdg_tab.addTab(self.wdg_preferred_xray, 'X-ray')
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.wdg_tab)
         self.setLayout(layout)
 
-    def settings(self):
-        settings = Settings()
-
-        settings.deactivate_all_programs()
-        for program in self.wdg_programs.activatedPrograms():
-            settings.activate_program(program)
-
-        settings.preferred_xrayline_notation = self.wdg_preferred.xrayLineNotation()
-
+    def updateSettings(self, settings):
         settings.clear_preferred_units()
-        for unit in self.wdg_preferred.units():
+        for unit in self.wdg_preferred_units.units():
             settings.set_preferred_unit(unit)
 
+        settings.preferred_xray_notation = self.wdg_preferred_xray.notation()
+
+    def settings(self):
+        settings = Settings()
+        self.updateSettings(settings)
         return settings
 
     def setSettings(self, settings):
-        self.wdg_programs.setActivatedPrograms(settings.activated_programs)
+        self.wdg_preferred_units.setUnits(settings.preferred_units.values())
 
-        self.wdg_preferred.setXrayLineNotation(settings.preferred_xrayline_notation)
-
-        self.wdg_preferred.setUnits(settings.preferred_units.values())
-
-class SettingsCentralWidget(QtWidgets.QWidget):
-
-    saved = QtCore.Signal()
-    aborted = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        # Widgets
-        self.wdg_settings = SettingsWidget()
-        self.wdg_settings.layout().setContentsMargins(0, 0, 0, 0)
-
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Save |
-                                             QtWidgets.QDialogButtonBox.Abort)
-
-        # Layouts
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.wdg_settings)
-        layout.addWidget(buttons)
-
-        self.setLayout(layout)
-
-        # Signals
-        buttons.accepted.connect(self._on_save)
-        buttons.rejected.connect(self.aborted)
-
-    def _on_save(self):
-        settings = self.settings()
-
-        try:
-            settings.validate()
-        except ValidationError as ex:
-            messagebox.exception(self, ex)
-            return
-
-        try:
-            settings.write()
-        except Exception as ex:
-            messagebox.exception(self, ex)
-            return
-
-        message = 'Settings successfully saved'
-        QtWidgets.QMessageBox.information(self, 'Save', message)
-
-        self.saved.emit()
-
-    def settings(self):
-        return self.wdg_settings.settings()
-
-    def setSettings(self, settings):
-        self.wdg_settings.setSettings(settings)
-
-class SettingsMainWindow(QtWidgets.QMainWindow):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle('Settings')
-
-        # Widgets
-        self.wdg_central = SettingsCentralWidget()
-
-        # Layouts
-        self.setCentralWidget(self.wdg_central)
-
-        # Signals
-        self.wdg_central.saved.connect(self.close)
-        self.wdg_central.aborted.connect(self.close)
-
-    def settings(self):
-        return self.wdg_central.settings()
-
-    def setSettings(self, settings):
-        self.wdg_central.setSettings(settings)
+        self.wdg_preferred_xray.setNotation(settings.preferred_xray_notation)
 
 class SettingsDialog(QtWidgets.QDialog):
 
@@ -555,20 +150,49 @@ class SettingsDialog(QtWidgets.QDialog):
         self.setWindowTitle('Settings')
 
         # Widgets
-        self.widget = SettingsCentralWidget()
+        self.widget = SettingsWidget()
+
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Save |
+                                             QtWidgets.QDialogButtonBox.Abort)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.widget)
+        layout.addWidget(buttons)
         self.setLayout(layout)
 
         # Signals
-        self.widget.saved.connect(self.accept)
-        self.widget.aborted.connect(self.reject)
+        buttons.accepted.connect(self._on_save)
+        buttons.rejected.connect(self.reject)
+
+    def _on_save(self):
+        settings = self.settings()
+
+        try:
+            settings.write()
+        except Exception as ex:
+            messagebox.exception(self, ex)
+            return
+
+        self.accept()
+
+    def updateSettings(self, settings):
+        self.widget.updateSettings(settings)
 
     def settings(self):
         return self.widget.settings()
 
     def setSettings(self, settings):
         self.widget.setSettings(settings)
+
+def run():
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+
+    dialog = SettingsDialog()
+    dialog.show()
+
+    app.exec_()
+
+if __name__ == '__main__':
+    run()

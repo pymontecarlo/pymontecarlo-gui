@@ -9,11 +9,12 @@ import multiprocessing
 from qtpy import QtCore, QtGui, QtWidgets
 
 # Local modules.
-import pymontecarlo
+from pymontecarlo.settings import Settings
 from pymontecarlo.project import Project
 from pymontecarlo.formats.hdf5.reader import HDF5Reader
 from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
+from pymontecarlo.util.entrypoint import resolve_entrypoints
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
@@ -25,8 +26,12 @@ from pymontecarlo_gui.widgets.future import \
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
+from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 
 # Globals and constants variables.
+
+def has_programs():
+    return bool(resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS))
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -40,6 +45,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._should_save = False
 
         self._project = Project()
+
+        self._settings = Settings.read()
 
         self._reader = HDF5Reader()
         self._reader.start()
@@ -85,9 +92,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_stop_simulations.triggered.connect(self._on_stop_all_simulations)
         self.action_stop_simulations.setEnabled(False)
 
-        self.action_test = QtWidgets.QAction('Test')
-        self.action_test.triggered.connect(self._on_test)
-
         # Timers
         self.timer_runner = QtCore.QTimer()
         self.timer_runner.setInterval(1000)
@@ -107,8 +111,6 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_simulation = menu.addMenu('Simulation')
         menu_simulation.addAction(self.action_create_simulations)
         menu_simulation.addAction(self.action_stop_simulations)
-        menu_simulation.addSeparator()
-        menu_simulation.addAction(self.action_test)
 
         # Tool bar
         toolbar_file = self.addToolBar("File")
@@ -232,34 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.action_stop_simulations.setEnabled(self._runner.running())
 
-    def _on_test(self):
-        import math
-        from pymontecarlo.options.beam import GaussianBeam
-        from pymontecarlo.options.material import Material
-        from pymontecarlo.options.sample import SubstrateSample
-        from pymontecarlo.options.detector import PhotonDetector
-        from pymontecarlo.options.analysis import KRatioAnalysis
-        from pymontecarlo.options.limit import ShowersLimit
-        from pymontecarlo.options.options import Options
-
-        if not pymontecarlo.settings.has_program('casino2'):
-            return
-
-        program = pymontecarlo.settings.get_program('casino2')
-        beam = GaussianBeam(15e3, 10e-9)
-        mat1 = Material.pure(29)
-        sample = SubstrateSample(mat1)
-
-        photon_detector = PhotonDetector('xray', math.radians(35.0))
-        analysis = KRatioAnalysis(photon_detector)
-
-        limit = ShowersLimit(1000)
-
-        options = Options(program, beam, sample, [analysis], [limit])
-        self._runner.submit(options)
-
-        self.dock_runner.raise_()
-
     def _on_future_submitted(self, future):
         self.table_runner.addFuture(future)
 
@@ -277,7 +251,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
-        if not pymontecarlo.settings.activated_programs:
+        if not has_programs():
             title = 'New simulations'
             message = 'No program is activated. ' + \
                 'Go to File > Settings to activate at least one program.'
@@ -310,13 +284,13 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def _on_settings(self):
-        self.dialog_settings.setSettings(pymontecarlo.settings)
+        self.dialog_settings.setSettings(self._settings)
 
         if not self.dialog_settings.exec_():
             return
 
-        pymontecarlo.settings.update(self.dialog_settings.settings())
-        self.wizard_simulation = NewSimulationWizard()
+        self.dialog_settings.updateSettings(self._settings)
+        self._settings.settings_changed.send()
 
     def _run_future_in_thread(self, future, title):
         dialog = QtWidgets.QProgressDialog()
@@ -376,7 +350,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.clear()
         self._runner.submitted_options.clear()
 
-        field_project = ProjectField(project)
+        field_project = ProjectField(self._settings, project)
         self.tree.addField(field_project)
 
         for index, simulation in enumerate(project.simulations, 1):
@@ -475,12 +449,13 @@ class MainWindow(QtWidgets.QMainWindow):
         assert len(toplevelfields) == 1
 
         field_project = toplevelfields[0]
+        settings = self._settings
         project = field_project.project()
 
         # Summary table
         field_summary_table = _find_field(field_project, ProjectSummaryTableField)
         if not field_summary_table:
-            field_summary_table = ProjectSummaryTableField(project)
+            field_summary_table = ProjectSummaryTableField(settings, project)
             self.tree.addField(field_summary_table, field_project)
 
         field_summary_table.setProject(project)
@@ -488,7 +463,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Summary figure
         field_summary_figure = _find_field(field_project, ProjectSummaryFigureField)
         if not field_summary_figure:
-            field_summary_figure = ProjectSummaryFigureField(project)
+            field_summary_figure = ProjectSummaryFigureField(settings, project)
             self.tree.addField(field_summary_figure, field_project)
 
         field_summary_figure.setProject(project)
@@ -505,7 +480,7 @@ class MainWindow(QtWidgets.QMainWindow):
         field_simulation = SimulationField(index, simulation)
         self.tree.addField(field_simulation, field_simulations)
 
-        field_options = OptionsField(simulation.options)
+        field_options = OptionsField(simulation.options, self._settings)
         self.tree.addField(field_options, field_simulation)
 
         if not simulation.results:
