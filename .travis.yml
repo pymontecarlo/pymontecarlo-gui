@@ -14,7 +14,7 @@ before_install:
 - sleep 3
 install:
 - pip install --cache-dir $HOME/.pip-cache --upgrade pip codecov
-- pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git@emas2017
+- pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git
 - pip install --cache-dir $HOME/.pip-cache --upgrade -e .[develop]
 script:
 - nosetests
