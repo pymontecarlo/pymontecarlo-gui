@@ -452,8 +452,9 @@ class MaterialDialog(QtWidgets.QDialog):
         # Widgets
         self.wdg_material = material_widget_class()
 
-        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
-                                                  QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QtWidgets.QDialogButtonBox()
+        self.buttons.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | \
+                                        QtWidgets.QDialogButtonBox.Cancel)
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
         # Layouts

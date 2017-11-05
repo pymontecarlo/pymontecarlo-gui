@@ -275,8 +275,9 @@ class PeriodicTableDialog(QtWidgets.QDialog):
         # Widgets
         self._wdg_table = PeriodicTableWidget()
 
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | \
-                                             QtWidgets.QDialogButtonBox.Cancel)
+        buttons = QtWidgets.QDialogButtonBox()
+        buttons.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | \
+                                   QtWidgets.QDialogButtonBox.Cancel)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()

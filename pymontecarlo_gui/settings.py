@@ -152,8 +152,9 @@ class SettingsDialog(QtWidgets.QDialog):
         # Widgets
         self.widget = SettingsWidget()
 
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Save |
-                                             QtWidgets.QDialogButtonBox.Abort)
+        buttons = QtWidgets.QDialogButtonBox()
+        buttons.setStandardButtons(QtWidgets.QDialogButtonBox.Save |
+                                   QtWidgets.QDialogButtonBox.Abort)
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
