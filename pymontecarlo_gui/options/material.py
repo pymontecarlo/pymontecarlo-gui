@@ -18,12 +18,12 @@ from pymontecarlo_gui.options.composition import CompositionTableWidget
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
-from pymontecarlo_gui.widgets.field import Field, FieldLayout
+from pymontecarlo_gui.widgets.field import FieldBase, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
-    Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
+    ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 DEFAULT_VALIDATOR = ValidatorMock()
@@ -97,7 +97,7 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
 #--- Widgets
 
-class MaterialNameField(Field):
+class MaterialNameField(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -156,7 +156,7 @@ class MaterialNameField(Field):
         self._composition = composition.copy()
         self._update_name()
 
-class MaterialFormulaField(Field):
+class MaterialFormulaField(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -181,7 +181,7 @@ class MaterialFormulaField(Field):
     def setFormula(self, formula):
         self._widget.setText(formula)
 
-class MaterialDensityField(Field):
+class MaterialDensityField(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -242,7 +242,7 @@ class MaterialDensityField(Field):
         self._composition = composition.copy()
         self._update_density()
 
-class MaterialColorField(Field):
+class MaterialColorField(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -266,7 +266,7 @@ class MaterialColorField(Field):
     def setColor(self, color):
         self._widget.setColor(color)
 
-class MaterialWidget(QtWidgets.QWidget, Validable, MaterialValidatorMixin,
+class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
                      metaclass=QABCMeta):
 
     materialsChanged = QtCore.Signal()
@@ -843,7 +843,7 @@ class CheckableMaterialModel(MaterialModel):
 class MaterialListWidget(QtWidgets.QWidget,
                          MaterialAbstractViewMixin,
                          MaterialVacuumMixin,
-                         Validable):
+                         ValidableBase):
 
     selectionChanged = QtCore.Signal()
 

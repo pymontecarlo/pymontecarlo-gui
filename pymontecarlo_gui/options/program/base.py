@@ -7,12 +7,12 @@ import abc
 from qtpy import QtGui
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import WidgetField, CheckField
+from pymontecarlo_gui.widgets.field import WidgetFieldBase, CheckFieldBase
 from pymontecarlo_gui.widgets.label import LabelIcon
 
 # Globals and constants variables.
 
-class ProgramField(WidgetField):
+class ProgramFieldBase(WidgetFieldBase):
 
     def __init__(self, default_program):
         """
@@ -45,7 +45,7 @@ class ProgramField(WidgetField):
 
         return errors
 
-class CheckProgramField(CheckField):
+class CheckProgramField(CheckFieldBase):
 
     def __init__(self, program_field):
         self._program_field = program_field
@@ -97,7 +97,7 @@ class CheckProgramField(CheckField):
     def isValid(self):
         return super().isValid() and not self.hasErrors()
 
-class ProgramsField(WidgetField):
+class ProgramsField(WidgetFieldBase):
 
     def __init__(self):
         super().__init__()

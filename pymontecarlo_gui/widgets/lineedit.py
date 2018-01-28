@@ -13,7 +13,7 @@ import numpy as np
 # Local modules.
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
-    Validable, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
+    ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 
@@ -65,7 +65,7 @@ class LineEditAdapterMixin(metaclass=QABCMeta):
     def hasAcceptableInput(self):
         return self._get_lineedit().hasAcceptableInput()
 
-class ColoredLineEdit(QtWidgets.QLineEdit, Validable):
+class ColoredLineEdit(QtWidgets.QLineEdit, ValidableBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -97,7 +97,7 @@ class ColoredLineEdit(QtWidgets.QLineEdit, Validable):
 class ColoredFloatLineEdit(QtWidgets.QWidget,
                            LineEditAdapterMixin,
                            DoubleValidatorAdapterMixin,
-                           Validable):
+                           ValidableBase):
 
     valueChanged = QtCore.Signal(float)
 
@@ -263,7 +263,7 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
 class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
                                 LineEditAdapterMixin,
                                 DoubleValidatorAdapterMixin,
-                                Validable):
+                                ValidableBase):
 
     valuesChanged = QtCore.Signal(tuple)
 

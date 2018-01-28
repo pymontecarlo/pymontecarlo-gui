@@ -15,7 +15,7 @@ INVALID_COLOR = 'pink'
 VALID_BACKGROUND_STYLESHEET = 'background: none'
 INVALID_BACKGROUND_STYLESHEET = 'background: ' + INVALID_COLOR
 
-class Validable(metaclass=QABCMeta):
+class ValidableBase(metaclass=QABCMeta):
 
     @abc.abstractmethod
     def isValid(self):

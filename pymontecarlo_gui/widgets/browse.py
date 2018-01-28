@@ -13,7 +13,7 @@ from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class _BrowseWidget(QtWidgets.QWidget, metaclass=QABCMeta):
+class BrowseWidgetBase(QtWidgets.QWidget, metaclass=QABCMeta):
 
     pathChanged = QtCore.Signal(str)
 
@@ -105,10 +105,10 @@ class _BrowseWidget(QtWidgets.QWidget, metaclass=QABCMeta):
         path = self._txt_path.text()
         return path if path else None
 
-class FileBrowseWidget(_BrowseWidget):
+class FileBrowseWidget(BrowseWidgetBase):
 
     def __init__(self, parent=None):
-        _BrowseWidget.__init__(self, parent=parent)
+        BrowseWidgetBase.__init__(self, parent=parent)
 
         # Variables
         self._namefilters = []
@@ -133,7 +133,7 @@ class FileBrowseWidget(_BrowseWidget):
     def nameFilters(self):
         return list(self._namefilters)
 
-class DirectoryBrowseWidget(_BrowseWidget):
+class DirectoryBrowseWidget(BrowseWidgetBase):
 
     def _show_dialog(self, basedir):
         title = "Browse directory"

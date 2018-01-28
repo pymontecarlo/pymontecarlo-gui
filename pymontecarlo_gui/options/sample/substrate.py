@@ -8,11 +8,11 @@
 from pymontecarlo.options.sample.substrate import SubstrateSampleBuilder
 
 from pymontecarlo_gui.options.sample.base import \
-    SampleField, AngleField, MaterialField
+    SampleFieldBase, AngleField, MaterialField
 
 # Globals and constants variables.
 
-class SubstrateSampleField(SampleField):
+class SubstrateSampleField(SampleFieldBase):
 
     def __init__(self):
         super().__init__()

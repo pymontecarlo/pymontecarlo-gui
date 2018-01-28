@@ -11,7 +11,7 @@ from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class ResultSummaryWidget(QtWidgets.QWidget, metaclass=QABCMeta):
+class ResultSummaryWidgetBase(QtWidgets.QWidget, metaclass=QABCMeta):
 
     @abc.abstractmethod
     def setProject(self, project):

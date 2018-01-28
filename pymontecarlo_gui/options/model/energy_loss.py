@@ -7,11 +7,11 @@ Energy loss models.
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.model.base import ModelField
+from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class EnergyLossModelField(ModelField):
+class EnergyLossModelField(ModelFieldBase):
 
     def title(self):
         return 'Energy loss'

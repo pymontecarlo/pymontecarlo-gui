@@ -5,13 +5,13 @@
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.analysis.photon import PhotonAnalysisField
+from pymontecarlo_gui.options.analysis.photon import PhotonAnalysisFieldBase
 
 from pymontecarlo.options.analysis.kratio import KRatioAnalysisBuilder
 
 # Globals and constants variables.
 
-class KRatioAnalysisField(PhotonAnalysisField):
+class KRatioAnalysisField(PhotonAnalysisFieldBase):
 
     def title(self):
         return 'k-ratio'

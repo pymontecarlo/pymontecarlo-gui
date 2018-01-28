@@ -7,11 +7,11 @@ Elastic cross section models.
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.model.base import ModelField
+from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class ElasticCrossSectionModelField(ModelField):
+class ElasticCrossSectionModelField(ModelFieldBase):
 
     def title(self):
         return 'Elastic cross section'

@@ -5,13 +5,13 @@
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.analysis.photon import PhotonAnalysisField
+from pymontecarlo_gui.options.analysis.photon import PhotonAnalysisFieldBase
 
 from pymontecarlo.options.analysis.photonintensity import PhotonIntensityAnalysisBuilder
 
 # Globals and constants variables.
 
-class PhotonIntensityAnalysisField(PhotonAnalysisField):
+class PhotonIntensityAnalysisField(PhotonAnalysisFieldBase):
 
     def title(self):
         return 'Photon intensity'

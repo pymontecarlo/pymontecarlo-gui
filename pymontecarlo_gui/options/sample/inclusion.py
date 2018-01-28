@@ -12,13 +12,13 @@ from pymontecarlo.options.sample.inclusion import InclusionSample, InclusionSamp
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.sample.base import \
-    SampleField, AngleField, MaterialWidgetField
-from pymontecarlo_gui.widgets.field import MultiValueField
+    SampleFieldBase, AngleField, MaterialWidgetField
+from pymontecarlo_gui.widgets.field import MultiValueFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
-class InclusionDiameterField(MultiValueField):
+class InclusionDiameterField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -73,7 +73,7 @@ class InclusionField(MaterialWidgetField):
     def setDiametersMeter(self, diameters_m):
         self.field_diameter.setDiametersMeter(diameters_m)
 
-class InclusionSampleField(SampleField):
+class InclusionSampleField(SampleFieldBase):
 
     def __init__(self):
         super().__init__()

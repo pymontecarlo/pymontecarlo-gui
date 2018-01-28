@@ -13,8 +13,8 @@ from pymontecarlo.options.sample.verticallayers import \
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.sample.base import \
-    AngleField, MaterialWidgetField, LayerBuilderField, SampleField
-from pymontecarlo_gui.widgets.field import MultiValueField, WidgetField
+    AngleField, MaterialWidgetField, LayerBuilderField, SampleFieldBase
+from pymontecarlo_gui.widgets.field import MultiValueFieldBase, WidgetFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
@@ -29,7 +29,7 @@ class RightSubstrateField(MaterialWidgetField):
     def title(self):
         return "Right substrate"
 
-class DepthField(MultiValueField):
+class DepthField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -79,7 +79,7 @@ class DepthField(MultiValueField):
         self._widget.setValues(values)
         self._suffix.setChecked(False)
 
-class DimensionField(WidgetField):
+class DimensionField(WidgetFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -96,7 +96,7 @@ class DimensionField(WidgetField):
     def setDepthsMeter(self, depths_m):
         self.field_depth.setDepthsMeter(depths_m)
 
-class VerticalLayerSampleField(SampleField):
+class VerticalLayerSampleField(SampleFieldBase):
 
     def __init__(self):
         super().__init__()

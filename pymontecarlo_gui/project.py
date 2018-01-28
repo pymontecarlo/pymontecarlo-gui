@@ -6,14 +6,14 @@
 from qtpy import QtCore, QtGui
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import Field
+from pymontecarlo_gui.widgets.field import FieldBase
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.results.summary import \
     ResultSummaryTableWidget, ResultSummaryFigureWidget
 
 # Globals and constants variables.
 
-class _SettingsBasedField(Field):
+class _SettingsBasedField(FieldBase):
 
     settingsChanged = QtCore.Signal()
 
@@ -101,7 +101,7 @@ class ProjectSummaryFigureField(_ProjectDerivedField):
             self._widget.setProject(project)
         super().setProject(project)
 
-class SimulationsField(Field):
+class SimulationsField(FieldBase):
 
     def title(self):
         return 'Simulations'
@@ -112,7 +112,7 @@ class SimulationsField(Field):
     def widget(self):
         return super().widget()
 
-class SimulationField(Field):
+class SimulationField(FieldBase):
 
     def __init__(self, index, simulation):
         self._index = index
@@ -137,7 +137,7 @@ class SimulationField(Field):
     def simulation(self):
         return self._simulation
 
-class ResultsField(Field):
+class ResultsField(FieldBase):
 
     def title(self):
         return 'Results'

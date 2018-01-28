@@ -6,11 +6,11 @@ import abc
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import WidgetField
+from pymontecarlo_gui.widgets.field import WidgetFieldBase
 
 # Globals and constants variables.
 
-class DetectorField(WidgetField):
+class DetectorFieldBase(WidgetFieldBase):
 
     def isValid(self):
         return super().isValid() and bool(self.detectors())

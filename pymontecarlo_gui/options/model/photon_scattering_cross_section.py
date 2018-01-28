@@ -7,11 +7,11 @@ Photon scattering cross section models.
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.model.base import ModelField
+from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class PhotonScatteringCrossSectionModelField(ModelField):
+class PhotonScatteringCrossSectionModelField(ModelFieldBase):
 
     def title(self):
         return 'Photon scattering cross section'

@@ -13,7 +13,7 @@ from pygments.lexers.python import Python3Lexer
 from pygments.formatters.html import HtmlFormatter
 
 # Local modules.
-from pymontecarlo_gui.util.validate import Validable
+from pymontecarlo_gui.util.validate import ValidableBase
 from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.font import make_italic
@@ -22,7 +22,7 @@ from pymontecarlo_gui.widgets.mdi import MdiSubWindow
 
 # Globals and constants variables.
 
-class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
+class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
 
     fieldChanged = QtCore.Signal()
 
@@ -70,7 +70,7 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
             return False
 
         widget = self.widget()
-        if isinstance(widget, Validable) and not widget.isValid():
+        if isinstance(widget, ValidableBase) and not widget.isValid():
             return False
 
         return True
@@ -85,14 +85,14 @@ class Field(QtCore.QObject, Validable, metaclass=QABCMeta):
         if self.hasSuffix():
             self.suffixWidget().setEnabled(enabled)
 
-class MultiValueField(Field):
+class MultiValueFieldBase(FieldBase):
 
     def titleWidget(self):
         label = super().titleWidget()
         label.setStyleSheet('color: blue')
         return label
 
-class CheckField(Field):
+class CheckFieldBase(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -110,7 +110,7 @@ class CheckField(Field):
     def widget(self):
         return QtWidgets.QWidget()
 
-class WidgetField(Field):
+class WidgetFieldBase(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -152,7 +152,7 @@ class WidgetField(Field):
     def fields(self):
         return tuple(self._fields)
 
-class ToolBoxField(Field):
+class ToolBoxFieldBase(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -171,7 +171,7 @@ class ToolBoxField(Field):
     def widget(self):
         return self._widget
 
-class ExceptionField(Field):
+class ExceptionField(FieldBase):
 
     def __init__(self, exception):
         self._exception = exception
@@ -263,7 +263,7 @@ class FieldLayout(QtWidgets.QVBoxLayout):
         if has_suffix:
             self.lyt_field.addWidget(field.suffixWidget(), row, 0, 1, 3)
 
-class FieldToolBox(QtWidgets.QToolBox, Validable):
+class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -292,7 +292,7 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
 
     def addField(self, field):
         if field in self._fields:
-            raise ValueError('Field "{}" already added'.format(field))
+            raise ValueError('FieldBase "{}" already added'.format(field))
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -324,7 +324,7 @@ class FieldToolBox(QtWidgets.QToolBox, Validable):
 
 class FieldChooser(QtWidgets.QWidget):
 
-    currentFieldChanged = QtCore.Signal(Field)
+    currentFieldChanged = QtCore.Signal(FieldBase)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -399,7 +399,7 @@ class FieldChooser(QtWidgets.QWidget):
 
 class FieldTree(QtWidgets.QWidget):
 
-    doubleClicked = QtCore.Signal(Field)
+    doubleClicked = QtCore.Signal(FieldBase)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -426,7 +426,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def addField(self, field, parent_field=None):
         if field in self._field_items:
-            raise ValueError('Field {} already in tree'.format(field))
+            raise ValueError('FieldBase {} already in tree'.format(field))
 
         if parent_field is None:
             parent_field = self.tree
@@ -443,7 +443,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def removeField(self, field):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
 
         item = self._field_items.pop(field)
         item.parent().removeChild(item)
@@ -457,25 +457,25 @@ class FieldTree(QtWidgets.QWidget):
 
     def expandField(self, field):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.expandItem(item)
 
     def collapseField(self, field):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.collapseItem(item)
 
     def setFieldFont(self, field, font):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         item.setFont(0, font)
 
     def fieldFont(self, field):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         return item.font(0)
 
@@ -490,7 +490,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def childrenField(self, field):
         if field not in self._field_items:
-            raise ValueError('Field {} is not part of the tree'.format(field))
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
 
         children = []
@@ -502,8 +502,8 @@ class FieldTree(QtWidgets.QWidget):
 
 class FieldMdiArea(QtWidgets.QWidget):
 
-    windowOpened = QtCore.Signal(Field)
-    windowClosed = QtCore.Signal(Field)
+    windowOpened = QtCore.Signal(FieldBase)
+    windowClosed = QtCore.Signal(FieldBase)
 
     def __init__(self, parent=None):
         super().__init__(parent)

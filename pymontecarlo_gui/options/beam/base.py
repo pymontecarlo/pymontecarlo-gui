@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import abc
 
 # Third party modules.
 from qtpy import QtWidgets
@@ -12,12 +13,12 @@ from pymontecarlo.options.beam.base import BeamBase
 from pymontecarlo.options.particle import Particle
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.widgets.field import MultiValueField, Field, WidgetField
+from pymontecarlo_gui.widgets.field import MultiValueFieldBase, FieldBase, WidgetFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
-class EnergyField(MultiValueField):
+class EnergyField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -44,7 +45,7 @@ class EnergyField(MultiValueField):
         energies_eV = np.array(energies_eV) / 1e3
         self._widget.setValues(energies_eV)
 
-class ParticleField(Field):
+class ParticleField(FieldBase):
 
     def __init__(self):
         super().__init__()
@@ -74,11 +75,12 @@ class ParticleField(Field):
         index = self._widget.findData(particle)
         self._widget.setCurrentIndex(index)
 
-class BeamField(WidgetField):
+class BeamFieldBase(WidgetFieldBase):
 
     def isValid(self):
         return super().isValid() and bool(self.beams())
 
+    @abc.abstractmethod
     def beams(self):
         """
         Returns a :class:`list` of :class:`BeamBase`.

@@ -7,11 +7,11 @@ Ionization potential models.
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.model.base import ModelField
+from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class IonizationPotentialModelField(ModelField):
+class IonizationPotentialModelField(ModelFieldBase):
 
     def title(self):
         return 'Ionization potential'

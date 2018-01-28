@@ -18,7 +18,7 @@ from pymontecarlo.util.tolerance import tolerance_to_decimals
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit
 from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
+from pymontecarlo_gui.util.validate import ValidableBase, INVALID_COLOR
 
 # Globals and constants variables.
 MAX_Z = 99
@@ -100,7 +100,7 @@ class FractionValidator(QtGui.QDoubleValidator):
             return QtGui.QValidator.Acceptable, input, pos
         return super().validate(input, pos)
 
-class CompositionModel(QtCore.QAbstractTableModel, Validable):
+class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
 
     def __init__(self, composition=None):
         super().__init__()
@@ -398,7 +398,7 @@ class CompositionToolBar(QtWidgets.QToolBar):
         model = self.table.model()
         model.clearElements()
 
-class CompositionTableWidget(QtWidgets.QWidget, Validable):
+class CompositionTableWidget(QtWidgets.QWidget, ValidableBase):
 
     compositionChanged = QtCore.Signal()
 

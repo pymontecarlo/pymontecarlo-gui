@@ -9,7 +9,7 @@ from qtpy import QtWidgets
 from pymontecarlo.options.sample.horizontallayers import HorizontalLayerSampleBuilder
 
 from pymontecarlo_gui.options.sample.base import \
-    AngleField, MaterialWidgetField, LayerBuilderField, SampleField
+    AngleField, MaterialWidgetField, LayerBuilderField, SampleFieldBase
 
 # Globals and constants variables.
 
@@ -22,7 +22,7 @@ class SubstrateField(MaterialWidgetField):
     def title(self):
         return "Substrate (optional)"
 
-class HorizontalLayerSampleField(SampleField):
+class HorizontalLayerSampleField(SampleFieldBase):
 
     def __init__(self):
         super().__init__()

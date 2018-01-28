@@ -14,17 +14,17 @@ import numpy as np
 from pymontecarlo.options.sample.base import SampleBase, Layer, LayerBuilder
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.widgets.field import ToolBoxField, MultiValueField, WidgetField
+from pymontecarlo_gui.widgets.field import ToolBoxFieldBase, MultiValueFieldBase, WidgetFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.widgets.label import LabelIcon
-from pymontecarlo_gui.util.validate import Validable, INVALID_COLOR
+from pymontecarlo_gui.util.validate import ValidableBase, INVALID_COLOR
 from pymontecarlo_gui.options.material import MaterialListWidget
 
 # Globals and constants variables.
 
 #--- Fields
 
-class TiltField(MultiValueField):
+class TiltField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -53,7 +53,7 @@ class TiltField(MultiValueField):
     def setTiltsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class AzimuthField(MultiValueField):
+class AzimuthField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -79,7 +79,7 @@ class AzimuthField(MultiValueField):
     def setAzimuthsDegree(self, azimuths_deg):
         self._widget.setValues(azimuths_deg)
 
-class AngleField(WidgetField):
+class AngleField(WidgetFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -105,7 +105,7 @@ class AngleField(WidgetField):
     def setAzimuthsDegree(self, azimuths_deg):
         self.field_azimuth.setAzimuthsDegree(azimuths_deg)
 
-class MaterialField(MultiValueField):
+class MaterialField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -134,7 +134,7 @@ class MaterialField(MultiValueField):
     def setAvailableMaterials(self, materials):
         self._widget.setMaterials(materials)
 
-class MaterialWidgetField(WidgetField):
+class MaterialWidgetField(WidgetFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -154,7 +154,7 @@ class MaterialWidgetField(WidgetField):
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)
 
-class LayerBuilderField(MultiValueField):
+class LayerBuilderField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -185,7 +185,7 @@ class LayerBuilderField(MultiValueField):
 
 #--- Layers
 
-class LayerBuilderModel(QtCore.QAbstractTableModel, Validable):
+class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
 
     MIMETYPE = 'pymontecarlo/layerbuilder'
 
@@ -492,7 +492,7 @@ class LayerBuilderToolbar(QtWidgets.QToolBar):
         model = self.table.model()
         model.clearLayerBuilders()
 
-class LayerBuilderWidget(QtWidgets.QWidget, Validable):
+class LayerBuilderWidget(QtWidgets.QWidget, ValidableBase):
 
     layerBuildersChanged = QtCore.Signal()
 
@@ -560,7 +560,7 @@ class LayerBuilderWidget(QtWidgets.QWidget, Validable):
 
 #--- Base widgets
 
-class SampleField(ToolBoxField):
+class SampleFieldBase(ToolBoxFieldBase):
 
     def isValid(self):
         return super().isValid() and bool(self.samples())

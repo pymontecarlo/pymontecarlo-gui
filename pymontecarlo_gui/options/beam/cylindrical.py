@@ -15,10 +15,10 @@ from pymontecarlo.options.beam.cylindrical import \
     CylindricalBeam, CylindricalBeamBuilder
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.options.beam.base import BeamField, EnergyField, ParticleField
+from pymontecarlo_gui.options.beam.base import BeamFieldBase, EnergyField, ParticleField
 from pymontecarlo_gui.options.base import ToleranceMixin
 from pymontecarlo_gui.widgets.field import \
-    WidgetField, Field, FieldChooser, MultiValueField
+    WidgetFieldBase, FieldBase, FieldChooser, MultiValueFieldBase
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredFloatLineEdit, ColoredMultiFloatLineEdit
 
@@ -26,7 +26,7 @@ from pymontecarlo_gui.widgets.lineedit import \
 
 Position = namedtuple('Position', ('x_m', 'y_m'))
 
-class DiameterField(MultiValueField, ToleranceMixin):
+class DiameterField(MultiValueFieldBase, ToleranceMixin):
 
     def __init__(self):
         super().__init__()
@@ -59,7 +59,7 @@ class DiameterField(MultiValueField, ToleranceMixin):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-class CoordinateField(Field, ToleranceMixin):
+class CoordinateField(FieldBase, ToleranceMixin):
 
     def __init__(self, title):
         self._title = title + ' [nm]'
@@ -89,7 +89,7 @@ class CoordinateField(Field, ToleranceMixin):
     def setCoordinateMeter(self, value_m):
         self._widget.setValue(value_m * 1e9)
 
-class StepField(Field):
+class StepField(FieldBase):
 
     def __init__(self, title='Number of steps'):
         self._title = title
@@ -115,7 +115,7 @@ class StepField(Field):
     def setStep(self, step):
         self._widget.setValue(step)
 
-class PositionField(WidgetField, ToleranceMixin):
+class PositionField(WidgetFieldBase, ToleranceMixin):
 
     def __init__(self):
         super().__init__()
@@ -454,7 +454,7 @@ class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
     def positions(self):
         return self.table_positions.model().positions()
 
-class PositionsField(Field, ToleranceMixin):
+class PositionsField(FieldBase, ToleranceMixin):
 
     def __init__(self):
         super().__init__()
@@ -482,7 +482,7 @@ class PositionsField(Field, ToleranceMixin):
         super().setToleranceMeter(tolerance_m)
         self._widget.setToleranceMeter(tolerance_m)
 
-class CylindricalBeamField(BeamField):
+class CylindricalBeamField(BeamFieldBase):
 
     def __init__(self):
         super().__init__()

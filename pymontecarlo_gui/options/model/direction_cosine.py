@@ -7,11 +7,11 @@ Direction cosine models.
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.options.model.base import ModelField
+from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class DirectionCosineModelField(ModelField):
+class DirectionCosineModelField(ModelFieldBase):
 
     def title(self):
         return 'Direction cosine'

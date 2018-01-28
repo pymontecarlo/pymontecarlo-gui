@@ -8,14 +8,14 @@
 from pymontecarlo.mock import ProgramMock, ProgramBuilderMock
 from pymontecarlo.options.model.elastic_cross_section import ElasticCrossSectionModel
 
-from pymontecarlo_gui.options.program.base import ProgramField
+from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.options.model.elastic_cross_section import ElasticCrossSectionModelField
-from pymontecarlo_gui.widgets.field import MultiValueField
+from pymontecarlo_gui.widgets.field import MultiValueFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
-class FooField(MultiValueField):
+class FooField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -40,7 +40,7 @@ class FooField(MultiValueField):
     def setFoos(self, foos):
         self._widget.setValues(foos)
 
-class ProgramFieldMock(ProgramField):
+class ProgramFieldMock(ProgramFieldBase):
 
     def __init__(self):
         default_program = ProgramMock()

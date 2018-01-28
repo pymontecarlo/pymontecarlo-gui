@@ -8,7 +8,7 @@ import itertools
 from qtpy import QtWidgets
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import CheckField, WidgetField, ToolBoxField
+from pymontecarlo_gui.widgets.field import CheckFieldBase, WidgetFieldBase, ToolBoxFieldBase
 from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
@@ -23,7 +23,7 @@ class AnalysesToolBoxMixin:
     def setAnalysesToolBoxField(self, field):
         self._field_toolbox = field
 
-class AnalysesToolBoxField(ToolBoxField):
+class AnalysesToolBoxField(ToolBoxFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -59,7 +59,7 @@ class AnalysesToolBoxField(ToolBoxField):
     def photonDetectors(self):
         return self.field_photon_detector.detectors()
 
-class AnalysisField(CheckField, AnalysesToolBoxMixin):
+class AnalysisFieldBase(CheckFieldBase, AnalysesToolBoxMixin):
 
     def __init__(self):
         super().__init__()
@@ -87,7 +87,7 @@ class AnalysisField(CheckField, AnalysesToolBoxMixin):
     def analyses(self):
         return []
 
-class AnalysesField(WidgetField, AnalysesToolBoxMixin):
+class AnalysesField(WidgetFieldBase, AnalysesToolBoxMixin):
 
     def title(self):
         return 'Analyses'

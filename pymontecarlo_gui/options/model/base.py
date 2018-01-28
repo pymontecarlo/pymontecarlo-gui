@@ -5,11 +5,11 @@
 # Third party modules.
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import WidgetField, CheckField
+from pymontecarlo_gui.widgets.field import WidgetFieldBase, CheckFieldBase
 
 # Globals and constants variables.
 
-class ModelCheckField(CheckField):
+class ModelCheckField(CheckFieldBase):
 
     def __init__(self, model):
         self._model = model
@@ -24,7 +24,7 @@ class ModelCheckField(CheckField):
     def model(self):
         return self._model
 
-class ModelField(WidgetField):
+class ModelFieldBase(WidgetFieldBase):
 
     def addModel(self, model, checked=False):
         field = ModelCheckField(model)

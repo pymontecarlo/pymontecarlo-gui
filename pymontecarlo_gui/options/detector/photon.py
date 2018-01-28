@@ -9,13 +9,13 @@ import math
 from pymontecarlo.options.detector.photon import PhotonDetector, PhotonDetectorBuilder
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.widgets.field import MultiValueField
+from pymontecarlo_gui.widgets.field import MultiValueFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
-from pymontecarlo_gui.options.detector.base import DetectorField
+from pymontecarlo_gui.options.detector.base import DetectorFieldBase
 
 # Globals and constants variables.
 
-class ElevationField(MultiValueField):
+class ElevationField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -41,7 +41,7 @@ class ElevationField(MultiValueField):
     def setElevationsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class AzimuthField(MultiValueField):
+class AzimuthField(MultiValueFieldBase):
 
     def __init__(self):
         super().__init__()
@@ -67,7 +67,7 @@ class AzimuthField(MultiValueField):
     def setAzimuthsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class PhotonDetectorField(DetectorField):
+class PhotonDetectorField(DetectorFieldBase):
 
     def __init__(self):
         super().__init__()

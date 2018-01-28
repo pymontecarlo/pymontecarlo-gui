@@ -19,7 +19,7 @@ from matplotlib.cbook import is_numlike
 # Local modules.
 from pymontecarlo.util.human import camelcase_to_words
 
-from pymontecarlo_gui.results.base import ResultSummaryWidget
+from pymontecarlo_gui.results.base import ResultSummaryWidgetBase
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.list import CheckListToolBar, SelectionListToolBar
 
@@ -193,7 +193,7 @@ class ResultClassListWidget(QtWidgets.QWidget):
             item.setCheckState(QtCore.Qt.Unchecked)
             self.listwidget.addItem(item)
 
-class ResultSummaryTableWidget(ResultSummaryWidget):
+class ResultSummaryTableWidget(ResultSummaryWidgetBase):
 
     COLUMN_WIDTH = 125
 
@@ -264,7 +264,7 @@ class ResultSummaryTableWidget(ResultSummaryWidget):
         self.wdg_table.model().setProject(project)
         self.lst_results.setProject(project)
 
-class ResultSummaryFigureWidget(ResultSummaryWidget):
+class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
     def __init__(self, settings, parent=None):
         super().__init__(parent)
