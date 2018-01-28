@@ -339,6 +339,9 @@ class MainWindow(QtWidgets.QMainWindow):
         return self._project
 
     def setProject(self, project):
+        if self._project is not None:
+            self._project.simulation_added.disconnect(self.addSimulation)
+
         self._project = project
         self._project.simulation_added.connect(self.addSimulation)
         self._runner.project = project
