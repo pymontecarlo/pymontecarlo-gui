@@ -8,7 +8,7 @@ from qtpy import QtCore, QtWidgets
 # Local modules.
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock, SampleMock
-from pymontecarlo.options.beam.base import Beam
+from pymontecarlo.options.beam.base import BeamBase
 from pymontecarlo.util.entrypoint import resolve_entrypoints
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
@@ -472,7 +472,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         beam_mock_added = False
         if estimate and not self.builder.beams:
-            self.builder.add_beam(Beam(0.0)) #TODO: Change back
+            self.builder.add_beam(BeamBase(0.0)) #TODO: Change back
             beam_mock_added = True
 
         sample_mock_added = False

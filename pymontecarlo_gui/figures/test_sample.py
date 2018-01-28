@@ -8,7 +8,8 @@ import math
 import matplotlib
 matplotlib.use('qt5agg')
 from matplotlib import figure
-from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import \
+    FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, \

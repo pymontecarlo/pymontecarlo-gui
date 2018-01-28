@@ -3,12 +3,12 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 import matplotlib
 matplotlib.use('qt5agg')
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from matplotlib_scalebar.scalebar import ScaleBar
 

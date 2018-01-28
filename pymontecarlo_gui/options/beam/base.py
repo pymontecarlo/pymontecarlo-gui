@@ -8,7 +8,7 @@ from qtpy import QtWidgets
 import numpy as np
 
 # Local modules.
-from pymontecarlo.options.beam.base import Beam
+from pymontecarlo.options.beam.base import BeamBase
 from pymontecarlo.options.particle import Particle
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
@@ -24,7 +24,7 @@ class EnergyField(MultiValueField):
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(Beam.ENERGY_TOLERANCE_eV) + 3
+        decimals = tolerance_to_decimals(BeamBase.ENERGY_TOLERANCE_eV) + 3
         self._widget.setRange(0, 1000, decimals)
         self._widget.setValues([20.0])
 
@@ -81,7 +81,7 @@ class BeamField(WidgetField):
 
     def beams(self):
         """
-        Returns a :class:`list` of :class:`Beam`.
+        Returns a :class:`list` of :class:`BeamBase`.
         """
         return []
 

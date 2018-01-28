@@ -11,7 +11,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 # Local modules.
-from pymontecarlo.options.sample.base import Sample, Layer, LayerBuilder
+from pymontecarlo.options.sample.base import SampleBase, Layer, LayerBuilder
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.widgets.field import ToolBoxField, MultiValueField, WidgetField
@@ -31,7 +31,7 @@ class TiltField(MultiValueField):
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(math.degrees(Sample.TILT_TOLERANCE_rad))
+        decimals = tolerance_to_decimals(math.degrees(SampleBase.TILT_TOLERANCE_rad))
         self._widget.setRange(-180.0, 180.0, decimals)
         self._widget.setValues([0.0])
 
@@ -60,7 +60,7 @@ class AzimuthField(MultiValueField):
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(math.degrees(Sample.AZIMUTH_TOLERANCE_rad))
+        decimals = tolerance_to_decimals(math.degrees(SampleBase.AZIMUTH_TOLERANCE_rad))
         self._widget.setRange(0.0, 360.0, decimals)
         self._widget.setValues([0.0])
 
@@ -568,7 +568,7 @@ class SampleField(ToolBoxField):
     @abc.abstractmethod
     def samples(self):
         """
-        Returns a :class:`list` of :class:`Sample`.
+        Returns a :class:`list` of :class:`SampleBase`.
         """
         return []
 
