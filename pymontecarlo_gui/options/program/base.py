@@ -23,7 +23,6 @@ class ProgramFieldBase(WidgetFieldBase):
         super().__init__()
 
         self._default_program = default_program
-        self._validator = default_program.create_validator()
 
     def isValid(self):
         return super().isValid() and bool(self.programs())
@@ -37,13 +36,15 @@ class ProgramFieldBase(WidgetFieldBase):
 
     def validateOptions(self, options):
         """
-        Returns a :class:`set` of :class:`Exception`.
+        Returns a :class:`set` of :class:`Exception` and 
+        a :class:`set` of :class:`Warning`.
         """
         errors = set()
-        options.program = self._default_program
-        self._validator._validate_options(options, errors)
+        warnings = set()
+#        options.program = self._default_program
+#        self._validator._validate_options(options, errors, warnings)
 
-        return errors
+        return errors, warnings
 
 class CheckProgramField(CheckFieldBase):
 
@@ -139,7 +140,8 @@ class ProgramsField(WidgetFieldBase):
             errors = set()
 
             for options in list_options:
-                errors |= program_field.validateOptions(options)
+                field_errors, _field_warnings = program_field.validateOptions(options)
+                errors |= field_errors
 
             field.setErrors(errors)
 

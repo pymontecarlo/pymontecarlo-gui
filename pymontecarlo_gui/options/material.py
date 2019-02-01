@@ -11,7 +11,6 @@ from qtpy import QtCore, QtGui, QtWidgets
 from pymontecarlo.options.material import Material, VACUUM
 from pymontecarlo.options.composition import \
     generate_name, calculate_density_kg_per_m3, from_formula
-from pymontecarlo.mock import ValidatorMock
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.composition import CompositionTableWidget
@@ -26,7 +25,6 @@ from pymontecarlo_gui.util.validate import \
     ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
-DEFAULT_VALIDATOR = ValidatorMock()
 
 #--- Mix-ins
 
@@ -34,7 +32,7 @@ class MaterialValidatorMixin:
 
     def validator(self):
         if not hasattr(self, '_validator'):
-            self._validator = DEFAULT_VALIDATOR
+            self._validator = None
         return self._validator
 
 class MaterialAbstractViewMixin(metaclass=QABCMeta):
@@ -286,11 +284,11 @@ class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
         if not materials:
             return False
 
-        try:
-            for material in materials:
-                material = self.validator().validate_material(material, None)
-        except Exception:
-            return False
+#        try:
+#            for material in materials:
+#                material = self.validator().validate_material(material, None)
+#        except Exception:
+#            return False
 
         return True
 
@@ -534,7 +532,7 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         return True
 
     def _add_material(self, material):
-        material = self.validator().validate_material(material, None)
+#        material = self.validator().validate_material(material, None)
         if material in self._materials:
             return False
         self._materials.append(material)

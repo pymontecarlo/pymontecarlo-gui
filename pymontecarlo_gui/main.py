@@ -4,6 +4,10 @@
 import os
 import functools
 import multiprocessing
+import asyncio
+import concurrent.futures
+import logging
+logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -15,6 +19,7 @@ from pymontecarlo.formats.hdf5.reader import HDF5Reader
 from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
 from pymontecarlo.util.entrypoint import resolve_entrypoints
+from pymontecarlo.util.token import TokenState
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
@@ -35,11 +40,13 @@ def has_programs():
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None):
+    def __init__(self, loop, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
 
         # Variables
+        self._loop = loop
+
         self._dirpath_open = None
         self._dirpath_save = None
         self._should_save = False
@@ -54,9 +61,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._writer = HDF5Writer()
         self._writer.start()
 
-        maxworkers = multiprocessing.cpu_count() - 1
-        self._runner = LocalSimulationRunner(self._project, maxworkers)
-        self._runner.start()
+        max_workers = multiprocessing.cpu_count() - 1
+        self._runner = LocalSimulationRunner(self._project, max_workers=max_workers, loop=loop)
 
         # Actions
         self.action_new_project = QtWidgets.QAction('New project')
@@ -172,7 +178,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog_settings = SettingsDialog()
 
         # Signals
-        self._runner.submitted.connect(self._on_future_submitted)
+#        self._runner.submitted.connect(self._on_future_submitted)
 
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
 
@@ -185,6 +191,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Defaults
         self.setProject(self._project)
+
+        asyncio.run_coroutine_threadsafe(self._runner.start(), loop)
 
         self.timer_runner.start()
 
@@ -207,14 +215,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.setFieldFont(field, font)
 
     def _on_timer_runner_timeout(self):
-        progress = int(self._runner.progress * 100)
+        token = self._runner.token
+        subtokens = token.subtokens
+
+        progress = int(token.progress * 100)
         self.statusbar_progressbar.setValue(progress)
 
-        status = self._runner.status
+        status = token.status
         timeout = self.timer_runner.interval()
         self.statusBar().showMessage(status, timeout)
 
-        submitted_count = self._runner.submitted_count
+        submitted_count = len(subtokens)
         if submitted_count == 0:
             text = 'No simulation submitted'
         elif submitted_count == 1:
@@ -223,7 +234,8 @@ class MainWindow(QtWidgets.QMainWindow):
             text = '{} simulations submitted'.format(submitted_count)
         self.statusbar_submitted.setText(text)
 
-        done_count = self._runner.done_count
+        done_count = sum(subtoken.state == TokenState.DONE
+                         for subtoken in subtokens)
         if done_count == 0:
             text = 'No simulation done'
         elif done_count == 1:
@@ -232,7 +244,8 @@ class MainWindow(QtWidgets.QMainWindow):
             text = '{} simulations done'.format(done_count)
         self.statusbar_done.setText(text)
 
-        self.action_stop_simulations.setEnabled(self._runner.running())
+        is_running = token.state == TokenState.RUNNING
+        self.action_stop_simulations.setEnabled(is_running)
 
     def _on_future_submitted(self, future):
         self.table_runner.addFuture(future)
@@ -263,7 +276,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         list_options = self.wizard_simulation.optionsList()
-        self._runner.submit(*list_options)
+        logger.debug('Wizard defined {} simulations'.format(len(list_options)))
+
+        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), self._loop)
+
+        logger.debug('Submitted simulations')
 
         self.dock_runner.raise_()
 
@@ -319,6 +336,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
+    def closeEvent(self, event):
+        state = self._runner.token.state
+        if state == TokenState.RUNNING:
+            caption = 'Quit'
+            message = 'One or more simulations are running. Do you really want to quit?'
+            buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
+
+            if answer == QtWidgets.QMessageBox.No:
+                event.reject()
+                return
+
+        futures = []
+        futures.append(asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop))
+        futures.append(asyncio.run_coroutine_threadsafe(self._runner.shutdown(), self._loop))
+
+        concurrent.futures.wait(futures)
+
+        event.accept()
+
     def openPath(self):
         if self._dirpath_open is None:
             if self._dirpath_save is None:
@@ -344,14 +381,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._project = project
         self._project.simulation_added.connect(self.addSimulation)
-        self._runner.project = project
+#        self._runner.project = project
 
         if project.filepath:
             self._dirpath_open = os.path.dirname(project.filepath)
 
         self.mdiarea.clear()
         self.tree.clear()
-        self._runner.submitted_options.clear()
+#        self._runner.submitted_options.clear()
 
         field_project = ProjectField(self._settings, project)
         self.tree.addField(field_project)
