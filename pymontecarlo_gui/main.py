@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._writer.start()
 
         max_workers = multiprocessing.cpu_count() - 1
-        self._runner = LocalSimulationRunner(self._project, max_workers=max_workers, loop=loop)
+        self._runner = LocalSimulationRunner(self._project, max_workers=max_workers)
 
         # Actions
         self.action_new_project = QtWidgets.QAction('New project')
