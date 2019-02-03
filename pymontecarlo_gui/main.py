@@ -26,8 +26,7 @@ from pymontecarlo_gui.project import \
      SimulationsField, SimulationField, ResultsField)
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
-from pymontecarlo_gui.widgets.future import \
-    FutureThread, FutureTableWidget, ExecutorCancelThread
+from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
@@ -294,10 +293,9 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.setCancelButton(None)
         dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
 
-        thread = ExecutorCancelThread(self._runner)
-        thread.finished.connect(dialog.close)
+        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop)
+        future.add_done_callback(lambda future: dialog.close())
 
-        thread.start()
         dialog.exec_()
 
     def _on_settings(self):
