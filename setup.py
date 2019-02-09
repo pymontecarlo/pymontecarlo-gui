@@ -20,7 +20,7 @@ PACKAGE_DATA = {'pymontecarlo_gui': ['icons/*.svg']}
 
 INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar',
                     'pyqttango', 'pygments', 'pandas']
-EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download']}
+EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download', 'pytest']}
 
 CMDCLASS = versioneer.get_cmdclass()
 
