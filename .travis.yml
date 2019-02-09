@@ -10,10 +10,6 @@ matrix:
   include:
     - python: "3.7"
       os: linux
-before_install:
-- "export DISPLAY=:99.0"
-- "sh -e /etc/init.d/xvfb start"
-- sleep 3
 install:
 - pip install --cache-dir $HOME/.pip-cache --upgrade pip codecov
 - pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git@async
