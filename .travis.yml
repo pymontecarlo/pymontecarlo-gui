@@ -1,12 +1,12 @@
 sudo: false
+dist: xenial
 language: python
 cache:
   directories:
   - $HOME/.pip-cache/
 matrix:
   include:
-    - python: "3.5"
-      env: DEPLOY=yes
+    - python: "3.7"
       os: linux
 before_install:
 - "export DISPLAY=:99.0"
@@ -14,7 +14,7 @@ before_install:
 - sleep 3
 install:
 - pip install --cache-dir $HOME/.pip-cache --upgrade pip codecov
-- pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git
+- pip install --cache-dir $HOME/.pip-cache --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git@async
 - pip install --cache-dir $HOME/.pip-cache --upgrade -e .[develop]
 script:
 - nosetests
