@@ -17,27 +17,27 @@ from pymontecarlo.options.composition import generate_name, calculate_density_kg
 
 # Globals and constants variables.
 
-@pytest.fixture
-def formula_validator(qtbot):
-    return FormulaValidator()
-
-def test_formula_validate_acceptable(qtbot, formula_validator):
-    state, text, pos = formula_validator.validate("Al2O3", 5)
-    assert state == QtGui.QValidator.Acceptable
-    assert text == 'Al2O3'
-    assert pos == 5
-
-def test_formula_validate_intermediate(qtbot, formula_validator):
-    state, text, pos = formula_validator.validate("A", 1)
-    assert state == QtGui.QValidator.Intermediate
-    assert text == 'A'
-    assert pos == 1
-
-def test_formula_validate_invalid(qtbot, formula_validator):
-    state, text, pos = formula_validator.validate("-", 1)
-    assert state == QtGui.QValidator.Invalid
-    assert text == '-'
-    assert pos == 1
+#@pytest.fixture
+#def formula_validator(qtbot):
+#    return FormulaValidator()
+#
+#def test_formula_validate_acceptable(qtbot, formula_validator):
+#    state, text, pos = formula_validator.validate("Al2O3", 5)
+#    assert state == QtGui.QValidator.Acceptable
+#    assert text == 'Al2O3'
+#    assert pos == 5
+#
+#def test_formula_validate_intermediate(qtbot, formula_validator):
+#    state, text, pos = formula_validator.validate("A", 1)
+#    assert state == QtGui.QValidator.Intermediate
+#    assert text == 'A'
+#    assert pos == 1
+#
+#def test_formula_validate_invalid(qtbot, formula_validator):
+#    state, text, pos = formula_validator.validate("-", 1)
+#    assert state == QtGui.QValidator.Invalid
+#    assert text == '-'
+#    assert pos == 1
 
 #@pytest.fixture
 #def material_pure_widget(qtbot):
