@@ -2,6 +2,7 @@ pymontecarlo
 PyQt5
 qtpy
 asyncqt
+unsyncqt
 pyqttango
 pygments
 pandas
