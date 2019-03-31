@@ -1,0 +1,8 @@
+pymontecarlo
+PyQt5
+qtpy
+asyncqt
+pyqttango
+pygments
+pandas
+matplotlib_scalebar

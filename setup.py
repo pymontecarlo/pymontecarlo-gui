@@ -18,9 +18,12 @@ with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
 PACKAGES = find_packages()
 PACKAGE_DATA = {'pymontecarlo_gui': ['icons/*.svg']}
 
-INSTALL_REQUIRES = ['pymontecarlo', 'PyQt5', 'qtpy', 'matplotlib_scalebar',
-                    'pyqttango', 'pygments', 'pandas']
-EXTRAS_REQUIRE = {'develop': ['nose', 'coverage', 'progressbar2', 'requests_download', 'pytest']}
+with open(os.path.join(BASEDIR, 'requirements.txt'), 'r') as fp:
+    INSTALL_REQUIRES = fp.read().splitlines()
+
+EXTRAS_REQUIRE = {}
+with open(os.path.join(BASEDIR, 'requirements_dev.txt'), 'r') as fp:
+    EXTRAS_REQUIRE['develop'] = fp.read().splitlines()
 
 CMDCLASS = versioneer.get_cmdclass()
 
@@ -32,6 +35,8 @@ setup(name="pyMonteCarlo-GUI",
       version=versioneer.get_version(),
       url='https://github.com/pymontecarlo',
       description="Python interface for Monte Carlo simulation programs",
+      long_description=LONG_DESCRIPTION,
+      long_description_content_type='text/x-rst',
       author="Hendrix Demers and Philippe T. Pinard",
       author_email="hendrix.demers@mail.mcgill.ca and philippe.pinard@gmail.com",
       license="GPL v3",
@@ -56,4 +61,3 @@ setup(name="pyMonteCarlo-GUI",
 
       test_suite='nose.collector',
 )
-
