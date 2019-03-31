@@ -7,12 +7,9 @@ from qtpy import QtCore, QtWidgets
 
 # Local modules.
 from pymontecarlo.options.options import OptionsBuilder
-from pymontecarlo.mock import ProgramMock, SampleMock
-from pymontecarlo.options.beam.base import BeamBase
-from pymontecarlo.util.entrypoint import resolve_entrypoints
+from pymontecarlo.mock import ProgramMock
 
 from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
@@ -26,7 +23,7 @@ from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
-from pymontecarlo_gui.options.program.base import ProgramsField
+from pymontecarlo_gui.options.program.base import ProgramsField, ProgramFieldBase
 
 # Globals and constants variables.
 
@@ -41,8 +38,6 @@ class WizardWidgetMixin:
                 return parent.wizard()
             parent = parent.parent()
         return None
-
-#--- Widgets
 
 class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
@@ -437,8 +432,8 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def _create_program_page(self):
         page = ProgramWizardPage()
 
-        for ep in resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS).values():
-            field = ep.resolve()()
+        for clasz in ProgramFieldBase._subclasses:
+            field = clasz()
             page.registerProgramField(field)
 
         return page
@@ -472,12 +467,12 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         beam_mock_added = False
         if estimate and not self.builder.beams:
-            self.builder.add_beam(BeamBase(0.0)) #TODO: Change back
+            self.builder.add_beam(None) #TODO: Change back
             beam_mock_added = True
 
         sample_mock_added = False
         if estimate and not self.builder.samples:
-            self.builder.add_sample(SampleMock())
+            self.builder.add_sample(None)
             sample_mock_added = True
 
         if program_mock_added and beam_mock_added and sample_mock_added:
@@ -502,17 +497,21 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
 def run(): #pragma: no cover
     import sys
-
-    from pymontecarlo_gui.testcase import TestCase
-    TestCase.setUpClass()
+    import asyncio
+    from asyncqt import QEventLoop
 
     app = QtWidgets.QApplication(sys.argv)
+
+    # Create loop
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
 
     wizard = NewSimulationWizard()
 
     wizard.exec_()
 
-    app.exec_()
+    with loop:
+        sys.exit(loop.run_forever())
 
 if __name__ == '__main__': #pragma: no cover
     run()

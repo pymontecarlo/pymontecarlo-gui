@@ -5,47 +5,39 @@ import os
 import functools
 import multiprocessing
 import asyncio
-import concurrent.futures
 import logging
 logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
+from asyncqt import asyncClose
 
 # Local modules.
 from pymontecarlo.settings import Settings
 from pymontecarlo.project import Project
-from pymontecarlo.formats.hdf5.reader import HDF5Reader
-from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
-from pymontecarlo.util.entrypoint import resolve_entrypoints
 from pymontecarlo.util.token import TokenState
 
 from pymontecarlo_gui.project import \
     (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
      SimulationsField, SimulationField, ResultsField)
 from pymontecarlo_gui.options.options import OptionsField
+from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
-from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 
 # Globals and constants variables.
 
-def has_programs():
-    return bool(resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS))
-
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, loop, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
 
         # Variables
-        self._loop = loop
-
         self._dirpath_open = None
         self._dirpath_save = None
         self._should_save = False
@@ -53,12 +45,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._project = Project()
 
         self._settings = Settings.read()
-
-        self._reader = HDF5Reader()
-        self._reader.start()
-
-        self._writer = HDF5Writer()
-        self._writer.start()
 
         max_workers = multiprocessing.cpu_count() - 1
         self._runner = LocalSimulationRunner(self._project, max_workers=max_workers)
@@ -191,8 +177,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Defaults
         self.setProject(self._project)
 
-        asyncio.run_coroutine_threadsafe(self._runner.start(), loop)
-
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -263,7 +247,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
-        if not has_programs():
+        if not ProgramFieldBase._subclasses:
             title = 'New simulations'
             message = 'No program is activated. ' + \
                 'Go to File > Settings to activate at least one program.'
@@ -277,7 +261,9 @@ class MainWindow(QtWidgets.QMainWindow):
         list_options = self.wizard_simulation.optionsList()
         logger.debug('Wizard defined {} simulations'.format(len(list_options)))
 
-        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), self._loop)
+        loop = asyncio.get_event_loop()
+        asyncio.run_coroutine_threadsafe(self._runner.start(), loop)
+        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), loop)
 
         logger.debug('Submitted simulations')
 
@@ -293,7 +279,8 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.setCancelButton(None)
         dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
 
-        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop)
+        loop = asyncio.get_event_loop()
+        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), loop)
         future.add_done_callback(lambda future: dialog.close())
 
         dialog.exec_()
@@ -334,7 +321,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
-    def closeEvent(self, event):
+    @asyncClose
+    async def closeEvent(self, event):
         state = self._runner.token.state
         if state == TokenState.RUNNING:
             caption = 'Quit'
@@ -346,11 +334,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.reject()
                 return
 
-        futures = []
-        futures.append(asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop))
-        futures.append(asyncio.run_coroutine_threadsafe(self._runner.shutdown(), self._loop))
-
-        concurrent.futures.wait(futures)
+        await self._runner.cancel()
+        await self._runner.shutdown()
 
         event.accept()
 

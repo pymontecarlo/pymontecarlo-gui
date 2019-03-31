@@ -6,9 +6,7 @@
 from qtpy import QtGui, QtWebEngineWidgets
 
 # Local modules.
-from pymontecarlo.formats.document.helper import publish_html
-from pymontecarlo.formats.document.builder import DocumentBuilder
-from pymontecarlo.formats.document.options.options import OptionsDocumentHandler
+from pymontecarlo.formats.document import publish_html, DocumentBuilder
 
 from pymontecarlo_gui.project import _SettingsBasedField
 
@@ -30,11 +28,8 @@ class OptionsField(_SettingsBasedField):
             self._widget.setHtml(self._render_html())
 
     def _render_html(self):
-        options = self.options()
         builder = DocumentBuilder(self.settings())
-
-        handler = OptionsDocumentHandler()
-        handler.convert(options, builder)
+        self.options().convert_document(builder)
 
         return publish_html(builder).decode('utf8')
 

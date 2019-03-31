@@ -7,26 +7,26 @@ import argparse
 import platform
 import asyncio
 import logging
-import threading
 logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
+
+from asyncqt import QEventLoop
 
 import matplotlib
 matplotlib.use('qt5agg')
 
 # Local modules.
 import pymontecarlo
+from pymontecarlo.entity import EntityBase
 from pymontecarlo.util.path import get_config_dir
-from pymontecarlo.util.entrypoint import resolve_entrypoints, ENTRYPOINT_HDF5HANDLER, ENTRYPOINT_DOCUMENTHANDLER, ENTRYPOINT_SERIESHANDLER
-from pymontecarlo.util.process import kill_process
 
 import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.main import MainWindow
 from pymontecarlo_gui.widgets.icon import load_pixmap
-from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
+from pymontecarlo_gui.options.program.base import ProgramFieldBase
 
 # Globals and constants variables.
 
@@ -77,6 +77,21 @@ def _setup(ns):
     logger.info('machine = %s', platform.machine())
     logger.info('processor = %s', platform.processor())
 
+    # Log plugins
+    for name in sorted(pymontecarlo.pymontecarlo_plugins):
+        logger.info('Found plug-in: {}'.format(name))
+
+    # Log entities
+    entities = []
+    for clasz in EntityBase._subclasses:
+        entities.append('{}.{}'.format(clasz.__module__, clasz.__name__))
+
+    for clasz in ProgramFieldBase._subclasses:
+        entities.append('{}.{}'.format(clasz.__module__, clasz.__name__))
+
+    for entity in sorted(entities):
+        logger.info('Registered entity: {}'.format(entity))
+
     # Catch all exceptions
     def _excepthook(exc_type, exc_obj, exc_tb):
         messagebox.exception(None, exc_obj)
@@ -89,13 +104,20 @@ def _setup(ns):
     # Output environment variables
     logger.info('ENVIRON = %s' % os.environ)
 
-def run_app(loop):
-    # According to
-    # https://stackoverflow.com/questions/37693818/run-pyqt-gui-main-app-in-seperate-thread
-    asyncio.set_event_loop(loop)
+def _find_programs():
+    return tuple(ProgramFieldBase._subclasses)
 
+def run_app():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle('fusion')
+
+    # Create loop
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
+    # Change event loop for Windows
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     pixmap = load_pixmap('splash.svg')
     message = 'Version: {}'.format(pymontecarlo_gui.__version__)
@@ -104,49 +126,23 @@ def run_app(loop):
     splash_screen.show()
     app.processEvents()
 
-    window = MainWindow(loop)
+    window = MainWindow()
     window.show()
 
     splash_screen.finish(window)
 
-    app.exec_()
+    with loop:
+        sys.exit(loop.run_forever())
 
-    loop.stop()
     logger.debug('UI thread finished')
-
-    # Self kill
-    kill_process(os.getpid())
-
-def _parse(ns):
-    # Resolve imports.
-    # This is required to avoid resolve called from non-main thread.
-    resolve_entrypoints(ENTRYPOINT_HDF5HANDLER)
-    resolve_entrypoints(ENTRYPOINT_SERIESHANDLER)
-    resolve_entrypoints(ENTRYPOINT_DOCUMENTHANDLER)
-    resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS)
-
-    # Change event loop for Windows
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    asyncio.get_child_watcher()
-    loop.set_debug(True)
-    logger.debug('New event loop id={}'.format(id(loop)))
-
-    # Create UI thread
-    thread = threading.Thread(target=run_app, args=(loop,))
-    thread.start()
-
-    loop.run_forever()
 
 def main():
     parser = _create_parser()
 
     ns = parser.parse_args()
     _setup(ns)
-    _parse(ns)
+
+    run_app()
 
 if __name__ == '__main__':
     main()

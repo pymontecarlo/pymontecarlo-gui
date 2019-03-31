@@ -2,17 +2,28 @@
 
 # Standard library modules.
 import abc
+import tempfile
 
 # Third party modules.
 from qtpy import QtGui
+from unsync import unsync
 
 # Local modules.
+from pymontecarlo.util.error import ErrorAccumulator
+
 from pymontecarlo_gui.widgets.field import WidgetFieldBase, CheckFieldBase
 from pymontecarlo_gui.widgets.label import LabelIcon
 
 # Globals and constants variables.
 
 class ProgramFieldBase(WidgetFieldBase):
+
+    _subclasses = []
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._subclasses.append(cls)
 
     def __init__(self, default_program):
         """
@@ -34,17 +45,19 @@ class ProgramFieldBase(WidgetFieldBase):
         """
         return []
 
-    def validateOptions(self, options):
+    @unsync
+    async def validateOptions(self, options, erracc):
         """
         Returns a :class:`set` of :class:`Exception` and 
         a :class:`set` of :class:`Warning`.
         """
-        errors = set()
-        warnings = set()
-#        options.program = self._default_program
-#        self._validator._validate_options(options, errors, warnings)
+        exporter = self._default_program.exporter
+        options.program = self._default_program
 
-        return errors, warnings
+        with tempfile.TemporaryDirectory() as dirpath:
+            await exporter._export(options, dirpath, erracc, dry_run=True)
+
+        return erracc
 
 class CheckProgramField(CheckFieldBase):
 
@@ -137,11 +150,9 @@ class ProgramsField(WidgetFieldBase):
     def updateErrors(self, list_options):
         for field in self.fields():
             program_field = field.programField()
-            errors = set()
+            erracc = ErrorAccumulator()
 
             for options in list_options:
-                field_errors, _field_warnings = program_field.validateOptions(options)
-                errors |= field_errors
+                program_field.validateOptions(options, erracc).result()
 
-            field.setErrors(errors)
-
+            field.setErrors(erracc.exceptions)
