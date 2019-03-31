@@ -18,7 +18,7 @@ from pymontecarlo.options.composition import generate_name, calculate_density_kg
 # Globals and constants variables.
 
 @pytest.fixture
-def formula_validator():
+def formula_validator(qtbot):
     return FormulaValidator()
 
 def test_formula_validate_acceptable(qtbot, formula_validator):
@@ -40,7 +40,7 @@ def test_formula_validate_invalid(qtbot, formula_validator):
     assert pos == 1
 
 @pytest.fixture
-def material_pure_widget():
+def material_pure_widget(qtbot):
     return MaterialPureWidget()
 
 def test_material_pure_widget(qtbot, material_pure_widget):
@@ -67,7 +67,7 @@ def test_material_pure_widget2(qtbot, material_pure_widget):
     assert not materials
 
 @pytest.fixture
-def material_formula_widget():
+def material_formula_widget(qtbot):
     return MaterialFormulaWidget()
 
 def test_material_formula_widget_nomaterials(qtbot, material_formula_widget):
@@ -104,7 +104,7 @@ def test_material_formula_widget_user_density(qtbot, material_formula_widget):
     assert materials[0].density_kg_per_m3 == pytest.approx(9000, abs=1e-4)
 
 @pytest.fixture
-def material_advanced_widget():
+def material_advanced_widget(qtbot):
     return MaterialAdvancedWidget()
 
 def test_material_advanced_widget_nomaterials(qtbot, material_advanced_widget):
@@ -177,7 +177,7 @@ def test_material_advanced_widget_setMaterial(qtbot, material_advanced_widget):
     assert materials[0] == material
 
 @pytest.fixture
-def material_list_widget(materials):
+def material_list_widget(qtbot, materials):
     widget = MaterialListWidget()
     widget.setMaterials(materials)
     return widget
