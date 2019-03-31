@@ -2,43 +2,33 @@
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtTest
+import pytest
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 
 # Globals and constants variables.
 
-class TestSubstrateSampleWidget(TestCase):
+@pytest.fixture
+def substrate_sample_field():
+    return SubstrateSampleField()
 
-    def setUp(self):
-        super().setUp()
+def test_substrate_sample_field(qtbot , substrate_sample_field, materials):
+    substrate_sample_field.setAvailableMaterials(materials)
 
-        self.field = SubstrateSampleField()
+    widget = substrate_sample_field.field_material.widget()
+    widget.setSelectedMaterials(materials[:2])
 
-    def testsamples(self):
-        materials = self.create_materials()
-        self.field.setAvailableMaterials(materials)
+    widget = substrate_sample_field.field_angle.field_tilt.widget()
+    widget.clear()
+    qtbot.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.field.field_material.widget()
-        widget.setSelectedMaterials(materials[:2])
+    widget = substrate_sample_field.field_angle.field_azimuth.widget()
+    widget.clear()
+    qtbot.keyClicks(widget, '3.3;4.4')
 
-        widget = self.field.field_angle.field_tilt.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
+    samples = substrate_sample_field.samples()
+    assert len(samples) == 2 ** 3
 
-        widget = self.field.field_angle.field_azimuth.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, '3.3;4.4')
-
-        samples = self.field.samples()
-        self.assertEqual(2 ** 3, len(samples))
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()

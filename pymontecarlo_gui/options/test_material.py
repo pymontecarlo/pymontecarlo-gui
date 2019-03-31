@@ -2,233 +2,213 @@
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtCore, QtTest, QtGui
+import pytest
+from qtpy import QtCore, QtGui
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.options.material import \
     (FormulaValidator, MaterialPureWidget, MaterialFormulaWidget,
      MaterialAdvancedWidget, MaterialListWidget)
+from pymontecarlo_gui.util.testutil import checkbox_click
 from pymontecarlo.options.material import Material
 from pymontecarlo.options.composition import generate_name, calculate_density_kg_per_m3
 
 # Globals and constants variables.
 
-class TestFormulaValidator(TestCase):
+@pytest.fixture
+def formula_validator():
+    return FormulaValidator()
 
-    def setUp(self):
-        super().setUp()
+def test_formula_validate_acceptable(formula_validator):
+    state, text, pos = formula_validator.validate("Al2O3", 5)
+    assert state == QtGui.QValidator.Acceptable
+    assert text == 'Al2O3'
+    assert pos == 5
 
-        self.validator = FormulaValidator()
+def test_formula_validate_intermediate(formula_validator):
+    state, text, pos = formula_validator.validate("A", 1)
+    assert state == QtGui.QValidator.Intermediate
+    assert text == 'A'
+    assert pos == 1
 
-    def testvalidate_acceptable(self):
-        state, text, pos = self.validator.validate("Al2O3", 5)
-        self.assertEqual(QtGui.QValidator.Acceptable, state)
-        self.assertEqual('Al2O3', text)
-        self.assertEqual(5, pos)
+def test_formula_validate_invalid(formula_validator):
+    state, text, pos = formula_validator.validate("-", 1)
+    assert state == QtGui.QValidator.Invalid
+    assert text == '-'
+    assert pos == 1
 
-    def testvalidate_intermediate(self):
-        state, text, pos = self.validator.validate("A", 1)
-        self.assertEqual(QtGui.QValidator.Intermediate, state)
-        self.assertEqual('A', text)
-        self.assertEqual(1, pos)
+@pytest.fixture
+def material_pure_widget():
+    return MaterialPureWidget()
 
-    def testvalidate_invalid(self):
-        state, text, pos = self.validator.validate("-", 1)
-        self.assertEqual(QtGui.QValidator.Invalid, state)
-        self.assertEqual('-', text)
-        self.assertEqual(1, pos)
+def test_material_pure_widget(qtbot, material_pure_widget):
+    button = material_pure_widget.wdg_periodic_table._group.button(13)
+    qtbot.mouseClick(button, QtCore.Qt.LeftButton)
 
-class TestMaterialPureWidget(TestCase):
+    button = material_pure_widget.wdg_periodic_table._group.button(29)
+    qtbot.mouseClick(button, QtCore.Qt.LeftButton)
 
-    def setUp(self):
-        super().setUp()
+    materials = material_pure_widget.materials()
 
-        self.wdg = MaterialPureWidget()
+    assert len(materials) == 2
+    assert Material.pure(13) in materials
+    assert Material.pure(29) in materials
 
-    def testmaterials(self):
-        button = self.wdg.wdg_periodic_table._group.button(13)
-        QtTest.QTest.mouseClick(button, QtCore.Qt.LeftButton)
+def test_material_pure_widget2(qtbot, material_pure_widget):
+    button = material_pure_widget.wdg_periodic_table._group.button(13)
+    qtbot.mouseClick(button, QtCore.Qt.LeftButton)
 
-        button = self.wdg.wdg_periodic_table._group.button(29)
-        QtTest.QTest.mouseClick(button, QtCore.Qt.LeftButton)
+    button = material_pure_widget.wdg_periodic_table._group.button(13)
+    qtbot.mouseClick(button, QtCore.Qt.LeftButton)
 
-        materials = self.wdg.materials()
+    materials = material_pure_widget.materials()
+    assert not materials
 
-        self.assertEqual(2, len(materials))
-        self.assertIn(Material.pure(13), materials)
-        self.assertIn(Material.pure(29), materials)
+@pytest.fixture
+def material_formula_widget():
+    return MaterialFormulaWidget()
 
-    def testmaterials2(self):
-        button = self.wdg.wdg_periodic_table._group.button(13)
-        QtTest.QTest.mouseClick(button, QtCore.Qt.LeftButton)
+def test_material_formula_widget_nomaterials(qtbot, material_formula_widget):
+    widget = material_formula_widget.field_formula.widget()
+    qtbot.keyClicks(widget, "A")
 
-        button = self.wdg.wdg_periodic_table._group.button(13)
-        QtTest.QTest.mouseClick(button, QtCore.Qt.LeftButton)
+    materials = material_formula_widget.materials()
 
-        materials = self.wdg.materials()
+    assert not materials
 
-        self.assertEqual(0, len(materials))
+def test_material_formula_widget_auto_density(qtbot, material_formula_widget):
+    widget = material_formula_widget.field_formula.widget()
+    qtbot.keyClicks(widget, "Al")
 
-class TestMaterialFormulaWidget(TestCase):
+    materials = material_formula_widget.materials()
 
-    def setUp(self):
-        super().setUp()
+    assert len(materials) == 1
+    assert materials[0].density_kg_per_m3 == pytest.approx(Material.pure(13).density_kg_per_m3, abs=1e-4)
 
-        self.wdg = MaterialFormulaWidget()
+def test_material_formula_widget_user_density(qtbot, material_formula_widget):
+    widget = material_formula_widget.field_formula.widget()
+    qtbot.keyClicks(widget, "Al")
 
-    def testmaterials_nomaterials(self):
-        widget = self.wdg.field_formula.widget()
-        QtTest.QTest.keyClicks(widget, "A")
+    widget = material_formula_widget.field_density.suffixWidget()
+    checkbox_click(qtbot, widget)
 
-        materials = self.wdg.materials()
+    widget = material_formula_widget.field_density.widget()
+    widget.clear()
+    qtbot.keyClicks(widget, "9")
 
-        self.assertEqual(0, len(materials))
+    materials = material_formula_widget.materials()
 
-    def testmaterials_auto_density(self):
-        widget = self.wdg.field_formula.widget()
-        QtTest.QTest.keyClicks(widget, "Al")
+    assert len(materials) == 1
+    assert materials[0].density_kg_per_m3 == pytest.approx(9000, abs=1e-4)
 
-        materials = self.wdg.materials()
+@pytest.fixture
+def material_advanced_widget():
+    return MaterialAdvancedWidget()
 
-        self.assertEqual(1, len(materials))
-        self.assertAlmostEqual(Material.pure(13).density_kg_per_m3,
-                               materials[0].density_kg_per_m3, 4)
+def test_material_advanced_widget_nomaterials(qtbot, material_advanced_widget):
+    materials = material_advanced_widget.materials()
 
-    def testmaterials_user_density(self):
-        widget = self.wdg.field_formula.widget()
-        QtTest.QTest.keyClicks(widget, "Al")
+    assert not materials
 
-        widget = self.wdg.field_density.suffixWidget()
-        self.checkBoxClick(widget)
+def test_material_advanced_widget_auto(qtbot, material_advanced_widget):
+    material_advanced_widget.tbl_composition.setComposition({13: 1.0})
 
-        widget = self.wdg.field_density.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, "9")
+    materials = material_advanced_widget.materials()
 
-        materials = self.wdg.materials()
+    assert len(materials) == 1
 
-        self.assertEqual(1, len(materials))
-        self.assertAlmostEqual(9000, materials[0].density_kg_per_m3, 4)
+    material = materials[0]
 
-class TestMaterialAdvancedWidget(TestCase):
+    assert material.name == generate_name({13: 1.0})
+    assert material.composition == {13: 1.0}
+    assert material.density_kg_per_m3 == pytest.approx(calculate_density_kg_per_m3({13: 1.0}), abs=1e-4)
 
-    def setUp(self):
-        super().setUp()
+def test_material_advanced_widget_user(qtbot, material_advanced_widget):
+    widget = material_advanced_widget.field_name.suffixWidget()
+    checkbox_click(qtbot, widget)
 
-        self.wdg = MaterialAdvancedWidget()
+    widget = material_advanced_widget.field_name.widget()
+    widget.clear()
+    qtbot.keyClicks(widget, "foo")
 
-    def testmaterials_nomaterials(self):
-        materials = self.wdg.materials()
+    material_advanced_widget.tbl_composition.setComposition({13: 1.0})
 
-        self.assertEqual(0, len(materials))
+    widget = material_advanced_widget.field_density.suffixWidget()
+    checkbox_click(qtbot, widget)
 
-    def testmaterials_auto(self):
-        self.wdg.tbl_composition.setComposition({13: 1.0})
+    widget = material_advanced_widget.field_density.widget()
+    widget.clear()
+    qtbot.keyClicks(widget, "9")
 
-        materials = self.wdg.materials()
+    materials = material_advanced_widget.materials()
 
-        self.assertEqual(1, len(materials))
+    assert len(materials) == 1
 
-        material = materials[0]
-        self.assertEqual(generate_name({13: 1.0}), material.name)
-        self.assertDictEqual({13: 1.0}, material.composition)
-        self.assertAlmostEqual(calculate_density_kg_per_m3({13: 1.0}),
-                               material.density_kg_per_m3, 4)
+    material = materials[0]
 
-    def testmaterials_user(self):
-        widget = self.wdg.field_name.suffixWidget()
-        self.checkBoxClick(widget)
+    assert material.name == 'foo'
+    assert material.composition == {13: 1.0}
+    assert material.density_kg_per_m3 == pytest.approx(9000, abs=1e-4)
 
-        widget = self.wdg.field_name.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, "foo")
+def test_material_advanced_widget_setMaterial(qtbot, material_advanced_widget):
+    material = Material('foo', {13: 1.0}, 9000)
+    material_advanced_widget.setMaterial(material)
 
-        self.wdg.tbl_composition.setComposition({13: 1.0})
+    widget = material_advanced_widget.field_name.suffixWidget()
+    assert not widget.isChecked()
 
-        widget = self.wdg.field_density.suffixWidget()
-        self.checkBoxClick(widget)
+    widget = material_advanced_widget.field_name.widget()
+    assert widget.text() == material.name
 
-        widget = self.wdg.field_density.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, "9")
+    widget = material_advanced_widget.field_density.suffixWidget()
+    assert widget.isChecked()
 
-        materials = self.wdg.materials()
+    widget = material_advanced_widget.field_density.widget()
+    assert widget.value() == pytest.approx(material.density_g_per_cm3, abs=1e-4)
 
-        self.assertEqual(1, len(materials))
+    composition = material_advanced_widget.tbl_composition.composition()
+    assert composition == material.composition
 
-        material = materials[0]
-        self.assertEqual('foo', material.name)
-        self.assertDictEqual({13: 1.0}, material.composition)
-        self.assertAlmostEqual(9000, material.density_kg_per_m3, 4)
+    materials = material_advanced_widget.materials()
 
-    def testsetMaterial(self):
-        material = Material('foo', {13: 1.0}, 9000)
-        self.wdg.setMaterial(material)
+    assert len(materials) == 1
+    assert materials[0] == material
 
-        widget = self.wdg.field_name.suffixWidget()
-        self.assertFalse(widget.isChecked())
+@pytest.fixture
+def material_list_widget(materials):
+    widget = MaterialListWidget()
+    widget.setMaterials(materials)
+    return widget
 
-        widget = self.wdg.field_name.widget()
-        self.assertEqual(material.name, widget.text())
+def test_material_list_widget_selectedMaterials(material_list_widget):
+    assert not material_list_widget.selectedMaterials()
 
-        widget = self.wdg.field_density.suffixWidget()
-        self.assertTrue(widget.isChecked())
+def test_material_list_widget_selectedMaterials_single(material_list_widget):
+    material = material_list_widget.material(0)
+    material_list_widget.setSelectedMaterials([material])
 
-        widget = self.wdg.field_density.widget()
-        self.assertAlmostEqual(material.density_g_per_cm3, widget.value(), 4)
+    selected_materials = material_list_widget.selectedMaterials()
+    assert len(selected_materials) == 1
+    assert material in selected_materials
 
-        composition = self.wdg.tbl_composition.composition()
-        self.assertDictEqual(material.composition, composition)
+def test_material_list_widget_selectedMaterials_remove(material_list_widget):
+    material = material_list_widget.material(0)
+    material_list_widget.setSelectedMaterials([material])
 
-        materials = self.wdg.materials()
+    material_list_widget.removeMaterial(material)
+    assert len(material_list_widget.materials()) == 2
+    assert not material_list_widget.selectedMaterials()
 
-        self.assertEqual(1, len(materials))
-        self.assertEqual(material, materials[0])
+def test_material_list_widget_selectedMaterials_add(material_list_widget):
+    material = material_list_widget.material(0)
+    material_list_widget.setSelectedMaterials([material])
 
-class TestMaterialListWidget(TestCase):
+    newmaterial = Material.pure(28)
+    material_list_widget.addMaterial(newmaterial)
+    assert newmaterial in material_list_widget.materials()
 
-    def setUp(self):
-        super().setUp()
-
-        self.wdg = MaterialListWidget()
-        self.wdg.setMaterials(self.create_materials())
-
-    def testselectedMaterials(self):
-        self.assertEqual(0, len(self.wdg.selectedMaterials()))
-
-    def testselectedMaterials_single(self):
-        material = self.wdg.material(0)
-        self.wdg.setSelectedMaterials([material])
-
-        selected_materials = self.wdg.selectedMaterials()
-        self.assertEqual(1, len(selected_materials))
-        self.assertIn(material, selected_materials)
-
-    def testselectedMaterials_remove(self):
-        material = self.wdg.material(0)
-        self.wdg.setSelectedMaterials([material])
-
-        self.wdg.removeMaterial(material)
-        self.assertEqual(2, len(self.wdg.materials()))
-        self.assertEqual(0, len(self.wdg.selectedMaterials()))
-
-    def testselectedMaterials_add(self):
-        material = self.wdg.material(0)
-        self.wdg.setSelectedMaterials([material])
-
-        newmaterial = Material.pure(28)
-        self.wdg.addMaterial(newmaterial)
-        self.assertIn(newmaterial, self.wdg.materials())
-
-        selected_materials = self.wdg.selectedMaterials()
-        self.assertEqual(1, len(selected_materials))
-        self.assertIn(material, selected_materials)
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()
+    selected_materials = material_list_widget.selectedMaterials()
+    assert len(selected_materials) == 1
+    assert material in selected_materials

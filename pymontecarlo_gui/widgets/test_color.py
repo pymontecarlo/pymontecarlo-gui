@@ -2,65 +2,32 @@
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtCore, QtTest
+import pytest
+from qtpy import QtCore
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.widgets.color import ColorButton, ColorDialogButton
 
 # Globals and constants variables.
 
-class TestColorButton(TestCase):
+@pytest.mark.parametrize('color',
+    ['#ff0000', (1.0, 0.0, 0.0), (1.0, 0.0, 0.0, 1.0), 'red'])
+def test_color_button(qtbot, color):
+    button = ColorButton()
+    button.setColor(color)
+    assert button.color() == QtCore.Qt.red
+    assert button.rgba() == (1.0, 0.0, 0.0, 1.0)
 
-    def setUp(self):
-        super().setUp()
+@pytest.fixture
+def color_dialog_button():
+    return ColorDialogButton()
 
-        self.wdg = ColorButton()
+def test_color_dialog_button_clicked(qtbot, color_dialog_button):
+    qtbot.mouseClick(color_dialog_button, QtCore.Qt.LeftButton)
 
-    def testcolor_globalcolor(self):
-        self.wdg.setColor(QtCore.Qt.red)
-        self.assertEqual(QtCore.Qt.red, self.wdg.color())
-        self.assertTupleEqual((1.0, 0.0, 0.0, 1.0), self.wdg.rgba())
-
-    def testcolor_hex(self):
-        self.wdg.setColor('#ff0000')
-        self.assertEqual(QtCore.Qt.red, self.wdg.color())
-        self.assertTupleEqual((1.0, 0.0, 0.0, 1.0), self.wdg.rgba())
-
-    def testcolor_rgb(self):
-        self.wdg.setColor((1.0, 0.0, 0.0))
-        self.assertEqual(QtCore.Qt.red, self.wdg.color())
-        self.assertTupleEqual((1.0, 0.0, 0.0, 1.0), self.wdg.rgba())
-
-    def testcolor_rgba(self):
-        self.wdg.setColor((1.0, 0.0, 0.0, 1.0))
-        self.assertEqual(QtCore.Qt.red, self.wdg.color())
-        self.assertTupleEqual((1.0, 0.0, 0.0, 1.0), self.wdg.rgba())
-
-    def testcolor_html(self):
-        self.wdg.setColor('red')
-        self.assertEqual(QtCore.Qt.red, self.wdg.color())
-        self.assertTupleEqual((1.0, 0.0, 0.0, 1.0), self.wdg.rgba())
-
-class TestColorDialogButton(TestCase):
-
-    def setUp(self):
-        super().setUp()
-
-        self.wdg = ColorDialogButton()
-
-    def testskeleton(self):
-        color = QtCore.Qt.red
-        self.wdg.setColor(color)
-        self.assertEqual(color, self.wdg.color())
-
-    def testclicked(self):
-        QtTest.QTest.mouseClick(self.wdg, QtCore.Qt.LeftButton)
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()
+def test_color_dialog_button_color(color_dialog_button):
+    color = QtCore.Qt.red
+    color_dialog_button.setColor(color)
+    assert color_dialog_button.color() == color

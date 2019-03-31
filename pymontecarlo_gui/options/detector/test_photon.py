@@ -2,37 +2,28 @@
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtTest
+import pytest
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
-class TestPhotonDetectorField(TestCase):
+@pytest.fixture
+def photon_detector_field():
+    return PhotonDetectorField()
 
-    def setUp(self):
-        super().setUp()
+def test_photon_detector_field(qtbot, photon_detector_field):
+    widget = photon_detector_field.field_elevation.widget()
+    widget.clear()
+    qtbot.keyClicks(widget.lineedit, '1.1;2.2')
 
-        self.field = PhotonDetectorField()
+    widget = photon_detector_field.field_azimuth.widget()
+    widget.clear()
+    qtbot.keyClicks(widget, '3.3;4.4')
 
-    def testsamples(self):
-        widget = self.field.field_elevation.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
+    detectors = photon_detector_field.detectors()
+    assert len(detectors) == 2 ** 2
 
-        widget = self.field.field_azimuth.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, '3.3;4.4')
-
-        detectors = self.field.detectors()
-        self.assertEqual(2 ** 2, len(detectors))
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()
