@@ -21,19 +21,19 @@ from pymontecarlo.options.composition import generate_name, calculate_density_kg
 def formula_validator():
     return FormulaValidator()
 
-def test_formula_validate_acceptable(formula_validator):
+def test_formula_validate_acceptable(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("Al2O3", 5)
     assert state == QtGui.QValidator.Acceptable
     assert text == 'Al2O3'
     assert pos == 5
 
-def test_formula_validate_intermediate(formula_validator):
+def test_formula_validate_intermediate(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("A", 1)
     assert state == QtGui.QValidator.Intermediate
     assert text == 'A'
     assert pos == 1
 
-def test_formula_validate_invalid(formula_validator):
+def test_formula_validate_invalid(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("-", 1)
     assert state == QtGui.QValidator.Invalid
     assert text == '-'
@@ -182,10 +182,10 @@ def material_list_widget(materials):
     widget.setMaterials(materials)
     return widget
 
-def test_material_list_widget_selectedMaterials(material_list_widget):
+def test_material_list_widget_selectedMaterials(qtbot, material_list_widget):
     assert not material_list_widget.selectedMaterials()
 
-def test_material_list_widget_selectedMaterials_single(material_list_widget):
+def test_material_list_widget_selectedMaterials_single(qtbot, material_list_widget):
     material = material_list_widget.material(0)
     material_list_widget.setSelectedMaterials([material])
 
@@ -193,7 +193,7 @@ def test_material_list_widget_selectedMaterials_single(material_list_widget):
     assert len(selected_materials) == 1
     assert material in selected_materials
 
-def test_material_list_widget_selectedMaterials_remove(material_list_widget):
+def test_material_list_widget_selectedMaterials_remove(qtbot, material_list_widget):
     material = material_list_widget.material(0)
     material_list_widget.setSelectedMaterials([material])
 
@@ -201,7 +201,7 @@ def test_material_list_widget_selectedMaterials_remove(material_list_widget):
     assert len(material_list_widget.materials()) == 2
     assert not material_list_widget.selectedMaterials()
 
-def test_material_list_widget_selectedMaterials_add(material_list_widget):
+def test_material_list_widget_selectedMaterials_add(qtbot, material_list_widget):
     material = material_list_widget.material(0)
     material_list_widget.setSelectedMaterials([material])
 
