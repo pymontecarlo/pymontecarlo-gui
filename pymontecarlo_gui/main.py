@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
-from asyncqt import asyncClose
 
 # Local modules.
 from pymontecarlo.settings import Settings
@@ -33,11 +32,13 @@ from pymontecarlo_gui.settings import SettingsDialog
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None):
+    def __init__(self, loop, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
 
         # Variables
+        self._loop = loop
+
         self._dirpath_open = None
         self._dirpath_save = None
         self._should_save = False
@@ -80,7 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.action_stop_simulations = QtWidgets.QAction('Stop all simulations')
         self.action_stop_simulations.setIcon(QtGui.QIcon.fromTheme('media-playback-stop'))
-        self.action_stop_simulations.triggered.connect(self._on_stop_all_simulations)
+        self.action_stop_simulations.triggered.connect(self._on_stop)
         self.action_stop_simulations.setEnabled(False)
 
         # Timers
@@ -177,6 +178,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Defaults
         self.setProject(self._project)
 
+        # Start
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -259,17 +261,18 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         list_options = self.wizard_simulation.optionsList()
-        logger.debug('Wizard defined {} simulations'.format(len(list_options)))
+        logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
 
-        loop = asyncio.get_event_loop()
-        asyncio.run_coroutine_threadsafe(self._runner.start(), loop)
-        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), loop)
+        # Start runner (nothing happens if already running)
+        asyncio.run_coroutine_threadsafe(self._runner.start(), self._loop).result()
 
-        logger.debug('Submitted simulations')
+        # Submit simulation(s)
+        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), self._loop).result()
+        logger.debug('Submitted simulation(s)')
 
         self.dock_runner.raise_()
 
-    def _on_stop_all_simulations(self):
+    def _on_stop(self):
         dialog = QtWidgets.QProgressDialog()
         dialog.setWindowTitle('Stop')
         dialog.setLabelText('Stopping all simulations')
@@ -279,8 +282,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.setCancelButton(None)
         dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
 
-        loop = asyncio.get_event_loop()
-        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), loop)
+        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop)
         future.add_done_callback(lambda future: dialog.close())
 
         dialog.exec_()
@@ -321,8 +323,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
-    @asyncClose
-    async def closeEvent(self, event):
+    def closeEvent(self, event):
         state = self._runner.token.state
         if state == TokenState.RUNNING:
             caption = 'Quit'
@@ -334,8 +335,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.reject()
                 return
 
-        await self._runner.cancel()
-        await self._runner.shutdown()
+        asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop).result()
+        asyncio.run_coroutine_threadsafe(self._runner.shutdown(), self._loop).result()
 
         event.accept()
 

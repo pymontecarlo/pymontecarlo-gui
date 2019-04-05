@@ -7,12 +7,13 @@ import argparse
 import platform
 import asyncio
 import logging
+import threading
 logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
-from asyncqt import QEventLoop
+#from asyncqt import QEventLoop
 
 import matplotlib
 matplotlib.use('qt5agg')
@@ -21,6 +22,7 @@ matplotlib.use('qt5agg')
 import pymontecarlo
 from pymontecarlo.entity import EntityBase
 from pymontecarlo.util.path import get_config_dir
+from pymontecarlo.util.process import kill_process
 
 import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
@@ -107,17 +109,13 @@ def _setup(ns):
 def _find_programs():
     return tuple(ProgramFieldBase._subclasses)
 
-def run_app():
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('fusion')
-
-    # Create loop
-    loop = QEventLoop(app)
+def run_app(loop):
+    # According to
+    # https://stackoverflow.com/questions/37693818/run-pyqt-gui-main-app-in-seperate-thread
     asyncio.set_event_loop(loop)
 
-    # Change event loop for Windows
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('fusion')
 
     pixmap = load_pixmap('splash.svg')
     message = 'Version: {}'.format(pymontecarlo_gui.__version__)
@@ -126,23 +124,42 @@ def run_app():
     splash_screen.show()
     app.processEvents()
 
-    window = MainWindow()
+    window = MainWindow(loop)
     window.show()
 
     splash_screen.finish(window)
 
-    with loop:
-        sys.exit(loop.run_forever())
+    app.exec_()
 
+    loop.stop()
     logger.debug('UI thread finished')
+
+    # Self kill
+    kill_process(os.getpid())
+
+def _parse(ns):
+    # Change event loop for Windows
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    asyncio.get_child_watcher()
+    loop.set_debug(True)
+    logger.debug('New event loop id={}'.format(id(loop)))
+
+    # Create UI thread
+    thread = threading.Thread(target=run_app, args=(loop,))
+    thread.start()
+
+    loop.run_forever()
 
 def main():
     parser = _create_parser()
 
     ns = parser.parse_args()
     _setup(ns)
-
-    run_app()
+    _parse(ns)
 
 if __name__ == '__main__':
     main()
