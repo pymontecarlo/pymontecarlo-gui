@@ -1,7 +1,6 @@
 """"""
 
 # Standard library modules.
-import abc
 import functools
 import traceback
 
@@ -14,7 +13,6 @@ from pygments.formatters.html import HtmlFormatter
 
 # Local modules.
 from pymontecarlo_gui.util.validate import ValidableBase
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.font import make_italic
 from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
@@ -22,7 +20,7 @@ from pymontecarlo_gui.widgets.mdi import MdiSubWindow
 
 # Globals and constants variables.
 
-class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
+class FieldBase(QtCore.QObject, ValidableBase):
 
     fieldChanged = QtCore.Signal()
 
@@ -36,7 +34,6 @@ class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
         self.wdg_description.setWordWrap(True)
         make_italic(self.wdg_description)
 
-    @abc.abstractmethod
     def title(self):
         return ''
 
@@ -55,7 +52,6 @@ class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
     def icon(self):
         return QtGui.QIcon()
 
-    @abc.abstractmethod
     def widget(self):
         return QtWidgets.QWidget()
 

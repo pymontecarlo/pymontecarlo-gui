@@ -96,8 +96,8 @@ def _setup(ns):
 
     # Catch all exceptions
     def _excepthook(exc_type, exc_obj, exc_tb):
-        messagebox.exception(None, exc_obj)
         sys.__excepthook__(exc_type, exc_obj, exc_tb)
+        messagebox.exception(None, exc_obj)
     sys.excepthook = _excepthook
 
     # Output sys.path
@@ -144,7 +144,7 @@ def _parse(ns):
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    asyncio.get_child_watcher()
+    # asyncio.get_child_watcher()
     loop.set_debug(True)
     logger.debug('New event loop id={}'.format(id(loop)))
 

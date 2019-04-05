@@ -10,4 +10,4 @@ from qtpy import QtCore
 # Globals and constants variables.
 
 def checkbox_click(qtbot, checkbox):
-    qtbot.mouseClick(checkbox, QtCore.Qt.LeftButton, pos=QtCore.QPoint(2, checkbox.height() / 2))
+    qtbot.mouseClick(checkbox, QtCore.Qt.LeftButton, pos=QtCore.QPoint(checkbox.width() / 2, checkbox.height() / 2))

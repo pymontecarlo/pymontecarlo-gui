@@ -19,7 +19,7 @@ from pymontecarlo.figures.sample import SampleFigure, Perspective
 
 class PerspectiveToolbar(QtWidgets.QToolBar):
 
-    perspectiveChanged = QtCore.Signal(Perspective)
+    perspectiveChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

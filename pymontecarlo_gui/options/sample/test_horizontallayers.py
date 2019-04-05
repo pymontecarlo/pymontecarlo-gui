@@ -35,7 +35,7 @@ def test_horizontal_layer_sample_field(qtbot , horizontal_layer_sample_field, ma
 
     widget = horizontal_layer_sample_field.field_angle.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
     samples = horizontal_layer_sample_field.samples()
     assert len(samples) == 2 ** 4

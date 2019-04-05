@@ -27,7 +27,7 @@ def test_substrate_sample_field(qtbot , substrate_sample_field, materials):
 
     widget = substrate_sample_field.field_angle.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
     samples = substrate_sample_field.samples()
     assert len(samples) == 2 ** 3

@@ -92,11 +92,11 @@ def test_material_formula_widget_user_density(qtbot, material_formula_widget):
     qtbot.keyClicks(widget, "Al")
 
     widget = material_formula_widget.field_density.suffixWidget()
-    checkbox_click(qtbot, widget)
+    widget.click()
 
     widget = material_formula_widget.field_density.widget()
     widget.clear()
-    qtbot.keyClicks(widget, "9")
+    qtbot.keyClicks(widget.lineedit, "9")
 
     materials = material_formula_widget.materials()
 
@@ -127,7 +127,7 @@ def test_material_advanced_widget_auto(qtbot, material_advanced_widget):
 
 def test_material_advanced_widget_user(qtbot, material_advanced_widget):
     widget = material_advanced_widget.field_name.suffixWidget()
-    checkbox_click(qtbot, widget)
+    widget.click()
 
     widget = material_advanced_widget.field_name.widget()
     widget.clear()
@@ -136,11 +136,11 @@ def test_material_advanced_widget_user(qtbot, material_advanced_widget):
     material_advanced_widget.tbl_composition.setComposition({13: 1.0})
 
     widget = material_advanced_widget.field_density.suffixWidget()
-    checkbox_click(qtbot, widget)
+    widget.click()
 
     widget = material_advanced_widget.field_density.widget()
     widget.clear()
-    qtbot.keyClicks(widget, "9")
+    qtbot.keyClicks(widget.lineedit, "9")
 
     materials = material_advanced_widget.materials()
 

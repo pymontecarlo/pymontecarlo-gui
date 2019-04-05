@@ -46,7 +46,7 @@ def test_vertical_layer_sample_field(qtbot , vertical_layer_sample_field, materi
 
     widget = vertical_layer_sample_field.field_angle.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
     samples = vertical_layer_sample_field.samples()
     assert len(samples) == 2 ** 6

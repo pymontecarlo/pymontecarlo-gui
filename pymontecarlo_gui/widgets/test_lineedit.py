@@ -65,12 +65,12 @@ def test_coloredfloatlineedit_setValue(qtbot, coloredfloatlineedit):
 
 def test_coloredfloatlineedit_keyClicks(qtbot, coloredfloatlineedit):
     coloredfloatlineedit.clear()
-    qtbot.keyClicks(coloredfloatlineedit, '3')
+    qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
     assert coloredfloatlineedit.value() == pytest.approx(3.0, abs=1e-4)
     assert not coloredfloatlineedit.hasAcceptableInput()
     assert coloredfloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-    qtbot.keyClicks(coloredfloatlineedit, '3')
+    qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
     assert coloredfloatlineedit.value() == pytest.approx(33.0, abs=1e-4)
     assert coloredfloatlineedit.hasAcceptableInput()
     assert coloredfloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
@@ -86,13 +86,13 @@ def test_coloredfloatlineedit_valueChanged_keyClicks(qtbot, coloredfloatlineedit
     coloredfloatlineedit.clear()
 
     with qtbot.waitSignal(coloredfloatlineedit.valueChanged) as blocker:
-        qtbot.keyClicks(coloredfloatlineedit, '3')
+        qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
 
     assert blocker.signal_triggered
     assert blocker.args[0] == pytest.approx(3.0, abs=1e-4)
 
     with qtbot.waitSignal(coloredfloatlineedit.valueChanged) as blocker:
-        qtbot.keyClicks(coloredfloatlineedit, '3')
+        qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
 
     assert blocker.signal_triggered
     assert blocker.args[0] == pytest.approx(33.0, abs=1e-4)
@@ -129,7 +129,7 @@ def test_coloredmultifloatlineedit_setValues_decimals(qtbot, coloredmultifloatli
     assert values[1] == pytest.approx(45.12, abs=1e-4)
 
 def test_coloredmultifloatlineedit_keyClicks(qtbot, coloredmultifloatlineedit):
-    qtbot.keyClicks(coloredmultifloatlineedit, '3')
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
     assert not coloredmultifloatlineedit.hasAcceptableInput()
     assert coloredmultifloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
@@ -137,7 +137,7 @@ def test_coloredmultifloatlineedit_keyClicks(qtbot, coloredmultifloatlineedit):
     assert len(values) == 1
     assert values[0] == pytest.approx(3.0, abs=1e-4)
 
-    qtbot.keyClicks(coloredmultifloatlineedit, '3')
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
     assert coloredmultifloatlineedit.hasAcceptableInput()
     assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
@@ -145,7 +145,7 @@ def test_coloredmultifloatlineedit_keyClicks(qtbot, coloredmultifloatlineedit):
     assert len(values) == 1
     assert values[0] == pytest.approx(33.0, abs=1e-4)
 
-    qtbot.keyClicks(coloredmultifloatlineedit, ';12.0')
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, ';12.0')
     assert coloredmultifloatlineedit.hasAcceptableInput()
     assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
@@ -154,7 +154,7 @@ def test_coloredmultifloatlineedit_keyClicks(qtbot, coloredmultifloatlineedit):
     assert values[0] == pytest.approx(12.0, abs=1e-4)
     assert values[1] == pytest.approx(33.0, abs=1e-4)
 
-    qtbot.keyClicks(coloredmultifloatlineedit, ';20:40:10')
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, ';20:40:10')
     assert coloredmultifloatlineedit.hasAcceptableInput()
     assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
@@ -174,13 +174,13 @@ def test_coloredmultifloatlineedit_valueChanged_setValue(qtbot, coloredmultifloa
 
 def test_coloredmultifloatlineedit_valueChanged_keyClicks(qtbot, coloredmultifloatlineedit):
     with qtbot.waitSignal(coloredmultifloatlineedit.valuesChanged) as blocker:
-        qtbot.keyClicks(coloredmultifloatlineedit, '3')
+        qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
 
     assert blocker.signal_triggered
     assert blocker.args[0][0] == pytest.approx(3.0, abs=1e-4)
 
     with qtbot.waitSignal(coloredmultifloatlineedit.valuesChanged) as blocker:
-        qtbot.keyClicks(coloredmultifloatlineedit, '3')
+        qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
 
     assert blocker.signal_triggered
     assert blocker.args[0][0] == pytest.approx(33.0, abs=1e-4)

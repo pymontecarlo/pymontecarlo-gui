@@ -9,7 +9,6 @@ from qtpy import QtCore, QtWidgets
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock
 
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
@@ -111,7 +110,7 @@ class PreviewWidget(QtWidgets.QWidget, WizardWidgetMixin):
 
 #--- Pages
 
-class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
+class NewSimulationWizardPage(QtWidgets.QWizardPage):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -494,24 +493,3 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def optionsList(self):
         list_options, _estimated = self._get_options_list(estimate=False)
         return list_options
-
-def run(): #pragma: no cover
-    import sys
-    import asyncio
-    from asyncqt import QEventLoop
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    # Create loop
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
-
-    wizard = NewSimulationWizard()
-
-    wizard.exec_()
-
-    with loop:
-        sys.exit(loop.run_forever())
-
-if __name__ == '__main__': #pragma: no cover
-    run()

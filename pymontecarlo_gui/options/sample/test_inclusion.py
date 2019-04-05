@@ -26,7 +26,7 @@ def test_inclusion_sample_field(qtbot , inclusion_sample_field, materials):
 
     widget = inclusion_sample_field.field_inclusion.field_diameter.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '100.0;200.0')
+    qtbot.keyClicks(widget.lineedit, '100.0;200.0')
 
     widget = inclusion_sample_field.field_angle.field_tilt.widget()
     widget.clear()
@@ -34,7 +34,7 @@ def test_inclusion_sample_field(qtbot , inclusion_sample_field, materials):
 
     widget = inclusion_sample_field.field_angle.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
     samples = inclusion_sample_field.samples()
     assert len(samples) == 2 ** 5

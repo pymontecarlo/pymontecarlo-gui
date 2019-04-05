@@ -2,7 +2,6 @@
 
 # Standard library modules.
 import functools
-import abc
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -20,7 +19,6 @@ from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import FieldBase, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.widgets.icon import load_icon
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
     ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
@@ -35,9 +33,8 @@ class MaterialValidatorMixin:
             self._validator = None
         return self._validator
 
-class MaterialAbstractViewMixin(metaclass=QABCMeta):
+class MaterialAbstractViewMixin:
 
-    @abc.abstractmethod
     def _get_model(self):
         raise NotImplementedError
 
@@ -264,8 +261,7 @@ class MaterialColorField(FieldBase):
     def setColor(self, color):
         self._widget.setColor(color)
 
-class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
-                     metaclass=QABCMeta):
+class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin):
 
     materialsChanged = QtCore.Signal()
 
@@ -292,7 +288,6 @@ class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
 
         return True
 
-    @abc.abstractmethod
     def materials(self):
         raise NotImplementedError
 

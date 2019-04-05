@@ -3,7 +3,6 @@
 # Standard library modules.
 import re
 import math
-import abc
 
 # Third party modules.
 from qtpy import QtWidgets, QtGui, QtCore
@@ -11,15 +10,13 @@ from qtpy import QtWidgets, QtGui, QtCore
 import numpy as np
 
 # Local modules.
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
     ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
 
-class DoubleValidatorAdapterMixin(metaclass=QABCMeta):
+class DoubleValidatorAdapterMixin:
 
-    @abc.abstractmethod
     def _get_double_validator(self): #pragma: no cover
         raise NotImplementedError
 
@@ -47,9 +44,8 @@ class DoubleValidatorAdapterMixin(metaclass=QABCMeta):
     def setTop(self, top):
         self._get_double_validator().setTop(top)
 
-class LineEditAdapterMixin(metaclass=QABCMeta):
+class LineEditAdapterMixin:
 
-    @abc.abstractmethod
     def _get_lineedit(self): #pragma: no cover
         raise NotImplementedError
 

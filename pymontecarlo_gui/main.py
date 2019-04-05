@@ -273,19 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dock_runner.raise_()
 
     def _on_stop(self):
-        dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle('Stop')
-        dialog.setLabelText('Stopping all simulations')
-        dialog.setMinimum(0)
-        dialog.setMaximum(0)
-        dialog.setValue(0)
-        dialog.setCancelButton(None)
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
-
-        future = asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop)
-        future.add_done_callback(lambda future: dialog.close())
-
-        dialog.exec_()
+        asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop).result()
 
     def _on_settings(self):
         self.dialog_settings.setSettings(self._settings)

@@ -22,7 +22,7 @@ def test_photon_detector_field(qtbot, photon_detector_field):
 
     widget = photon_detector_field.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
     detectors = photon_detector_field.detectors()
     assert len(detectors) == 2 ** 2

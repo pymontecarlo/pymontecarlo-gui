@@ -1,17 +1,15 @@
 """"""
 
 # Standard library modules.
-import abc
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
-from pymontecarlo_gui.util.metaclass import QABCMeta
 
 # Globals and constants variables.
 
-class ListToolBar(QtWidgets.QWidget, metaclass=QABCMeta):
+class ListToolBar(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,15 +71,12 @@ class ListToolBar(QtWidgets.QWidget, metaclass=QABCMeta):
         self.action_selectall.setEnabled(has_rows and checked < rows)
         self.action_unselectall.setEnabled(has_rows and checked > 0)
 
-    @abc.abstractmethod
     def _select_item(self, item):
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _unselect_item(self, item):
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _is_item_selected(self, item):
         raise NotImplementedError
 

@@ -1,7 +1,6 @@
 pymontecarlo
-PyQt5
+PySide2
 qtpy
-asyncqt
 unsync
 pyqttango
 pygments
