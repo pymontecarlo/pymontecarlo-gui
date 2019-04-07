@@ -6,3 +6,4 @@ pyqttango
 pygments
 pandas
 matplotlib_scalebar
+asyncqt
