@@ -11,8 +11,8 @@ from matplotlib import figure
 from matplotlib.backends.backend_qt5agg import \
     FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, \
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QDialog, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, \
     QComboBox, QSlider, QRadioButton, QButtonGroup, QLabel
 
 from matplotlib_scalebar.scalebar import ScaleBar
