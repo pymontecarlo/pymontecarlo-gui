@@ -24,7 +24,7 @@ from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.token import TokenTableWidget
-from pymontecarlo_gui.widgets.icon import load_icon
+from pymontecarlo_gui.widgets.icon import load_icon, load_pixmap
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
 
@@ -35,6 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, loop, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
+        self.setWindowIcon(load_pixmap('logo_32x32.png'))
 
         # Variables
         self._loop = loop

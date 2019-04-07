@@ -7,6 +7,7 @@ import argparse
 import platform
 import asyncio
 import logging
+import ctypes
 import threading
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,12 @@ def _setup(ns):
 
     # Output environment variables
     logger.info('ENVIRON = %s' % os.environ)
+
+    # Change app id on Windows
+    # https://stackoverflow.com/questions/1551605/how-to-set-applications-taskbar-icon-in-windows-7
+    if sys.platform == 'win32':
+        myappid = 'com.github.pymontecarlo.main' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 def _find_programs():
     return tuple(ProgramFieldBase._subclasses)
