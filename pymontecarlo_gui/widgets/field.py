@@ -308,6 +308,15 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
 
         return index
 
+    def removeField(self, field):
+        if field not in self._fields:
+            raise ValueError('FieldBase "{}" unknown'.format(field))
+
+        index = self._fields.pop(field)
+        self.removeItem(index)
+
+        field.fieldChanged.disconnect(self._on_field_changed)
+
     def setFieldEnabled(self, field, enabled):
         if field not in self._fields:
             return
