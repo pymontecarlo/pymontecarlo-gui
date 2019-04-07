@@ -50,7 +50,7 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
         self.label = QtWidgets.QLabel('No simulation defined')
         self.label.setAlignment(QtCore.Qt.AlignCenter)
 
-#        # Layouts
+        # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.label)
