@@ -4,12 +4,12 @@
 import os
 import functools
 import multiprocessing
-import asyncio
 import logging
 logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
+from asyncqt import asyncClose, asyncSlot
 
 # Local modules.
 from pymontecarlo.settings import Settings
@@ -32,14 +32,12 @@ from pymontecarlo_gui.settings import SettingsDialog
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, loop, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
         self.setWindowIcon(load_pixmap('logo_32x32.png'))
 
         # Variables
-        self._loop = loop
-
         self._dirpath_open = None
         self._dirpath_save = None
         self._should_save = False
@@ -231,7 +229,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_future_submitted(self, future):
         self.table_runner.addFuture(future)
 
-    def _on_create_new_simulations(self):
+    @asyncSlot()
+    async def _on_create_new_simulations(self):
         if not ProgramFieldBase._subclasses:
             title = 'New simulations'
             message = 'No program is activated. ' + \
@@ -247,16 +246,17 @@ class MainWindow(QtWidgets.QMainWindow):
         logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
 
         # Start runner (nothing happens if already running)
-        asyncio.run_coroutine_threadsafe(self._runner.start(), self._loop).result()
+        await self._runner.start()
 
         # Submit simulation(s)
-        asyncio.run_coroutine_threadsafe(self._runner.submit(*list_options), self._loop).result()
+        await self._runner.submit(*list_options)
         logger.debug('Submitted simulation(s)')
 
         self.dock_runner.raise_()
 
-    def _on_stop(self):
-        asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop).result()
+    @asyncSlot()
+    async def _on_stop(self):
+        await self._runner.cancel()
 
     def _on_settings(self):
         self.dialog_settings.setSettings(self._settings)
@@ -281,7 +281,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
-    def closeEvent(self, event):
+    @asyncClose
+    async def closeEvent(self, event):
         state = self._runner.token.state
         if state == TokenState.RUNNING:
             caption = 'Quit'
@@ -293,8 +294,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.reject()
                 return
 
-        asyncio.run_coroutine_threadsafe(self._runner.cancel(), self._loop).result()
-        asyncio.run_coroutine_threadsafe(self._runner.shutdown(), self._loop).result()
+        await self._runner.cancel()
+        await self._runner.shutdown()
 
         event.accept()
 
