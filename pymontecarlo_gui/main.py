@@ -23,7 +23,7 @@ from pymontecarlo_gui.project import \
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
-from pymontecarlo_gui.widgets.future import FutureThread, FutureTableWidget
+from pymontecarlo_gui.widgets.token import TokenTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
@@ -140,8 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dock_project.setWidget(self.tree)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_project)
 
-        self.table_runner = FutureTableWidget()
-        self.table_runner.act_clear.setText('Clear done simulation(s)')
+        self.table_runner = TokenTableWidget(self._runner.token)
 
         self.dock_runner = QtWidgets.QDockWidget("Run")
         self.dock_runner.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
@@ -164,16 +163,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog_settings = SettingsDialog()
 
         # Signals
-#        self._runner.submitted.connect(self._on_future_submitted)
-
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
 
         self.mdiarea.windowOpened.connect(self._on_mdiarea_window_opened)
         self.mdiarea.windowClosed.connect(self._on_mdiarea_window_closed)
 
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
-
-        self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
 
         # Defaults
         self.setProject(self._project)
@@ -201,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_timer_runner_timeout(self):
         token = self._runner.token
-        subtokens = token.subtokens
+        subtokens = token.get_subtokens(category='simulation')
 
         progress = int(token.progress * 100)
         self.statusbar_progressbar.setValue(progress)
@@ -234,19 +229,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_future_submitted(self, future):
         self.table_runner.addFuture(future)
-
-    def _on_table_runner_double_clicked(self, future):
-        if not future.done():
-            return
-
-        if future.cancelled():
-            return
-
-        if not future.exception():
-            return
-
-        field = ExceptionField(future.exception())
-        self.mdiarea.addField(field)
 
     def _on_create_new_simulations(self):
         if not ProgramFieldBase._subclasses:
@@ -283,19 +265,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.dialog_settings.updateSettings(self._settings)
         self._settings.settings_changed.send()
-
-    def _run_future_in_thread(self, future, title):
-        dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle(title)
-        dialog.setRange(0, 100)
-
-        thread = FutureThread(future)
-        thread.progressChanged.connect(dialog.setValue)
-        thread.statusChanged.connect(dialog.setLabelText)
-        thread.finished.connect(dialog.close)
-
-        thread.start()
-        dialog.exec_()
 
     def _check_save(self):
         if not self.shouldSave():
@@ -404,14 +373,12 @@ class MainWindow(QtWidgets.QMainWindow):
             if not filepath:
                 return False
 
-        future = self._reader.submit(filepath)
-        self._run_future_in_thread(future, 'Open project')
+        # TODO: Implement read project
 
-        project = future.result()
-        self.setProject(project)
+        # self.setProject(project)
 
-        self.dock_project.raise_()
-        return True
+        # self.dock_project.raise_()
+        # return True
 
     def saveProject(self, filepath=None):
         if filepath is None:
@@ -433,8 +400,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not filepath.endswith('.mcsim'):
             filepath += '.mcsim'
 
-        future = self._writer.submit(self._project, filepath)
-        self._run_future_in_thread(future, 'Save project')
+        # TODO: Implement save project
 
         self._project.filepath = filepath
         self._dirpath_save = os.path.dirname(filepath)
