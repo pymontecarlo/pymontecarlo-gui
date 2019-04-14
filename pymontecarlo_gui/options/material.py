@@ -280,12 +280,6 @@ class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin):
         if not materials:
             return False
 
-#        try:
-#            for material in materials:
-#                material = self.validator().validate_material(material, None)
-#        except Exception:
-#            return False
-
         return True
 
     def materials(self):
@@ -437,7 +431,6 @@ class MaterialDialog(QtWidgets.QDialog):
 
     def __init__(self, material_widget_class, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Material')
 
         # Variables
         self._materials = []
@@ -527,7 +520,6 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         return True
 
     def _add_material(self, material):
-#        material = self.validator().validate_material(material, None)
         if material in self._materials:
             return False
         self._materials.append(material)
@@ -612,9 +604,9 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.listview.model().modelReset.connect(self._on_data_changed)
         self.listview.selectionModel().selectionChanged.connect(self._on_data_changed)
 
-        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget))
-        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget))
-        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget))
+        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget, 'Add pure material(s)'))
+        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget, 'Add material from chemical formula'))
+        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget, 'Add material(s)'))
         self.act_remove.triggered.connect(self._on_remove_material)
         self.act_clear.triggered.connect(self._on_clear_materials)
 
@@ -628,9 +620,9 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.act_remove.setEnabled(has_rows and has_selection)
         self.act_clear.setEnabled(has_rows)
 
-    def _on_add_material(self, material_widget_class):
+    def _on_add_material(self, material_widget_class, window_title):
         dialog = MaterialDialog(material_widget_class)
-        dialog.setWindowTitle('Add material')
+        dialog.setWindowTitle(window_title)
 
         if not dialog.exec_():
             return
