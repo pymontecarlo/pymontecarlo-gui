@@ -346,7 +346,7 @@ class ProgramWizardPage(NewSimulationWizardPage):
         self._update_errors()
 
     def isComplete(self):
-        return self.field_programs.isValid() and self.field_toolbox.isValid()
+        return self.field_programs.isValid()
 
     def registerProgramField(self, field):
         self.field_programs.addProgramField(field)

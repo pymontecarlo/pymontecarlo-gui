@@ -328,6 +328,7 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
             elif not field.isEnabled():
                 self.setItemEnabled(index, True)
                 field.setEnabled(True)
+                self.setCurrentIndex(index)
 
     def fields(self):
         return tuple(self._fields.keys())
