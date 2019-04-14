@@ -19,7 +19,7 @@ from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSamp
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
 from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
 from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
-from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
+from pymontecarlo_gui.options.analysis.base import AnalysesField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
 from pymontecarlo_gui.options.program.base import ProgramsField, ProgramFieldBase
@@ -246,26 +246,35 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         super().__init__(parent)
         self.setTitle('Select type(s) of analysis')
 
-        # Widgets
-        self.field_analyses_toolbox = AnalysesToolBoxField()
+        # Variables
+        self._definition_field_classes = {}
 
+        # Widgets
         self.field_analyses = AnalysesField()
-        self.field_analyses.setAnalysesToolBoxField(self.field_analyses_toolbox)
+
+        self.field_toolbox = FieldToolBox()
 
         self.widget_preview = PreviewWidget()
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Analyses', self.field_analyses.widget()), 1)
-        layout.addWidget(create_group_box('Definition', self.field_analyses_toolbox.widget()), 1)
+        layout.addWidget(create_group_box(self.field_analyses.title(), self.field_analyses.widget()), 1)
+        layout.addWidget(create_group_box('Definition', self.field_toolbox), 1)
         layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
-        self.field_analyses_toolbox.fieldChanged.connect(self._on_analyses_changed)
         self.field_analyses.fieldChanged.connect(self._on_analyses_changed)
 
     def _on_analyses_changed(self):
+        selected_analysis_fields = self.field_analyses.selectedAnalysisFields()
+
+        definition_fields = set()
+        for field in selected_analysis_fields:
+            definition_field = field.definitionField()
+            definition_fields.add(definition_field)
+        self.field_toolbox.setSelectedFields(definition_fields)
+
         self.analysesChanged.emit()
         self.widget_preview.update()
         self.completeChanged.emit()
@@ -275,10 +284,22 @@ class AnalysisWizardPage(NewSimulationWizardPage):
         self.widget_preview.update()
 
     def isComplete(self):
-        return self.field_analyses.isValid() and self.field_analyses_toolbox.isValid()
+        return self.field_analyses.isValid() and self.field_toolbox.isValid()
 
     def registerAnalysisField(self, field):
         self.field_analyses.addAnalysisField(field)
+
+        definition_field_class = field.definitionFieldClass()
+        definition_field = self._definition_field_classes.get(definition_field_class)
+        if definition_field is None:
+            definition_field = field.definitionField()
+            self.field_toolbox.addField(definition_field, False)
+            self._definition_field_classes[definition_field_class] = definition_field
+            definition_field.fieldChanged.connect(self._on_analyses_changed)
+        else:
+            field.setDefinitionField(definition_field)
+
+        field.fieldChanged.connect(self._on_analyses_changed)
 
     def analyses(self):
         return self.field_analyses.selectedAnalyses()
@@ -306,17 +327,8 @@ class ProgramWizardPage(NewSimulationWizardPage):
         self.field_programs.fieldChanged.connect(self._on_selected_programs_changed)
 
     def _on_selected_programs_changed(self):
-        # Remove toolbox fields
-        for field in self.field_toolbox.fields():
-            self.field_toolbox.setFieldEnabled(field, False)
-            field.setEnabled(False)
-            field.titleWidget().setEnabled(True)
-
-        # Add toolbox fields
         fields = self.field_programs.selectedProgramFields()
-        for field in fields:
-            self.field_toolbox.setFieldEnabled(field, True)
-            field.setEnabled(True)
+        self.field_toolbox.setSelectedFields(fields)
 
         self.programsChanged.emit()
         self.completeChanged.emit()
@@ -334,15 +346,12 @@ class ProgramWizardPage(NewSimulationWizardPage):
         self._update_errors()
 
     def isComplete(self):
-        return self.field_programs.isValid()
+        return self.field_programs.isValid() and self.field_toolbox.isValid()
 
     def registerProgramField(self, field):
         self.field_programs.addProgramField(field)
 
-        self.field_toolbox.addField(field)
-        self.field_toolbox.setFieldEnabled(field, False)
-        field.setEnabled(False)
-        field.titleWidget().setEnabled(True)
+        self.field_toolbox.addField(field, False)
 
         field.fieldChanged.connect(self._on_program_changed)
 

@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Third party modules.
 from qtpy import QtCore, QtWidgets
 
+_qtapi = os.environ.get('QT_API')
+if _qtapi is None or _qtapi == 'pyside2':
+    os.environ['QT_API'] = 'PySide2'
 from asyncqt import QEventLoop
 
 import matplotlib

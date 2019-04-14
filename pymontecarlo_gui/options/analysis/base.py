@@ -13,81 +13,30 @@ from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
-class AnalysesToolBoxMixin:
-
-    def analysesToolBoxField(self):
-        if not hasattr(self, '_field_toolbox'):
-            self._field_toolbox = None
-        return self._field_toolbox
-
-    def setAnalysesToolBoxField(self, field):
-        self._field_toolbox = field
-
-class AnalysesToolBoxField(ToolBoxFieldBase):
+class AnalysisFieldBase(CheckFieldBase):
 
     def __init__(self):
         super().__init__()
 
-        self._registered_requirements = {}
+        self._definition_field = None
 
-        self.field_photon_detector = PhotonDetectorField()
+    @abc.abstractmethod
+    def definitionFieldClass(self):
+        raise NotImplementedError
 
-    def _registerRequirement(self, analysis, field):
-        if not self._registered_requirements.get(field, None):
-            self.addField(field)
+    def definitionField(self):
+        if self._definition_field is None:
+            self._definition_field = self.definitionFieldClass()()
+        return self._definition_field
 
-        self._registered_requirements.setdefault(field, set()).add(analysis)
-
-    def _unregisterRequirement(self, analysis, field):
-        if field not in self._registered_requirements:
-            return
-
-        self._registered_requirements[field].remove(analysis)
-
-        if not self._registered_requirements[field]:
-            self.removeField(field)
-
-    def title(self):
-        return 'Definition'
-
-    def registerPhotonDetectorRequirement(self, analysis):
-        self._registerRequirement(analysis, self.field_photon_detector)
-
-    def unregisterPhotonDetectorRequirement(self, analysis):
-        self._unregisterRequirement(analysis, self.field_photon_detector)
-
-    def photonDetectors(self):
-        return self.field_photon_detector.detectors()
-
-class AnalysisFieldBase(CheckFieldBase, AnalysesToolBoxMixin):
-
-    def __init__(self):
-        super().__init__()
-
-        self._widget = QtWidgets.QWidget()
-
-        self.fieldChanged.connect(self._on_field_changed)
-
-    def _on_field_changed(self):
-        field_toolbox = self.analysesToolBoxField()
-
-        if field_toolbox is not None:
-            if self.isChecked():
-                self._register_requirements(field_toolbox)
-            else:
-                self._unregister_requirements(field_toolbox)
-
-    def _register_requirements(self, field_toolbox):
-        pass
-
-    def _unregister_requirements(self, field_toolbox):
-        pass
+    def setDefinitionField(self, field):
+        self._definition_field = field
 
     @abc.abstractmethod
     def analyses(self):
         return []
 
-class AnalysesField(WidgetFieldBase, AnalysesToolBoxMixin):
+class AnalysesField(WidgetFieldBase):
 
     def title(self):
         return 'Analyses'
@@ -104,13 +53,10 @@ class AnalysesField(WidgetFieldBase, AnalysesToolBoxMixin):
         return True
 
     def addAnalysisField(self, field):
-        field.setAnalysesToolBoxField(self.analysesToolBoxField())
         self.addCheckField(field)
 
-    def setAnalysesToolBoxField(self, field):
-        super().setAnalysesToolBoxField(field)
-        for field in self.fields():
-            field.setAnalysesToolBoxField(field)
+    def selectedAnalysisFields(self):
+        return set(field for field in self.fields() if field.isChecked())
 
     def selectedAnalyses(self):
         it = (field.analyses() for field in self.fields() if field.isChecked())

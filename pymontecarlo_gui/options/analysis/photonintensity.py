@@ -22,7 +22,7 @@ class PhotonIntensityAnalysisField(PhotonAnalysisFieldBase):
     def analyses(self):
         builder = PhotonIntensityAnalysisBuilder()
 
-        for detector in self.analysesToolBoxField().photonDetectors():
+        for detector in self.definitionField().detectors():
             builder.add_photon_detector(detector)
 
         return super().analyses() + builder.build()

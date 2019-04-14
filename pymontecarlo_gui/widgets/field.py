@@ -286,7 +286,7 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
                 return False
         return super().isValid()
 
-    def addField(self, field):
+    def addField(self, field, enabled=True):
         if field in self._fields:
             raise ValueError('FieldBase "{}" already added'.format(field))
 
@@ -304,6 +304,9 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
         index = self.addItem(widget, field.title())
         self._fields[field] = index
 
+        self.setItemEnabled(index, enabled)
+        field.setEnabled(enabled)
+
         field.fieldChanged.connect(self._on_field_changed)
 
         return index
@@ -317,12 +320,14 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
 
         field.fieldChanged.disconnect(self._on_field_changed)
 
-    def setFieldEnabled(self, field, enabled):
-        if field not in self._fields:
-            return
-
-        index = self._fields[field]
-        self.setItemEnabled(index, enabled)
+    def setSelectedFields(self, fields):
+        for field, index in self._fields.items():
+            if field not in fields:
+                self.setItemEnabled(index, False)
+                field.setEnabled(False)
+            elif not field.isEnabled():
+                self.setItemEnabled(index, True)
+                field.setEnabled(True)
 
     def fields(self):
         return tuple(self._fields.keys())
