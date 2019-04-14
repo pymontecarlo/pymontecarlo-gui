@@ -88,6 +88,12 @@ class MultiValueFieldBase(FieldBase):
         label.setStyleSheet('color: blue')
         return label
 
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+
+        label = super().titleWidget()
+        label.setStyleSheet('color: blue' if enabled else 'color: #7e7d8d')
+
 class CheckFieldBase(FieldBase):
 
     def __init__(self):
@@ -144,6 +150,12 @@ class WidgetFieldBase(FieldBase):
     def isValid(self):
         return super().isValid() and \
             all(field.isValid() for field in self._fields)
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+
+        for field in self._fields:
+            field.setEnabled(enabled)
 
     def fields(self):
         return tuple(self._fields)
