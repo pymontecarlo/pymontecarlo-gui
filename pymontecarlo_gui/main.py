@@ -4,6 +4,7 @@
 import os
 import functools
 import multiprocessing
+import asyncio
 import logging
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.token import TokenTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon, load_pixmap
+from pymontecarlo_gui.widgets.dialog import ExecutionProgressDialog
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
 
@@ -42,12 +44,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._dirpath_save = None
         self._should_save = False
 
-        self._project = Project()
-
         self._settings = Settings.read()
 
         max_workers = multiprocessing.cpu_count() - 1
-        self._runner = LocalSimulationRunner(self._project, max_workers=max_workers)
+        self._runner = LocalSimulationRunner(max_workers=max_workers)
 
         # Actions
         self.action_new_project = QtWidgets.QAction('New project')
@@ -169,10 +169,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
-        # Defaults
-        self.setProject(self._project)
-
         # Start
+        self.action_new_project.trigger()
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -224,10 +222,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusbar_done.setText(text)
 
         is_running = token.state == TokenState.RUNNING
+        self.action_new_project.setEnabled(not is_running)
+        self.action_open_project.setEnabled(not is_running)
         self.action_stop_simulations.setEnabled(is_running)
-
-    def _on_future_submitted(self, future):
-        self.table_runner.addFuture(future)
 
     @asyncSlot()
     async def _on_create_new_simulations(self):
@@ -316,22 +313,21 @@ class MainWindow(QtWidgets.QMainWindow):
         return self._dirpath_save
 
     def project(self):
-        return self._project
+        return self._runner.project
 
-    def setProject(self, project):
-        if self._project is not None:
-            self._project.simulation_added.disconnect(self.addSimulation)
+    async def setProject(self, project):
+        if self._runner.project is not None:
+            self._runner.project.simulation_added.disconnect(self.addSimulation)
 
-        self._project = project
-        self._project.simulation_added.connect(self.addSimulation)
-#        self._runner.project = project
+        await self._runner.set_project(project)
+
+        project.simulation_added.connect(self.addSimulation)
 
         if project.filepath:
             self._dirpath_open = os.path.dirname(project.filepath)
 
         self.mdiarea.clear()
         self.tree.clear()
-#        self._runner.submitted_options.clear()
 
         field_project = ProjectField(self._settings, project)
         self.tree.addField(field_project)
@@ -343,22 +339,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setShouldSave(False)
 
-    def newProject(self):
+    @asyncSlot()
+    async def newProject(self):
         if not self._check_save():
             return False
 
-        self.setProject(Project())
+        await self.setProject(Project())
 
         self.dock_project.raise_()
         return True
 
     def openProject(self, filepath=None):
-#        if self._runner.running():
-#            caption = 'Open project'
-#            message = 'Simulations are running. New project cannot be opened.'
-#            QtWidgets.QMessageBox.critical(None, caption, message)
-#            return False
-
         if not self._check_save():
             return False
 
@@ -367,7 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
             dirpath = self.openPath()
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
-                QtWidgets.QFileDialog.getOpenFileName(None, caption, dirpath, namefilters)
+                QtWidgets.QFileDialog.getOpenFileName(self, caption, dirpath, namefilters)
 
             if not namefilter:
                 return False
@@ -375,23 +366,32 @@ class MainWindow(QtWidgets.QMainWindow):
             if not filepath:
                 return False
 
-        # TODO: Implement read project
+        function = functools.partial(Project.read, filepath)
+        dialog = ExecutionProgressDialog('Open project', 'Opening project...', 'Opening project...', function)
+        dialog.exec_()
 
-        # self.setProject(project)
+        if dialog.result() != QtWidgets.QDialog.Accepted:
+            return False
 
-        # self.dock_project.raise_()
-        # return True
+        project = dialog.functionResult()
+        if project is None:
+            return False
+
+        asyncio.ensure_future(self.setProject(project))
+
+        self.dock_project.raise_()
+        return True
 
     def saveProject(self, filepath=None):
         if filepath is None:
-            filepath = self._project.filepath
+            filepath = self._runner.project.filepath
 
         if filepath is None:
             caption = 'Save project'
             dirpath = self.savePath()
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
-                QtWidgets.QFileDialog.getSaveFileName(None, caption, dirpath, namefilters)
+                QtWidgets.QFileDialog.getSaveFileName(self, caption, dirpath, namefilters)
 
             if not namefilter:
                 return False
@@ -402,14 +402,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if not filepath.endswith('.mcsim'):
             filepath += '.mcsim'
 
-        # TODO: Implement save project
+        function = functools.partial(self._runner.project.write, filepath)
+        dialog = ExecutionProgressDialog('Save project', 'Saving project...', 'Project saved', function)
+        dialog.exec_()
 
-        self._project.filepath = filepath
+        self._runner.project.filepath = filepath
         self._dirpath_save = os.path.dirname(filepath)
-
-        caption = 'Save project'
-        message = 'Project saved'
-        QtWidgets.QMessageBox.information(None, caption, message)
 
         self.setShouldSave(False)
 

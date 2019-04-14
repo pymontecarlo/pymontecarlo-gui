@@ -26,7 +26,7 @@ from pymontecarlo_gui.options.program.base import ProgramsField, ProgramFieldBas
 
 # Globals and constants variables.
 
-#--- Widgets
+#region Widgets
 
 class WizardWidgetMixin:
 
@@ -108,7 +108,9 @@ class PreviewWidget(QtWidgets.QWidget, WizardWidgetMixin):
 
         self.wdg_figure.draw()
 
-#--- Pages
+#endregion
+
+#region Pages
 
 class NewSimulationWizardPage(QtWidgets.QWizardPage):
 
@@ -358,7 +360,9 @@ class ProgramWizardPage(NewSimulationWizardPage):
     def programs(self):
         return self.field_programs.programs()
 
-#--- Wizard
+#endregion
+
+#region Wizard
 
 class NewSimulationWizard(QtWidgets.QWizard):
 
@@ -441,7 +445,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
         page = ProgramWizardPage()
 
         for clasz in ProgramFieldBase._subclasses:
-            field = clasz()
+            field = clasz(wizard=self)
             page.registerProgramField(field)
 
         return page
@@ -502,3 +506,5 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def optionsList(self):
         list_options, _estimated = self._get_options_list(estimate=False)
         return list_options
+
+#endregion

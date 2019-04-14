@@ -25,18 +25,22 @@ class ProgramFieldBase(WidgetFieldBase):
         super().__init_subclass__(**kwargs)
         cls._subclasses.append(cls)
 
-    def __init__(self, default_program):
+    def __init__(self, default_program, wizard=None):
         """
         Base class for all programs.
-        
+
         :arg default_program: instance of the program
         """
         super().__init__()
 
         self._default_program = default_program
+        self._wizard = wizard
 
     def isValid(self):
         return super().isValid() and bool(self.programs())
+
+    def wizard(self):
+        return self._wizard
 
     @abc.abstractmethod
     def programs(self):
@@ -48,7 +52,7 @@ class ProgramFieldBase(WidgetFieldBase):
     @unsync
     async def validateOptions(self, options, erracc):
         """
-        Returns a :class:`set` of :class:`Exception` and 
+        Returns a :class:`set` of :class:`Exception` and
         a :class:`set` of :class:`Warning`.
         """
         exporter = self._default_program.exporter
