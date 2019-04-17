@@ -523,6 +523,22 @@ class FieldTree(QtWidgets.QWidget):
 
         return children
 
+    def reset(self):
+        for field, item in self._field_items.items():
+            item.setText(0, field.title())
+            item.setToolTip(0, field.description())
+            item.setIcon(0, field.icon())
+
+        self.tree.reset()
+
+    def resetField(self, field):
+        if field not in self._field_items:
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+        item = self._field_items[field]
+        item.setText(0, field.title())
+        item.setToolTip(0, field.description())
+        item.setIcon(0, field.icon())
+
 class FieldMdiArea(QtWidgets.QWidget):
 
     windowOpened = QtCore.Signal(FieldBase)

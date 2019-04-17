@@ -409,6 +409,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._runner.project.filepath = filepath
         self._dirpath_save = os.path.dirname(filepath)
 
+        self.tree.reset()
+
         self.setShouldSave(False)
 
         return True
@@ -467,7 +469,7 @@ class MainWindow(QtWidgets.QMainWindow):
         field_results = ResultsField()
         self.tree.addField(field_results, field_simulation)
 
-        self.tree.tree.reset()
+        self.tree.reset()
         self.tree.expandField(field_project)
         self.tree.expandField(field_simulations)
 

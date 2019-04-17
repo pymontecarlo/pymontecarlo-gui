@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import os
 
 # Third party modules.
 from qtpy import QtCore, QtGui
@@ -18,8 +19,8 @@ class _SettingsBasedField(FieldBase):
     settingsChanged = QtCore.Signal()
 
     def __init__(self, settings):
-        super().__init__()
         self._settings = settings
+        super().__init__()
 
     def settings(self):
         return self._settings
@@ -27,8 +28,8 @@ class _SettingsBasedField(FieldBase):
 class _ProjectDerivedField(_SettingsBasedField):
 
     def __init__(self, settings, project):
-        super().__init__(settings)
         self._project = project
+        super().__init__(settings)
 
     def project(self):
         return self._project
@@ -39,7 +40,10 @@ class _ProjectDerivedField(_SettingsBasedField):
 class ProjectField(_ProjectDerivedField):
 
     def title(self):
-        return 'Project'
+        if self.project().filepath is not None:
+            return 'Project ({})'.format(os.path.basename(self.project().filepath))
+        else:
+            return 'Project'
 
     def icon(self):
         return QtGui.QIcon.fromTheme('user-home')
