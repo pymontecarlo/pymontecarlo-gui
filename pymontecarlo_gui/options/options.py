@@ -68,18 +68,27 @@ class OptionsModel(QtCore.QObject):
         self.optionsChanged.emit()
 
     def setBeams(self, beams):
+        if self.builder.beams == beams:
+            return
+
         self.builder.beams.clear()
         self.builder.beams.extend(beams)
         self._calculate()
         self.optionsChanged.emit()
 
     def setAnalyses(self, analyses):
+        if self.builder.analyses == analyses:
+            return
+
         self.builder.analyses.clear()
         self.builder.analyses.extend(analyses)
         self._calculate()
         self.optionsChanged.emit()
 
     def setPrograms(self, programs):
+        if self.builder.programs == programs:
+            return
+
         self.builder.programs.clear()
         self.builder.programs.extend(programs)
         self._calculate()
