@@ -3,14 +3,93 @@
 # Standard library modules.
 
 # Third party modules.
-from qtpy import QtGui, QtWebEngineWidgets
+from qtpy import QtCore, QtGui, QtWebEngineWidgets
 
 # Local modules.
 from pymontecarlo.formats.document import publish_html, DocumentBuilder
+from pymontecarlo.options.options import OptionsBuilder
+from pymontecarlo.mock import ProgramMock
 
 from pymontecarlo_gui.project import _SettingsBasedField
 
 # Globals and constants variables.
+
+class OptionsModel(QtCore.QObject):
+
+    optionsChanged = QtCore.Signal()
+
+    def __init__(self):
+        super().__init__()
+
+        self.builder = OptionsBuilder()
+        self._list_options = []
+        self._estimated = False
+
+    def _calculate(self):
+        program_mock_added = False
+        if not self.builder.programs:
+            self.builder.add_program(ProgramMock())
+            program_mock_added = True
+
+        beam_mock_added = False
+        if not self.builder.beams:
+            self.builder.add_beam(None) #TODO: Change back
+            beam_mock_added = True
+
+        sample_mock_added = False
+        if not self.builder.samples:
+            self.builder.add_sample(None)
+            sample_mock_added = True
+
+        if program_mock_added and beam_mock_added and sample_mock_added:
+            list_options = []
+        else:
+            list_options = self.builder.build()
+
+        if program_mock_added:
+            self.builder.programs.clear()
+        if beam_mock_added:
+            self.builder.beams.clear()
+        if sample_mock_added:
+            self.builder.samples.clear()
+
+        self._estimated = program_mock_added or beam_mock_added or sample_mock_added
+        self._list_options = tuple(list_options)
+
+    def setSamples(self, samples):
+        if self.builder.samples == samples:
+            return
+
+        self.builder.samples.clear()
+        self.builder.samples.extend(samples)
+        self._calculate()
+        self.optionsChanged.emit()
+
+    def setBeams(self, beams):
+        self.builder.beams.clear()
+        self.builder.beams.extend(beams)
+        self._calculate()
+        self.optionsChanged.emit()
+
+    def setAnalyses(self, analyses):
+        self.builder.analyses.clear()
+        self.builder.analyses.extend(analyses)
+        self._calculate()
+        self.optionsChanged.emit()
+
+    def setPrograms(self, programs):
+        self.builder.programs.clear()
+        self.builder.programs.extend(programs)
+        self._calculate()
+        self.optionsChanged.emit()
+
+    def isOptionListEstimated(self):
+        return self._estimated
+
+    def getOptionsList(self, estimate=False):
+        if self.isOptionListEstimated() and not estimate:
+            return []
+        return self._list_options
 
 class OptionsField(_SettingsBasedField):
 

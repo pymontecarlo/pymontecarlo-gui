@@ -25,7 +25,7 @@ class ProgramFieldBase(WidgetFieldBase):
         super().__init_subclass__(**kwargs)
         cls._subclasses.append(cls)
 
-    def __init__(self, default_program, wizard=None):
+    def __init__(self, model, default_program):
         """
         Base class for all programs.
 
@@ -33,14 +33,11 @@ class ProgramFieldBase(WidgetFieldBase):
         """
         super().__init__()
 
+        self.model = model
         self._default_program = default_program
-        self._wizard = wizard
 
     def isValid(self):
         return super().isValid() and bool(self.programs())
-
-    def wizard(self):
-        return self._wizard
 
     @abc.abstractmethod
     def programs(self):
