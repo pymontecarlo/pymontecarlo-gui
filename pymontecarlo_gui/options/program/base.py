@@ -52,11 +52,19 @@ class ProgramFieldBase(WidgetFieldBase):
         Returns a :class:`set` of :class:`Exception` and
         a :class:`set` of :class:`Warning`.
         """
-        exporter = self._default_program.exporter
-        options.program = self._default_program
+        oldprogram = options.program
 
-        with tempfile.TemporaryDirectory() as dirpath:
-            await exporter._export(options, dirpath, erracc, dry_run=True)
+        try:
+            if not isinstance(options.program, self._default_program.__class__):
+                options.program = self._default_program
+
+            exporter = options.program.exporter
+
+            with tempfile.TemporaryDirectory() as dirpath:
+                await exporter._export(options, dirpath, erracc, dry_run=True)
+
+        finally:
+            options.program = oldprogram
 
         return erracc
 
@@ -95,10 +103,6 @@ class CheckProgramField(CheckFieldBase):
 
     def setErrors(self, errors):
         self._errors = errors
-        self.titleWidget().setEnabled(not errors)
-
-        if errors:
-            self.setChecked(False)
 
         text = self._errors_to_html(errors)
         self._widget.setText(text)
@@ -106,11 +110,8 @@ class CheckProgramField(CheckFieldBase):
         icon = QtGui.QIcon.fromTheme('dialog-error') if errors else QtGui.QIcon()
         self._widget.setIcon(icon)
 
-    def hasErrors(self):
-        return bool(self.errors())
-
     def isValid(self):
-        return super().isValid() and not self.hasErrors()
+        return super().isValid() and not bool(self.errors())
 
 class ProgramsField(WidgetFieldBase):
 
@@ -121,12 +122,16 @@ class ProgramsField(WidgetFieldBase):
         return 'Program(s)'
 
     def isValid(self):
-        selection = self.selectedProgramFields()
+        # Selected fields
+        selection = set(field for field in self.fields() if field.isChecked())
         if not selection:
             return False
 
+        # Check field and program field must be valid
         for field in selection:
             if not field.isValid():
+                return False
+            if not field.programField().isValid():
                 return False
 
         return True
@@ -136,8 +141,7 @@ class ProgramsField(WidgetFieldBase):
         self.addCheckField(field)
 
     def selectedProgramFields(self):
-        return set(field.programField() for field in self.fields()
-                   if field.isChecked() and not field.hasErrors())
+        return set(field.programField() for field in self.fields() if field.isChecked())
 
     def programFields(self):
         return set(field.programField() for field in self.fields())

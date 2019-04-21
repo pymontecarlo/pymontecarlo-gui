@@ -291,6 +291,7 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
         # Signals
         self.field_programs.fieldChanged.connect(self._on_selected_programs_changed)
+        model.programsChanged.connect(self._update_errors)
 
     def _on_selected_programs_changed(self):
         fields = self.field_programs.selectedProgramFields()
