@@ -18,8 +18,10 @@ class OptionsModel(QtCore.QObject):
 
     optionsChanged = QtCore.Signal()
 
-    def __init__(self):
+    def __init__(self, settings):
         super().__init__()
+
+        self.settings = settings
 
         self.builder = OptionsBuilder()
         self._list_options = []

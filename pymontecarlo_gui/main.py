@@ -157,7 +157,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mdiarea)
 
         # Dialogs
-        self.wizard_simulation = NewSimulationWizard()
+        self.wizard_simulation = NewSimulationWizard(self._settings)
 
         self.dialog_settings = SettingsDialog()
 
@@ -290,6 +290,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if answer == QtWidgets.QMessageBox.No:
                 event.reject()
                 return
+
+        self._settings.write()
 
         await self._runner.cancel()
         await self._runner.shutdown()

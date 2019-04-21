@@ -328,7 +328,7 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
 class NewSimulationWizard(QtWidgets.QWizard):
 
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
         self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
@@ -337,7 +337,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
                            QtWidgets.QSizePolicy.MinimumExpanding)
 
         # Variables
-        self.model = OptionsModel()
+        self.model = OptionsModel(settings)
 
         # Buttons
         self.setOption(QtWidgets.QWizard.HaveCustomButton1)
