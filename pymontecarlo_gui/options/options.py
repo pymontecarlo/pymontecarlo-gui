@@ -63,7 +63,6 @@ class OptionsModel(QtCore.QObject):
         self._list_options = tuple(list_options)
 
     def setSamples(self, samples):
-        print(samples, self.builder.samples == samples)
         if self.builder.samples == samples:
             return
 
