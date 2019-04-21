@@ -15,6 +15,7 @@ from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
+from pymontecarlo_gui.options.beam.pencil import PencilBeamField
 from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
 from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField
@@ -387,6 +388,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def _create_beam_page(self):
         page = BeamWizardPage(self.model)
 
+        page.registerBeamField(PencilBeamField())
         page.registerBeamField(GaussianBeamField())
         page.registerBeamField(CylindricalBeamField())
 
