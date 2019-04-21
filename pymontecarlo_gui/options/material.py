@@ -557,6 +557,9 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
 
     def setMaterials(self, materials, reset=True):
         self._materials.clear()
+        self.addMaterials(materials, reset)
+
+    def addMaterials(self, materials, reset=True):
         for material in materials:
             self._add_material(material)
 
@@ -629,7 +632,7 @@ class MaterialToolbar(QtWidgets.QToolBar):
         if not dialog.exec_():
             return
 
-        self.listview.model().setMaterials(dialog.materials())
+        self.listview.model().addMaterials(dialog.materials())
 
     def _on_remove_material(self):
         selection_model = self.listview.selectionModel()
@@ -802,10 +805,17 @@ class CheckableMaterialModel(MaterialModel):
         self._selection.clear()
         super().clearMaterials()
 
-    def setMaterials(self, materials):
+    def setMaterials(self, materials, reset=True):
         selected_materials = self.selectedMaterials()
 
         super().setMaterials(materials, reset=False)
+
+        self.setSelectedMaterials(selected_materials)
+
+    def addMaterials(self, materials, reset=True):
+        selected_materials = self.selectedMaterials()
+
+        super().addMaterials(materials, reset=False)
 
         self.setSelectedMaterials(selected_materials)
 
