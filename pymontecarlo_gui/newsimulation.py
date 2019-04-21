@@ -82,9 +82,11 @@ class PreviewWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # Signals
-        self.model.optionsChanged.connect(self._on_options_changed)
+        self.model.samplesChanged.connect(self._on_changed)
+        self.model.beamsChanged.connect(self._on_changed)
+        self.model.analysesChanged.connect(self._on_changed)
 
-    def _on_options_changed(self):
+    def _on_changed(self):
         self.wdg_figure.clear()
 
         list_options = self.model.getOptionsList(estimate=True)

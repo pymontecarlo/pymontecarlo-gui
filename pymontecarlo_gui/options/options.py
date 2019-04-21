@@ -16,6 +16,10 @@ from pymontecarlo_gui.project import _SettingsBasedField
 
 class OptionsModel(QtCore.QObject):
 
+    beamsChanged = QtCore.Signal()
+    samplesChanged = QtCore.Signal()
+    analysesChanged = QtCore.Signal()
+    programsChanged = QtCore.Signal()
     optionsChanged = QtCore.Signal()
 
     def __init__(self, settings):
@@ -59,12 +63,14 @@ class OptionsModel(QtCore.QObject):
         self._list_options = tuple(list_options)
 
     def setSamples(self, samples):
+        print(samples, self.builder.samples == samples)
         if self.builder.samples == samples:
             return
 
         self.builder.samples.clear()
         self.builder.samples.extend(samples)
         self._calculate()
+        self.samplesChanged.emit()
         self.optionsChanged.emit()
 
     def setBeams(self, beams):
@@ -74,6 +80,7 @@ class OptionsModel(QtCore.QObject):
         self.builder.beams.clear()
         self.builder.beams.extend(beams)
         self._calculate()
+        self.beamsChanged.emit()
         self.optionsChanged.emit()
 
     def setAnalyses(self, analyses):
@@ -83,6 +90,7 @@ class OptionsModel(QtCore.QObject):
         self.builder.analyses.clear()
         self.builder.analyses.extend(analyses)
         self._calculate()
+        self.analysesChanged.emit()
         self.optionsChanged.emit()
 
     def setPrograms(self, programs):
@@ -92,6 +100,7 @@ class OptionsModel(QtCore.QObject):
         self.builder.programs.clear()
         self.builder.programs.extend(programs)
         self._calculate()
+        self.programsChanged.emit()
         self.optionsChanged.emit()
 
     def isOptionListEstimated(self):
