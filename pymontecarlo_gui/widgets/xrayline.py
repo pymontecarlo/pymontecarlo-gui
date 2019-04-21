@@ -26,6 +26,8 @@ class XrayLineField(FieldBase):
         # Signals
         settings.settings_changed.connect(self._on_settings_changed)
 
+        self._widget.currentIndexChanged.connect(self.fieldChanged)
+
     def _on_settings_changed(self):
         for index in range(self._widget.count()):
             xrayline = self._widget.itemData(index)
@@ -47,7 +49,7 @@ class XrayLineField(FieldBase):
         return self._widget
 
     def isValid(self):
-        return super().isValid() and self._widget.currentIndex() > 0
+        return super().isValid() and self._widget.currentIndex() >= 0
 
     def setXrayLines(self, xraylines):
         self._widget.clear()
