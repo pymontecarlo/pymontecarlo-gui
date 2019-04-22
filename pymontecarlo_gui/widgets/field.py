@@ -302,14 +302,24 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
         if field in self._fields:
             raise ValueError('FieldBase "{}" already added'.format(field))
 
+        # Create layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+
         if field.hasDescription():
             layout.addWidget(field.descriptionWidget())
+
+            frame = QtWidgets.QFrame()
+            frame.setFrameShape(QtWidgets.QFrame.HLine)
+            frame.setFrameShadow(QtWidgets.QFrame.Sunken)
+            layout.addWidget(frame)
+
         if field.hasSuffix():
             layout.addWidget(field.suffixWidget())
+
         layout.addWidget(field.widget())
 
+        # Create and add widget
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
 
