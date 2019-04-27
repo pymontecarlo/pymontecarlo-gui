@@ -10,7 +10,7 @@ from pymontecarlo.formats.document import publish_html, DocumentBuilder
 from pymontecarlo.options.options import OptionsBuilder
 from pymontecarlo.mock import ProgramMock
 
-from pymontecarlo_gui.project import _SettingsBasedField
+from pymontecarlo_gui.project import SettingsBasedField
 
 # Globals and constants variables.
 
@@ -110,7 +110,7 @@ class OptionsModel(QtCore.QObject):
             return []
         return self._list_options
 
-class OptionsField(_SettingsBasedField):
+class OptionsField(SettingsBasedField):
 
     def __init__(self, options, settings):
         super().__init__(settings)

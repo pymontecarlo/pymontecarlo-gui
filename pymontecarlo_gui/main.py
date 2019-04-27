@@ -5,6 +5,7 @@ import os
 import functools
 import multiprocessing
 import asyncio
+import tempfile
 import logging
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,12 @@ from pymontecarlo.settings import Settings
 from pymontecarlo.project import Project
 from pymontecarlo.runner.local import LocalSimulationRunner
 from pymontecarlo.util.token import TokenState
+from pymontecarlo.results.photonintensity import PhotonIntensityResultBase
 
-from pymontecarlo_gui.project import \
-    (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
-     SimulationsField, SimulationField, ResultsField)
+from pymontecarlo_gui.project import ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField, SimulationsField, SimulationField, ResultsField
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.options.program.base import ProgramFieldBase
+from pymontecarlo_gui.results.photonintensity import PhotonIntensityResultField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.token import TokenTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon, load_pixmap
@@ -40,8 +41,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(load_pixmap('logo_32x32.png'))
 
         # Variables
-        self._dirpath_open = None
-        self._dirpath_save = None
         self._should_save = False
 
         self._settings = Settings.read()
@@ -170,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
         # Start
-        self.action_new_project.trigger()
+        self.action_new_project.trigger() # Required to setup project
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -242,6 +241,16 @@ class MainWindow(QtWidgets.QMainWindow):
         list_options = self.wizard_simulation.optionsList()
         logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
 
+        # # Check save project
+        # if self.project().filepath is None:
+        #     caption = 'Save project'
+        #     message = 'Would you like to save the project before running the simulation(s)?'
+        #     buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        #     answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
+
+        #     if answer == QtWidgets.QMessageBox.Yes:
+        #         self.saveProject()
+
         # Start runner (nothing happens if already running)
         await self._runner.start()
 
@@ -256,13 +265,13 @@ class MainWindow(QtWidgets.QMainWindow):
         await self._runner.cancel()
 
     def _on_settings(self):
-        self.dialog_settings.setSettings(self._settings)
+        self.dialog_settings.setSettings(self.settings())
 
         if not self.dialog_settings.exec_():
             return
 
-        self.dialog_settings.updateSettings(self._settings)
-        self._settings.settings_changed.send()
+        self.dialog_settings.updateSettings(self.settings())
+        self.settings().settings_changed.send()
 
     def _check_save(self):
         if not self.shouldSave():
@@ -291,28 +300,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.reject()
                 return
 
-        self._settings.write()
+        self.settings().write()
 
         await self._runner.cancel()
         await self._runner.shutdown()
 
         event.accept()
-
-    def openPath(self):
-        if self._dirpath_open is None:
-            if self._dirpath_save is None:
-                self._dirpath_open = os.getcwd()
-            else:
-                self._dirpath_open = self._dirpath_save
-        return self._dirpath_open
-
-    def savePath(self):
-        if self._dirpath_save is None:
-            if self._dirpath_save is None:
-                self._dirpath_open = os.getcwd()
-            else:
-                self._dirpath_save = self._dirpath_open
-        return self._dirpath_save
 
     def project(self):
         return self._runner.project
@@ -326,12 +319,12 @@ class MainWindow(QtWidgets.QMainWindow):
         project.simulation_added.connect(self.addSimulation)
 
         if project.filepath:
-            self._dirpath_open = os.path.dirname(project.filepath)
+            self.settings().opendir = os.path.dirname(project.filepath)
 
         self.mdiarea.clear()
         self.tree.clear()
 
-        field_project = ProjectField(self._settings, project)
+        field_project = ProjectField(self.settings(), project)
         self.tree.addField(field_project)
 
         for index, simulation in enumerate(project.simulations, 1):
@@ -357,7 +350,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if filepath is None:
             caption = 'Open project'
-            dirpath = self.openPath()
+            dirpath = self.settings().opendir
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
                 QtWidgets.QFileDialog.getOpenFileName(self, caption, dirpath, namefilters)
@@ -367,6 +360,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if not filepath:
                 return False
+
+        self.settings().opendir = os.path.dirname(filepath)
 
         function = functools.partial(Project.read, filepath)
         dialog = ExecutionProgressDialog('Open project', 'Opening project...', 'Opening project...', function)
@@ -390,7 +385,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if filepath is None:
             caption = 'Save project'
-            dirpath = self.savePath()
+            dirpath = self.settings().savedir
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
                 QtWidgets.QFileDialog.getSaveFileName(self, caption, dirpath, namefilters)
@@ -409,9 +404,10 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.exec_()
 
         self._runner.project.filepath = filepath
-        self._dirpath_save = os.path.dirname(filepath)
+        self.settings().savedir = os.path.dirname(filepath)
 
-        self.tree.reset()
+        for field in self.tree.topLevelFields():
+            self.tree.resetField(field)
 
         self.setShouldSave(False)
 
@@ -431,7 +427,7 @@ class MainWindow(QtWidgets.QMainWindow):
         assert len(toplevelfields) == 1
 
         field_project = toplevelfields[0]
-        settings = self._settings
+        settings = self.settings()
         project = field_project.project()
 
         # Summary table
@@ -462,20 +458,24 @@ class MainWindow(QtWidgets.QMainWindow):
         field_simulation = SimulationField(index, simulation)
         self.tree.addField(field_simulation, field_simulations)
 
-        field_options = OptionsField(simulation.options, self._settings)
+        # Simulation - options
+        field_options = OptionsField(simulation.options, settings)
         self.tree.addField(field_options, field_simulation)
 
-        if not simulation.results:
-            return
-
-        field_results = ResultsField()
-        self.tree.addField(field_results, field_simulation)
+        # Simulation - results
+        if simulation.results:
+            for result in simulation.find_result(PhotonIntensityResultBase):
+                field_result = PhotonIntensityResultField(result, settings)
+                self.tree.addField(field_result, field_simulation)
 
         self.tree.reset()
         self.tree.expandField(field_project)
         self.tree.expandField(field_simulations)
 
         self.setShouldSave(True)
+
+    def settings(self):
+        return self._settings
 
     def shouldSave(self):
         return self._should_save

@@ -12,8 +12,20 @@ import pymontecarlo
 from pymontecarlo.settings import Settings, XrayNotation
 
 import pymontecarlo_gui.widgets.messagebox as messagebox
+from pymontecarlo_gui.widgets.field import FieldBase
 
 # Globals and constants variables.
+
+class SettingsBasedField(FieldBase):
+
+    settingsChanged = QtCore.Signal()
+
+    def __init__(self, settings):
+        self._settings = settings
+        super().__init__()
+
+    def settings(self):
+        return self._settings
 
 class PreferredUnitsWidget(QtWidgets.QWidget):
 

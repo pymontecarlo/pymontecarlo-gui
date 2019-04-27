@@ -9,23 +9,12 @@ from qtpy import QtCore, QtGui
 # Local modules.
 from pymontecarlo_gui.widgets.field import FieldBase
 from pymontecarlo_gui.widgets.icon import load_icon
-from pymontecarlo_gui.results.summary import \
-    ResultSummaryTableWidget, ResultSummaryFigureWidget
+from pymontecarlo_gui.results.summary import ResultSummaryTableWidget, ResultSummaryFigureWidget
+from pymontecarlo_gui.settings import SettingsBasedField
 
 # Globals and constants variables.
 
-class _SettingsBasedField(FieldBase):
-
-    settingsChanged = QtCore.Signal()
-
-    def __init__(self, settings):
-        self._settings = settings
-        super().__init__()
-
-    def settings(self):
-        return self._settings
-
-class _ProjectDerivedField(_SettingsBasedField):
+class ProjectDerivedField(SettingsBasedField):
 
     def __init__(self, settings, project):
         self._project = project
@@ -37,7 +26,7 @@ class _ProjectDerivedField(_SettingsBasedField):
     def setProject(self, project):
         self._project = project
 
-class ProjectField(_ProjectDerivedField):
+class ProjectField(ProjectDerivedField):
 
     def title(self):
         if self.project().filepath is not None:
@@ -45,13 +34,16 @@ class ProjectField(_ProjectDerivedField):
         else:
             return 'Project'
 
+    def description(self):
+        return self.project().filepath
+
     def icon(self):
         return QtGui.QIcon.fromTheme('user-home')
 
     def widget(self):
         return super().widget()
 
-class ProjectSummaryTableField(_ProjectDerivedField):
+class ProjectSummaryTableField(ProjectDerivedField):
 
     def __init__(self, settings, project):
         super().__init__(settings, project)
@@ -78,7 +70,7 @@ class ProjectSummaryTableField(_ProjectDerivedField):
             self._widget.setProject(project)
         super().setProject(project)
 
-class ProjectSummaryFigureField(_ProjectDerivedField):
+class ProjectSummaryFigureField(ProjectDerivedField):
 
     def __init__(self, settings, project):
         super().__init__(settings, project)
