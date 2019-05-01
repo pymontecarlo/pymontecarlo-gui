@@ -37,13 +37,13 @@ class PhotonSingleResultModel(QtCore.QAbstractTableModel):
 
         xrayline, value = self.rows[irow]
 
-        if role in [QtCore.Qt.DisplayRole, QtCore.Qt.UserRole]:
+        if role in [QtCore.Qt.DisplayRole, QtCore.Qt.UserRole, QtCore.Qt.EditRole]:
             if icolumn == 0:
                 return xrayline.iupac if self.settings.preferred_xray_notation == XrayNotation.IUPAC else xrayline.siegbahn
             elif icolumn == 1:
-                return self.settings.to_preferred_unit(value.n, self.value_units).magnitude
+                return '{:g}'.format(self.settings.to_preferred_unit(value.n, self.value_units).magnitude)
             elif icolumn == 2:
-                return self.settings.to_preferred_unit(value.s, self.value_units).magnitude
+                return '{:g}'.format(self.settings.to_preferred_unit(value.s, self.value_units).magnitude)
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
