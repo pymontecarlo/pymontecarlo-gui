@@ -10,18 +10,18 @@ from pymontecarlo_gui.results.photon import PhotonSingleResultModel
 
 # Globals and constants variables.
 
-class PhotonIntensityResultWidget(ResultTableWidgetBase):
+class KRatioResultWidget(ResultTableWidgetBase):
 
     def _create_model(self, result, settings):
-        return PhotonSingleResultModel(result, settings, 'Intensity', '1/(sr.electron)')
+        return PhotonSingleResultModel(result, settings, 'k-ratio')
 
-class PhotonIntensityResultField(ResultFieldBase):
+class KRatioResultField(ResultFieldBase):
 
     def __init__(self, result, settings):
         super().__init__(result, settings)
 
         # Widgets
-        self._widget = PhotonIntensityResultWidget(result, settings)
+        self._widget = KRatioResultWidget(result, settings)
 
     def widget(self):
         return self._widget

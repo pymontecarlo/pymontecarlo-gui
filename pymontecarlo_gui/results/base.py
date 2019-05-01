@@ -143,7 +143,7 @@ class ResultSummaryWidgetBase(QtWidgets.QWidget):
     def setProject(self, project):
         raise NotImplementedError
 
-class ResultField(SettingsBasedField):
+class ResultFieldBase(SettingsBasedField):
 
     def __init__(self, result, settings):
         self._result = result

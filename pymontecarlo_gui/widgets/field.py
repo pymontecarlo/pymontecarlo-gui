@@ -494,11 +494,17 @@ class FieldTree(QtWidgets.QWidget):
         item = self._field_items[field]
         self.tree.expandItem(item)
 
+    def expand(self):
+        self.tree.expandAll()
+
     def collapseField(self, field):
         if field not in self._field_items:
             raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.collapseItem(item)
+
+    def collapse(self):
+        self.tree.collapseAll()
 
     def setFieldFont(self, field, font):
         if field not in self._field_items:

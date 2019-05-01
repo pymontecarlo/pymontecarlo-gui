@@ -97,17 +97,6 @@ class ProjectSummaryFigureField(ProjectDerivedField):
             self._widget.setProject(project)
         super().setProject(project)
 
-class SimulationsField(FieldBase):
-
-    def title(self):
-        return 'Simulations'
-
-    def icon(self):
-        return QtGui.QIcon.fromTheme('folder')
-
-    def widget(self):
-        return super().widget()
-
 class SimulationField(FieldBase):
 
     def __init__(self, index, simulation):
@@ -132,15 +121,4 @@ class SimulationField(FieldBase):
 
     def simulation(self):
         return self._simulation
-
-class ResultsField(FieldBase):
-
-    def title(self):
-        return 'Results'
-
-    def icon(self):
-        return QtGui.QIcon.fromTheme('folder')
-
-    def widget(self):
-        return super().widget()
 

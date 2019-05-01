@@ -19,11 +19,14 @@ from pymontecarlo.project import Project
 from pymontecarlo.runner.local import LocalSimulationRunner
 from pymontecarlo.util.token import TokenState
 from pymontecarlo.results.photonintensity import PhotonIntensityResultBase
+from pymontecarlo.results.kratio import KRatioResult
 
-from pymontecarlo_gui.project import ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField, SimulationsField, SimulationField, ResultsField
+from pymontecarlo_gui.project import ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField, SimulationField
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.options.program.base import ProgramFieldBase
+from pymontecarlo_gui.results.base import ResultFieldBase
 from pymontecarlo_gui.results.photonintensity import PhotonIntensityResultField
+from pymontecarlo_gui.results.kratio import KRatioResultField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
 from pymontecarlo_gui.widgets.token import TokenTableWidget
 from pymontecarlo_gui.widgets.icon import load_icon, load_pixmap
@@ -313,10 +316,12 @@ class MainWindow(QtWidgets.QMainWindow):
     async def setProject(self, project):
         if self._runner.project is not None:
             self._runner.project.simulation_added.disconnect(self.addSimulation)
+            self._runner.project.simulation_recalculated.disconnect(self._on_simulation_recalculated)
 
         await self._runner.set_project(project)
 
         project.simulation_added.connect(self.addSimulation)
+        project.simulation_recalculated.connect(self._on_simulation_recalculated)
 
         if project.filepath:
             self.settings().opendir = os.path.dirname(project.filepath)
@@ -413,6 +418,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
+    def _add_results_to_tree(self, field_simulation, simulation):
+        if simulation.results:
+            for result in simulation.find_result(PhotonIntensityResultBase):
+                field_result = PhotonIntensityResultField(result, self.settings())
+                self.tree.addField(field_result, field_simulation)
+
+            for result in simulation.find_result(KRatioResult):
+                field_result = KRatioResultField(result, self.settings())
+                self.tree.addField(field_result, field_simulation)
+
     def addSimulation(self, simulation, index=None):
         def _find_field(field_project, clasz):
             children = self.tree.childrenField(field_project)
@@ -427,13 +442,12 @@ class MainWindow(QtWidgets.QMainWindow):
         assert len(toplevelfields) == 1
 
         field_project = toplevelfields[0]
-        settings = self.settings()
         project = field_project.project()
 
         # Summary table
         field_summary_table = _find_field(field_project, ProjectSummaryTableField)
         if not field_summary_table:
-            field_summary_table = ProjectSummaryTableField(settings, project)
+            field_summary_table = ProjectSummaryTableField(self.settings(), project)
             self.tree.addField(field_summary_table, field_project)
 
         field_summary_table.setProject(project)
@@ -441,36 +455,51 @@ class MainWindow(QtWidgets.QMainWindow):
         # Summary figure
         field_summary_figure = _find_field(field_project, ProjectSummaryFigureField)
         if not field_summary_figure:
-            field_summary_figure = ProjectSummaryFigureField(settings, project)
+            field_summary_figure = ProjectSummaryFigureField(self.settings(), project)
             self.tree.addField(field_summary_figure, field_project)
 
         field_summary_figure.setProject(project)
 
-        # Simulations
-        field_simulations = _find_field(field_project, SimulationsField)
-        if not field_simulations:
-            field_simulations = SimulationsField()
-            self.tree.addField(field_simulations, field_project)
-
         # Simulation
         if index is None:
-            index = project.simulations.index(simulation) + 1
+            index = field_project.project().simulations.index(simulation) + 1
         field_simulation = SimulationField(index, simulation)
-        self.tree.addField(field_simulation, field_simulations)
+        self.tree.addField(field_simulation, field_project)
 
-        # Simulation - options
-        field_options = OptionsField(simulation.options, settings)
+        field_options = OptionsField(simulation.options, self.settings())
         self.tree.addField(field_options, field_simulation)
-
-        # Simulation - results
-        if simulation.results:
-            for result in simulation.find_result(PhotonIntensityResultBase):
-                field_result = PhotonIntensityResultField(result, settings)
-                self.tree.addField(field_result, field_simulation)
+        self._add_results_to_tree(field_simulation, simulation)
 
         self.tree.reset()
-        self.tree.expandField(field_project)
-        self.tree.expandField(field_simulations)
+        self.tree.expand()
+
+        self.setShouldSave(True)
+
+    def _on_simulation_recalculated(self, simulation):
+        # Find field
+        toplevelfields = self.tree.topLevelFields()
+        assert len(toplevelfields) == 1
+        field_project = toplevelfields[0]
+
+        field_simulation = None
+        for field in self.tree.childrenField(field_project):
+            if isinstance(field, SimulationField) and field.simulation() == simulation:
+                field_simulation = field
+                break
+
+        if field_simulation is None:
+            return
+
+        # Remove result fields
+        for field in self.tree.childrenField(field_simulation):
+            if isinstance(field, ResultFieldBase):
+                self.tree.removeField(field)
+
+        # Re-create result fields
+        self._add_results_to_tree(field_simulation, simulation)
+
+        self.tree.reset()
+        self.tree.expand()
 
         self.setShouldSave(True)
 

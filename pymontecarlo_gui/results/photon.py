@@ -12,7 +12,7 @@ from pymontecarlo.settings import XrayNotation
 
 class PhotonSingleResultModel(QtCore.QAbstractTableModel):
 
-    def __init__(self, result, settings, value_label, value_units):
+    def __init__(self, result, settings, value_label, value_units=None):
         super().__init__()
         self.rows = self._extract_rows(result)
         self.settings = settings
@@ -56,9 +56,15 @@ class PhotonSingleResultModel(QtCore.QAbstractTableModel):
             if section == 0:
                 return 'X-ray line'
             elif section == 1:
-                return '{} [{}]'.format(self.value_label, self.value_units)
+                if self.value_units:
+                    return '{} [{}]'.format(self.value_label, self.value_units)
+                else:
+                    return self.value_label
             elif section == 2:
-                return 'Uncertainty [{}]'.format(self.value_units)
+                if self.value_units:
+                    return 'Uncertainty [{}]'.format(self.value_units)
+                else:
+                    return 'Uncertainty'
 
         elif orientation == QtCore.Qt.Vertical:
             return str(section + 1)
