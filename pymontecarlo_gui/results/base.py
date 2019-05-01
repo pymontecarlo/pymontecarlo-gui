@@ -6,6 +6,7 @@ import functools
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets, QtWebEngineWidgets
+import xlsxwriter
 
 # Local modules.
 from pymontecarlo_gui.settings import SettingsBasedField
@@ -111,17 +112,34 @@ class ResultTableWidgetBase(ResultWidgetBase):
         data = self._get_data()
         print(data)
 
-    def _save_data(self, filepath):
+    def _save_csv(self, filepath):
         data = self._get_data()
 
         with open(filepath, 'w') as fp:
             writer = csv.writer(fp, lineterminator='\n')
             writer.writerows(data)
 
+    def _save_xlsx(self, filepath):
+        data = self._get_data()
+        workbook = xlsxwriter.Workbook(filepath)
+
+        try:
+            format_header = workbook.add_format({'bold': True})
+
+            worksheet = workbook.add_worksheet(self.result().getname())
+            worksheet.writerow(0, 0, data[0], format_header)
+
+            for irow, row in enumerate(data[1:]):
+                for icol, value in enumerate(row):
+                    worksheet.write(irow, icol, value)
+
+        finally:
+            workbook.close()
+
     def _on_save(self):
         caption = 'Save result'
         dirpath = self.settings().savedir
-        namefilters = 'CSV text file (*.csv) || Excel spreadsheet (*.xlsx)'
+        namefilters = 'Excel spreadsheet (*.xlsx);;CSV text file (*.csv)'
         filepath, namefilter = \
             QtWidgets.QFileDialog.getSaveFileName(self, caption, dirpath, namefilters)
 
@@ -131,10 +149,16 @@ class ResultTableWidgetBase(ResultWidgetBase):
         if not filepath:
             return False
 
-        if not filepath.endswith('.csv'):
-            filepath += '.csv'
+        if namefilter == 'CSV text file (*.csv)':
+            ext = '.csv'
+            function = functools.partial(self._save_csv, filepath)
+        elif namefilter == 'Excel spreadsheet (*.xlsx)':
+            ext = 'xlsx'
+            function = functools.partial(self._save_xlsx, filepath)
 
-        function = functools.partial(self._save_data, filepath)
+        if not filepath.endswith(ext):
+            filepath += ext
+
         dialog = ExecutionProgressDialog('Save result', 'Saving result...', 'Result saved', function)
         dialog.exec_()
 
