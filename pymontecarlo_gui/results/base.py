@@ -50,6 +50,7 @@ class ResultTableWidgetBase(ResultWidgetBase):
         self.table_view = QtWidgets.QTableView()
         self.table_view.setModel(self._create_model(result, settings))
         self.table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.table_view.setSortingEnabled(True)
 
         self.web_widget = QtWebEngineWidgets.QWebEngineView()
         self.web_widget.setHtml(self._render_html(result, settings))

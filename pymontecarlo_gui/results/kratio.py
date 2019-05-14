@@ -13,7 +13,7 @@ from pymontecarlo_gui.results.photon import PhotonSingleResultModel
 class KRatioResultWidget(ResultTableWidgetBase):
 
     def _create_model(self, result, settings):
-        return PhotonSingleResultModel(result, settings, 'k-ratio')
+        return PhotonSingleResultModel(result, settings, 'k-ratio', value_format='{:.5f}')
 
 class KRatioResultField(ResultFieldBase):
 
