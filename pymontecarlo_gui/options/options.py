@@ -50,7 +50,10 @@ class OptionsModel(QtCore.QObject):
         if program_mock_added and beam_mock_added and sample_mock_added:
             list_options = []
         else:
-            list_options = self.builder.build()
+            try:
+                list_options = self.builder.build()
+            except:
+                list_options = []
 
         if program_mock_added:
             self.builder.programs.clear()
