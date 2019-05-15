@@ -126,8 +126,8 @@ def run_app():
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    # if sys.platform == 'win32':
+    #     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     pixmap = load_pixmap('splash.svg')
     message = 'Version: {}'.format(pymontecarlo_gui.__version__)

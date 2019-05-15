@@ -172,6 +172,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
         # Start
+        logger.debug('Before new project action')
         self.action_new_project.trigger() # Required to setup project
         self.timer_runner.start()
 
@@ -341,6 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @asyncSlot()
     async def newProject(self):
+        logger.debug('new project')
         if not self._check_save():
             return False
 
