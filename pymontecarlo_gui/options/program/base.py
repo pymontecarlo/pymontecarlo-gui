@@ -63,6 +63,10 @@ class ProgramFieldBase(WidgetFieldBase):
             with tempfile.TemporaryDirectory() as dirpath:
                 await exporter._export(options, dirpath, erracc, dry_run=True)
 
+        except:
+            # Probably because the options are not well defined
+            pass
+
         finally:
             options.program = oldprogram
 
