@@ -16,7 +16,7 @@ with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
     LONG_DESCRIPTION = fp.read()
 
 PACKAGES = find_packages()
-PACKAGE_DATA = {'pymontecarlo_gui': ['icons/*.svg']}
+PACKAGE_DATA = {'pymontecarlo_gui': ['icons/*.svg', 'icons/*.png']}
 
 with open(os.path.join(BASEDIR, 'requirements.txt'), 'r') as fp:
     INSTALL_REQUIRES = fp.read().splitlines()
