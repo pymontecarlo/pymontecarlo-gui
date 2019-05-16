@@ -38,7 +38,7 @@ class PhotonSingleResultModel(QtCore.QAbstractTableModel):
 
         xrayline, value = self.rows[irow]
 
-        if role in [QtCore.Qt.DisplayRole, QtCore.Qt.UserRole, QtCore.Qt.EditRole]:
+        if role in [QtCore.Qt.DisplayRole, QtCore.Qt.EditRole]:
             if icolumn == 0:
                 return xrayline.iupac if self.settings.preferred_xray_notation == XrayNotation.IUPAC else xrayline.siegbahn
             elif icolumn == 1:
@@ -48,6 +48,17 @@ class PhotonSingleResultModel(QtCore.QAbstractTableModel):
                 return self.value_format.format(self.settings.to_preferred_unit(value.n, self.value_units).magnitude)
             elif icolumn == 3:
                 return self.value_format.format(self.settings.to_preferred_unit(value.s, self.value_units).magnitude)
+
+        elif role == QtCore.Qt.UserRole:
+            if icolumn == 0:
+                return xrayline.iupac if self.settings.preferred_xray_notation == XrayNotation.IUPAC else xrayline.siegbahn
+            elif icolumn == 1:
+                if xrayline.energy_eV is not None:
+                    return self.settings.to_preferred_unit(xrayline.energy_eV, 'eV').magnitude
+            elif icolumn == 2:
+                return self.settings.to_preferred_unit(value.n, self.value_units).magnitude
+            elif icolumn == 3:
+                return self.settings.to_preferred_unit(value.s, self.value_units).magnitude
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter

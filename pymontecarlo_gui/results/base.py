@@ -116,7 +116,7 @@ class ResultTableWidgetBase(ResultWidgetBase):
     def _save_csv(self, filepath):
         data = self._get_data()
 
-        with open(filepath, 'w') as fp:
+        with open(filepath, 'w', encoding='utf8') as fp:
             writer = csv.writer(fp, lineterminator='\n')
             writer.writerows(data)
 
@@ -128,9 +128,9 @@ class ResultTableWidgetBase(ResultWidgetBase):
             format_header = workbook.add_format({'bold': True})
 
             worksheet = workbook.add_worksheet(self.result().getname())
-            worksheet.writerow(0, 0, data[0], format_header)
+            worksheet.write_row(0, 0, data[0], format_header)
 
-            for irow, row in enumerate(data[1:]):
+            for irow, row in enumerate(data[1:], 1):
                 for icol, value in enumerate(row):
                     worksheet.write(irow, icol, value)
 
