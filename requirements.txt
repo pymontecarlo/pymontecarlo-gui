@@ -7,3 +7,4 @@ pygments
 pandas
 matplotlib_scalebar
 asyncqt
+xlsxwriter
