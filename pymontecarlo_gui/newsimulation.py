@@ -6,6 +6,7 @@
 from qtpy import QtCore, QtWidgets
 
 # Local modules.
+from pymontecarlo_gui.widgets.icon import load_pixmap
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
@@ -335,6 +336,7 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
+        self.setWindowIcon(load_pixmap('logo_32x32.png'))
         self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
         self.setMinimumSize(1000, 700)
         self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
