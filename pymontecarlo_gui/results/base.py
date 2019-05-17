@@ -2,6 +2,7 @@
 
 # Standard library modules.
 import csv
+import io
 import functools
 
 # Third party modules.
@@ -111,7 +112,15 @@ class ResultTableWidgetBase(ResultWidgetBase):
 
     def _on_copy(self):
         data = self._get_data()
-        print(data)
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator='\n', delimiter='\t')
+        writer.writerows(data)
+
+        data = QtCore.QMimeData()
+        data.setText(buffer.getvalue())
+
+        QtGui.QGuiApplication.instance().clipboard().setMimeData(data)
 
     def _save_csv(self, filepath):
         data = self._get_data()
