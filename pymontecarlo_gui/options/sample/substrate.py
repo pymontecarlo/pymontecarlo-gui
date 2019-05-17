@@ -31,6 +31,7 @@ class SubstrateSampleField(SampleFieldBase):
 
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)
+        self.field_material.setMaterials(materials)
 
     def samples(self):
         builder = SubstrateSampleBuilder()

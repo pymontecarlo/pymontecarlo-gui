@@ -19,7 +19,7 @@ from pymontecarlo.figures.sample import SampleFigure, Perspective
 
 class PerspectiveToolbar(QtWidgets.QToolBar):
 
-    perspectiveChanged = QtCore.Signal(Perspective)
+    perspectiveChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,10 +36,7 @@ class PerspectiveToolbar(QtWidgets.QToolBar):
             self.addAction(action)
 
         # Signals
-        self.actionTriggered.connect(self._on_triggered)
-
-    def _on_triggered(self, action):
-        self.perspectiveChanged.emit(action.data())
+        self.actionTriggered.connect(self.perspectiveChanged)
 
     def perspective(self):
         return self.group.checkedAction().data()
@@ -82,8 +79,8 @@ class SampleFigureWidget(QtWidgets.QWidget):
         # Defaults
         self.setPerspective(Perspective.XZ)
 
-    def _on_perspective_changed(self, perspective):
-        self.sample_figure.perspective = perspective
+    def _on_perspective_changed(self):
+        self.sample_figure.perspective = self.toolbar.perspective()
         self.draw()
 
     def draw(self):

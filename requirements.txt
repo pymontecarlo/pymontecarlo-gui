@@ -1,0 +1,10 @@
+pymontecarlo
+PySide2
+qtpy
+unsync
+pyqttango
+pygments
+pandas
+matplotlib_scalebar
+asyncqt
+xlsxwriter

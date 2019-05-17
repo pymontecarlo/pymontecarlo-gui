@@ -4,23 +4,35 @@
 import os
 import sys
 import argparse
-import logging
 import platform
+import asyncio
+import logging
+import ctypes
+import threading
+logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
+
+_qtapi = os.environ.get('QT_API')
+if _qtapi is None or _qtapi == 'pyside2':
+    os.environ['QT_API'] = 'PySide2'
+from asyncqt import QEventLoop
 
 import matplotlib
 matplotlib.use('qt5agg')
 
 # Local modules.
 import pymontecarlo
+from pymontecarlo.entity import EntityBase
 from pymontecarlo.util.path import get_config_dir
+from pymontecarlo.util.process import kill_process
 
 import pymontecarlo_gui
 import pymontecarlo_gui.widgets.messagebox as messagebox
 from pymontecarlo_gui.main import MainWindow
 from pymontecarlo_gui.widgets.icon import load_pixmap
+from pymontecarlo_gui.options.program.base import ProgramFieldBase
 
 # Globals and constants variables.
 
@@ -71,10 +83,25 @@ def _setup(ns):
     logger.info('machine = %s', platform.machine())
     logger.info('processor = %s', platform.processor())
 
+    # Log plugins
+    for name in sorted(pymontecarlo.pymontecarlo_plugins):
+        logger.info('Found plug-in: {}'.format(name))
+
+    # Log entities
+    entities = []
+    for clasz in EntityBase._subclasses:
+        entities.append('{}.{}'.format(clasz.__module__, clasz.__name__))
+
+    for clasz in ProgramFieldBase._subclasses:
+        entities.append('{}.{}'.format(clasz.__module__, clasz.__name__))
+
+    for entity in sorted(entities):
+        logger.info('Registered entity: {}'.format(entity))
+
     # Catch all exceptions
     def _excepthook(exc_type, exc_obj, exc_tb):
-        messagebox.exception(None, exc_obj)
         sys.__excepthook__(exc_type, exc_obj, exc_tb)
+        messagebox.exception(None, exc_obj)
     sys.excepthook = _excepthook
 
     # Output sys.path
@@ -83,9 +110,24 @@ def _setup(ns):
     # Output environment variables
     logger.info('ENVIRON = %s' % os.environ)
 
-def _parse(ns):
+    # Change app id on Windows
+    # https://stackoverflow.com/questions/1551605/how-to-set-applications-taskbar-icon-in-windows-7
+    if sys.platform == 'win32':
+        myappid = 'com.github.pymontecarlo.main' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+def _find_programs():
+    return tuple(ProgramFieldBase._subclasses)
+
+def run_app():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle('fusion')
+
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
+    # if sys.platform == 'win32':
+    #     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     pixmap = load_pixmap('splash.svg')
     message = 'Version: {}'.format(pymontecarlo_gui.__version__)
@@ -99,14 +141,16 @@ def _parse(ns):
 
     splash_screen.finish(window)
 
-    app.exec_()
+    with loop:
+        sys.exit(loop.run_forever())
 
 def main():
     parser = _create_parser()
 
     ns = parser.parse_args()
     _setup(ns)
-    _parse(ns)
+
+    run_app()
 
 if __name__ == '__main__':
     main()

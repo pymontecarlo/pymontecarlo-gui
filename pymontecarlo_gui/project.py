@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import os
 
 # Third party modules.
 from qtpy import QtCore, QtGui
@@ -8,27 +9,16 @@ from qtpy import QtCore, QtGui
 # Local modules.
 from pymontecarlo_gui.widgets.field import FieldBase
 from pymontecarlo_gui.widgets.icon import load_icon
-from pymontecarlo_gui.results.summary import \
-    ResultSummaryTableWidget, ResultSummaryFigureWidget
+from pymontecarlo_gui.results.summary import ResultSummaryTableWidget, ResultSummaryFigureWidget
+from pymontecarlo_gui.settings import SettingsBasedField
 
 # Globals and constants variables.
 
-class _SettingsBasedField(FieldBase):
-
-    settingsChanged = QtCore.Signal()
-
-    def __init__(self, settings):
-        super().__init__()
-        self._settings = settings
-
-    def settings(self):
-        return self._settings
-
-class _ProjectDerivedField(_SettingsBasedField):
+class ProjectDerivedField(SettingsBasedField):
 
     def __init__(self, settings, project):
-        super().__init__(settings)
         self._project = project
+        super().__init__(settings)
 
     def project(self):
         return self._project
@@ -36,10 +26,16 @@ class _ProjectDerivedField(_SettingsBasedField):
     def setProject(self, project):
         self._project = project
 
-class ProjectField(_ProjectDerivedField):
+class ProjectField(ProjectDerivedField):
 
     def title(self):
-        return 'Project'
+        if self.project().filepath is not None:
+            return 'Project ({})'.format(os.path.basename(self.project().filepath))
+        else:
+            return 'Project'
+
+    def description(self):
+        return self.project().filepath
 
     def icon(self):
         return QtGui.QIcon.fromTheme('user-home')
@@ -47,7 +43,7 @@ class ProjectField(_ProjectDerivedField):
     def widget(self):
         return super().widget()
 
-class ProjectSummaryTableField(_ProjectDerivedField):
+class ProjectSummaryTableField(ProjectDerivedField):
 
     def __init__(self, settings, project):
         super().__init__(settings, project)
@@ -74,7 +70,7 @@ class ProjectSummaryTableField(_ProjectDerivedField):
             self._widget.setProject(project)
         super().setProject(project)
 
-class ProjectSummaryFigureField(_ProjectDerivedField):
+class ProjectSummaryFigureField(ProjectDerivedField):
 
     def __init__(self, settings, project):
         super().__init__(settings, project)
@@ -101,17 +97,6 @@ class ProjectSummaryFigureField(_ProjectDerivedField):
             self._widget.setProject(project)
         super().setProject(project)
 
-class SimulationsField(FieldBase):
-
-    def title(self):
-        return 'Simulations'
-
-    def icon(self):
-        return QtGui.QIcon.fromTheme('folder')
-
-    def widget(self):
-        return super().widget()
-
 class SimulationField(FieldBase):
 
     def __init__(self, index, simulation):
@@ -136,15 +121,4 @@ class SimulationField(FieldBase):
 
     def simulation(self):
         return self._simulation
-
-class ResultsField(FieldBase):
-
-    def title(self):
-        return 'Results'
-
-    def icon(self):
-        return QtGui.QIcon.fromTheme('folder')
-
-    def widget(self):
-        return super().widget()
 

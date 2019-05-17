@@ -1,15 +1,12 @@
-#!/usr/bin/env python
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtTest, QtGui
+import pytest
+from qtpy import QtGui
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.widgets.lineedit import \
     ColoredLineEdit, ColoredFloatLineEdit, ColoredMultiFloatLineEdit
 from pymontecarlo_gui.util.validate import \
@@ -17,177 +14,180 @@ from pymontecarlo_gui.util.validate import \
 
 # Globals and constants variables.
 
-class TestColoredLineEdit(TestCase):
+@pytest.fixture
+def coloredlineedit():
+    widget = ColoredLineEdit()
+    widget.setValidator(QtGui.QIntValidator(10, 50))
+    return widget
 
-    def setUp(self):
-        super().setUp()
+def test_coloredlineedit_initial_state(qtbot, coloredlineedit):
+    assert not coloredlineedit.hasAcceptableInput()
+    assert coloredlineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-        self.wdg = ColoredLineEdit()
-        self.wdg.setValidator(QtGui.QIntValidator(10, 50))
+    wdg = ColoredLineEdit()
+    assert wdg.hasAcceptableInput()
+    assert wdg.styleSheet() == ''
 
-    def testinitial_state(self):
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
+def test_coloredlineedit_setText(qtbot, coloredlineedit):
+    coloredlineedit.setText('33')
+    assert coloredlineedit.hasAcceptableInput()
+    assert coloredlineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-        wdg = ColoredLineEdit()
-        self.assertTrue(wdg.hasAcceptableInput())
-        self.assertEqual('', wdg.styleSheet())
+    coloredlineedit.setText('0')
+    assert not coloredlineedit.hasAcceptableInput()
+    assert coloredlineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-    def testsetText(self):
-        self.wdg.setText('33')
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
+def test_coloredlineedit_keyClicks(qtbot, coloredlineedit):
+    qtbot.keyClicks(coloredlineedit, '3')
+    assert coloredlineedit.text() == '3'
+    assert not coloredlineedit.hasAcceptableInput()
+    assert coloredlineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-        self.wdg.setText('0')
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
+    qtbot.keyClicks(coloredlineedit, '3')
+    assert coloredlineedit.text() == '33'
+    assert coloredlineedit.hasAcceptableInput()
+    assert coloredlineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-    def testkeyClicks(self):
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertEqual('3', self.wdg.text())
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
+@pytest.fixture
+def coloredfloatlineedit():
+    widget = ColoredFloatLineEdit()
+    widget.setRange(10.0, 50.0, 2)
+    return widget
 
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertEqual('33', self.wdg.text())
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.styleSheet())
+def test_coloredfloatlineedit_setValue(qtbot, coloredfloatlineedit):
+    coloredfloatlineedit.setValue(33)
+    assert coloredfloatlineedit.hasAcceptableInput()
+    assert coloredfloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-class TestColoredFloatLineEdit(TestCase):
+    coloredfloatlineedit.setValue(0)
+    assert not coloredfloatlineedit.hasAcceptableInput()
+    assert coloredfloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-    def setUp(self):
-        super().setUp()
+def test_coloredfloatlineedit_keyClicks(qtbot, coloredfloatlineedit):
+    coloredfloatlineedit.clear()
+    qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
+    assert coloredfloatlineedit.value() == pytest.approx(3.0, abs=1e-4)
+    assert not coloredfloatlineedit.hasAcceptableInput()
+    assert coloredfloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-        self.wdg = ColoredFloatLineEdit()
-        self.wdg.setRange(10.0, 50.0, 2)
+    qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
+    assert coloredfloatlineedit.value() == pytest.approx(33.0, abs=1e-4)
+    assert coloredfloatlineedit.hasAcceptableInput()
+    assert coloredfloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-    def testsetValue(self):
-        self.wdg.setValue(33)
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+def test_coloredfloatlineedit_valueChanged_setValue(qtbot, coloredfloatlineedit):
+    with qtbot.waitSignal(coloredfloatlineedit.valueChanged) as blocker:
+        coloredfloatlineedit.setValue(33)
 
-        self.wdg.setValue(0)
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    assert blocker.signal_triggered
+    assert blocker.args[0] == pytest.approx(33.0, abs=1e-4)
 
-    def testkeyClicks(self):
-        self.wdg.clear()
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertAlmostEqual(3.0, self.wdg.value(), 4)
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+def test_coloredfloatlineedit_valueChanged_keyClicks(qtbot, coloredfloatlineedit):
+    coloredfloatlineedit.clear()
 
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertAlmostEqual(33.0, self.wdg.value(), 4)
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    with qtbot.waitSignal(coloredfloatlineedit.valueChanged) as blocker:
+        qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
 
-    def testvalueChanged_setValue(self):
-        receiver = self.connectSignal(self.wdg.valueChanged)
-        self.wdg.setValue(33)
+    assert blocker.signal_triggered
+    assert blocker.args[0] == pytest.approx(3.0, abs=1e-4)
 
-        self.assertTrue(receiver.wasCalled())
-        self.assertAlmostEqual(33.0, receiver.args[0], 4)
+    with qtbot.waitSignal(coloredfloatlineedit.valueChanged) as blocker:
+        qtbot.keyClicks(coloredfloatlineedit.lineedit, '3')
 
-    def testvalueChanged_keyClicks(self):
-        self.wdg.clear()
+    assert blocker.signal_triggered
+    assert blocker.args[0] == pytest.approx(33.0, abs=1e-4)
 
-        receiver = self.connectSignal(self.wdg.valueChanged)
-        QtTest.QTest.keyClicks(self.wdg, '33')
+def test_coloredfloatlineedit_toolTip(qtbot, coloredfloatlineedit):
+    assert coloredfloatlineedit.toolTip() == 'Value must be between [10.00, 50.00]'
 
-        self.assertTrue(receiver.wasCalled(2))
-        self.assertAlmostEqual(33.0, receiver.args[0], 4)
+    coloredfloatlineedit.setBottom(0.0)
+    assert coloredfloatlineedit.toolTip() == 'Value must be between [0.00, 50.00]'
 
-    def testtoolTip(self):
-        self.assertEqual('Value must be between [10.00, 50.00]', self.wdg.toolTip())
+@pytest.fixture
+def coloredmultifloatlineedit():
+    widget = ColoredMultiFloatLineEdit()
+    widget.setRange(10.0, 50.0, 2)
+    return widget
 
-        self.wdg.setBottom(0.0)
-        self.assertEqual('Value must be between [0.00, 50.00]', self.wdg.toolTip())
+def test_coloredmultifloatlineedit_setValues(qtbot, coloredmultifloatlineedit):
+    coloredmultifloatlineedit.setValues([12.0, 45.0])
+    assert coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-class TestColoredMultiFloatLineEdit(TestCase):
+    coloredmultifloatlineedit.setValues([0.0, 12.0, 45.0])
+    assert not coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-    def setUp(self):
-        super().setUp()
+def test_coloredmultifloatlineedit_setValues_decimals(qtbot, coloredmultifloatlineedit):
+    coloredmultifloatlineedit.setValues([12.0, 45.123456])
+    assert coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-        self.wdg = ColoredMultiFloatLineEdit()
-        self.wdg.setRange(10.0, 50.0, 2)
+    values = coloredmultifloatlineedit.values()
+    assert len(values) == 2
+    assert values[0] == pytest.approx(12.0, abs=1e-4)
+    assert values[1] == pytest.approx(45.12, abs=1e-4)
 
-    def testsetValues(self):
-        self.wdg.setValues([12.0, 45.0])
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+def test_coloredmultifloatlineedit_keyClicks(qtbot, coloredmultifloatlineedit):
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
+    assert not coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == INVALID_BACKGROUND_STYLESHEET
 
-        self.wdg.setValues([0.0, 12.0, 45.0])
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    values = coloredmultifloatlineedit.values()
+    assert len(values) == 1
+    assert values[0] == pytest.approx(3.0, abs=1e-4)
 
-    def testsetValues_decimals(self):
-        self.wdg.setValues([12.0, 45.123456])
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
+    assert coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-        values = self.wdg.values()
-        self.assertEqual(2, len(values))
-        self.assertAlmostEqual(12.0, values[0], 4)
-        self.assertAlmostEqual(45.12, values[1], 4)
+    values = coloredmultifloatlineedit.values()
+    assert len(values) == 1
+    assert values[0] == pytest.approx(33.0, abs=1e-4)
 
-    def testkeyClicks(self):
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertFalse(self.wdg.hasAcceptableInput())
-        self.assertEqual(INVALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, ';12.0')
+    assert coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-        values = self.wdg.values()
-        self.assertEqual(1, len(values))
-        self.assertAlmostEqual(3.0, values[0], 4)
+    values = coloredmultifloatlineedit.values()
+    assert len(values) == 2
+    assert values[0] == pytest.approx(12.0, abs=1e-4)
+    assert values[1] == pytest.approx(33.0, abs=1e-4)
 
-        QtTest.QTest.keyClicks(self.wdg, '3')
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+    qtbot.keyClicks(coloredmultifloatlineedit.lineedit, ';20:40:10')
+    assert coloredmultifloatlineedit.hasAcceptableInput()
+    assert coloredmultifloatlineedit.lineedit.styleSheet() == VALID_BACKGROUND_STYLESHEET
 
-        values = self.wdg.values()
-        self.assertEqual(1, len(values))
-        self.assertAlmostEqual(33.0, values[0], 4)
+    values = coloredmultifloatlineedit.values()
+    assert len(values) == 4
+    assert values[0] == pytest.approx(12.0, abs=1e-4)
+    assert values[1] == pytest.approx(20.0, abs=1e-4)
+    assert values[2] == pytest.approx(30.0, abs=1e-4)
+    assert values[3] == pytest.approx(33.0, abs=1e-4)
 
-        QtTest.QTest.keyClicks(self.wdg, ';12.0')
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+def test_coloredmultifloatlineedit_valueChanged_setValue(qtbot, coloredmultifloatlineedit):
+    with qtbot.waitSignal(coloredmultifloatlineedit.valuesChanged) as blocker:
+        coloredmultifloatlineedit.setValues([33])
 
-        values = self.wdg.values()
-        self.assertEqual(2, len(values))
-        self.assertAlmostEqual(12.0, values[0], 4)
-        self.assertAlmostEqual(33.0, values[1], 4)
+    assert blocker.signal_triggered
+    assert blocker.args[0][0] == pytest.approx(33.0, abs=1e-4)
 
-        QtTest.QTest.keyClicks(self.wdg, ';20:40:10')
-        self.assertTrue(self.wdg.hasAcceptableInput())
-        self.assertEqual(VALID_BACKGROUND_STYLESHEET, self.wdg.lineedit.styleSheet())
+def test_coloredmultifloatlineedit_valueChanged_keyClicks(qtbot, coloredmultifloatlineedit):
+    with qtbot.waitSignal(coloredmultifloatlineedit.valuesChanged) as blocker:
+        qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
 
-        values = self.wdg.values()
-        self.assertEqual(4, len(values))
-        self.assertAlmostEqual(12.0, values[0], 4)
-        self.assertAlmostEqual(20.0, values[1], 4)
-        self.assertAlmostEqual(30.0, values[2], 4)
-        self.assertAlmostEqual(33.0, values[3], 4)
+    assert blocker.signal_triggered
+    assert blocker.args[0][0] == pytest.approx(3.0, abs=1e-4)
 
-    def testvalueChanged_setValue(self):
-        receiver = self.connectSignal(self.wdg.valuesChanged)
-        self.wdg.setValues([33])
+    with qtbot.waitSignal(coloredmultifloatlineedit.valuesChanged) as blocker:
+        qtbot.keyClicks(coloredmultifloatlineedit.lineedit, '3')
 
-        self.assertTrue(receiver.wasCalled())
-        self.assertAlmostEqual(33.0, receiver.args[0][0], 4)
+    assert blocker.signal_triggered
+    assert blocker.args[0][0] == pytest.approx(33.0, abs=1e-4)
 
-    def testvalueChanged_keyClicks(self):
-        receiver = self.connectSignal(self.wdg.valuesChanged)
-        QtTest.QTest.keyClicks(self.wdg, '33')
+def test_coloredmultifloatlineedit_toolTip(qtbot, coloredmultifloatlineedit):
+    assert coloredmultifloatlineedit.toolTip() == 'Value(s) must be between [10.00, 50.00]'
 
-        self.assertTrue(receiver.wasCalled(2))
-        self.assertAlmostEqual(33.0, receiver.args[0][0], 4)
+    coloredmultifloatlineedit.setBottom(0.0)
+    assert coloredmultifloatlineedit.toolTip() == 'Value(s) must be between [0.00, 50.00]'
 
-    def testtoolTip(self):
-        self.assertEqual('Value(s) must be between [10.00, 50.00]', self.wdg.toolTip())
-
-        self.wdg.setBottom(0.0)
-        self.assertEqual('Value(s) must be between [0.00, 50.00]', self.wdg.toolTip())
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()

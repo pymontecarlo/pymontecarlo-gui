@@ -1,48 +1,36 @@
 """"""
 
 # Standard library modules.
+import tempfile
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
+from unsync import unsync
 
 # Local modules.
-from pymontecarlo.options.options import OptionsBuilder
-from pymontecarlo.mock import ProgramMock, SampleMock
-from pymontecarlo.options.beam.base import BeamBase
-from pymontecarlo.util.entrypoint import resolve_entrypoints
+from pymontecarlo.util.error import ErrorAccumulator
 
-from pymontecarlo_gui.util.metaclass import QABCMeta
-from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
+from pymontecarlo_gui.widgets.icon import load_pixmap
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
 from pymontecarlo_gui.figures.sample import SampleFigureWidget
 from pymontecarlo_gui.options.material import MaterialsWidget
+from pymontecarlo_gui.options.options import OptionsModel
 from pymontecarlo_gui.options.sample.substrate import SubstrateSampleField
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 from pymontecarlo_gui.options.sample.horizontallayers import HorizontalLayerSampleField
 from pymontecarlo_gui.options.sample.verticallayers import VerticalLayerSampleField
+from pymontecarlo_gui.options.beam.pencil import PencilBeamField
 from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
 from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
-from pymontecarlo_gui.options.analysis.base import AnalysesField, AnalysesToolBoxField
+from pymontecarlo_gui.options.analysis.base import AnalysesField
 from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
-from pymontecarlo_gui.options.program.base import ProgramsField
+from pymontecarlo_gui.options.program.base import ProgramsField, ProgramFieldBase
 
 # Globals and constants variables.
 
-#--- Widgets
-
-class WizardWidgetMixin:
-
-    def wizard(self):
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'wizard'):
-                return parent.wizard()
-            parent = parent.parent()
-        return None
-
-#--- Widgets
+#region Widgets
 
 class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
@@ -56,7 +44,7 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
         self.label = QtWidgets.QLabel('No simulation defined')
         self.label.setAlignment(QtCore.Qt.AlignCenter)
 
-#        # Layouts
+        # Layouts
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.label)
@@ -82,10 +70,13 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def count(self):
         return self._count
 
-class PreviewWidget(QtWidgets.QWidget, WizardWidgetMixin):
+class PreviewWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, model, parent=None):
         super().__init__(parent)
+
+        # Variables
+        self.model = model
 
         # Widgets
         self.wdg_figure = SampleFigureWidget()
@@ -96,37 +87,38 @@ class PreviewWidget(QtWidgets.QWidget, WizardWidgetMixin):
         layout.addWidget(self.wdg_figure)
         self.setLayout(layout)
 
-    def update(self):
+        # Signals
+        self.model.samplesChanged.connect(self._on_changed)
+        self.model.beamsChanged.connect(self._on_changed)
+        self.model.analysesChanged.connect(self._on_changed)
+
+    def _on_changed(self):
         self.wdg_figure.clear()
 
-        wizard = self.wizard()
-        if not wizard:
+        if not self.model.builder.samples:
             return
 
-        list_options, _estimated = wizard._get_options_list(estimate=True)
-        if not list_options:
-            return
-
-        self.wdg_figure.sample_figure.sample = list_options[0].sample
-
-        for options in list_options:
-            self.wdg_figure.sample_figure.beams.append(options.beam)
+        self.wdg_figure.sample_figure.sample = self.model.builder.samples[0]
+        self.wdg_figure.sample_figure.beams.extend(self.model.builder.beams)
 
         self.wdg_figure.draw()
 
-#--- Pages
+#endregion
 
-class NewSimulationWizardPage(QtWidgets.QWizardPage, metaclass=QABCMeta):
+#region Pages
 
-    def __init__(self, parent=None):
+class NewSimulationWizardPage(QtWidgets.QWizardPage):
+
+    def __init__(self, model, parent=None):
         super().__init__(parent)
+
+        # Variables
+        self.model = model
 
 class SampleWizardPage(NewSimulationWizardPage):
 
-    samplesChanged = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
         self.setTitle("Define sample(s)")
 
         # Widgets
@@ -134,7 +126,7 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         self.wdg_sample = FieldChooser()
 
-        self.widget_preview = PreviewWidget()
+        self.widget_preview = PreviewWidget(model)
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
@@ -151,8 +143,7 @@ class SampleWizardPage(NewSimulationWizardPage):
         materials = self.wdg_materials.materials()
         field.setAvailableMaterials(materials)
 
-        self.samplesChanged.emit()
-        self.widget_preview.update()
+        self.model.setSamples(self.samples())
         self.completeChanged.emit()
 
     def _on_materials_changed(self):
@@ -162,18 +153,11 @@ class SampleWizardPage(NewSimulationWizardPage):
         if field:
             field.setAvailableMaterials(materials)
 
-        self.samplesChanged.emit()
-        self.widget_preview.update()
         self.completeChanged.emit()
 
     def _on_samples_changed(self):
-        self.samplesChanged.emit()
-        self.widget_preview.update()
+        self.model.setSamples(self.samples())
         self.completeChanged.emit()
-
-    def initializePage(self):
-        super().initializePage()
-        self.widget_preview.update()
 
     def isComplete(self):
         field = self.wdg_sample.currentField()
@@ -193,16 +177,14 @@ class SampleWizardPage(NewSimulationWizardPage):
 
 class BeamWizardPage(NewSimulationWizardPage):
 
-    beamsChanged = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
         self.setTitle("Define incident beam(s)")
 
         # Widgets
         self.wdg_beam = FieldChooser()
 
-        self.widget_preview = PreviewWidget()
+        self.widget_preview = PreviewWidget(model)
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
@@ -214,19 +196,12 @@ class BeamWizardPage(NewSimulationWizardPage):
         self.wdg_beam.currentFieldChanged.connect(self._on_selected_beam_changed)
 
     def _on_selected_beam_changed(self, field):
-        self.beamsChanged.emit()
-        self.widget_preview.update()
+        self.model.setBeams(self.beams())
         self.completeChanged.emit()
 
     def _on_beams_changed(self):
-        self.beamsChanged.emit()
-        self.widget_preview.update()
+        self.model.setBeams(self.beams())
         self.completeChanged.emit()
-
-    def initializePage(self):
-        super().initializePage()
-        self.beamsChanged.emit()
-        self.widget_preview.update()
 
     def isComplete(self):
         field = self.wdg_beam.currentField()
@@ -246,55 +221,64 @@ class BeamWizardPage(NewSimulationWizardPage):
 
 class AnalysisWizardPage(NewSimulationWizardPage):
 
-    analysesChanged = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
         self.setTitle('Select type(s) of analysis')
 
+        # Variables
+        self._definition_field_classes = {}
+
         # Widgets
-        self.field_analyses_toolbox = AnalysesToolBoxField()
-
         self.field_analyses = AnalysesField()
-        self.field_analyses.setAnalysesToolBoxField(self.field_analyses_toolbox)
 
-        self.widget_preview = PreviewWidget()
+        self.field_toolbox = FieldToolBox()
+
+        self.widget_preview = PreviewWidget(model)
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Analyses', self.field_analyses.widget()), 1)
-        layout.addWidget(create_group_box('Definition', self.field_analyses_toolbox.widget()), 1)
+        layout.addWidget(create_group_box(self.field_analyses.title(), self.field_analyses.widget()), 1)
+        layout.addWidget(create_group_box('Definition', self.field_toolbox), 1)
         layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
         self.setLayout(layout)
 
-        # Signals
-        self.field_analyses_toolbox.fieldChanged.connect(self._on_analyses_changed)
-        self.field_analyses.fieldChanged.connect(self._on_analyses_changed)
-
     def _on_analyses_changed(self):
-        self.analysesChanged.emit()
-        self.widget_preview.update()
+        selected_analysis_fields = self.field_analyses.selectedAnalysisFields()
+
+        definition_fields = set()
+        for field in selected_analysis_fields:
+            definition_field = field.definitionField()
+            definition_fields.add(definition_field)
+        self.field_toolbox.setSelectedFields(definition_fields)
+
+        self.model.setAnalyses(self.analyses())
         self.completeChanged.emit()
 
-    def initializePage(self):
-        super().initializePage()
-        self.widget_preview.update()
-
     def isComplete(self):
-        return self.field_analyses.isValid() and self.field_analyses_toolbox.isValid()
+        return self.field_analyses.isValid() and self.field_toolbox.isValid()
 
     def registerAnalysisField(self, field):
         self.field_analyses.addAnalysisField(field)
+
+        definition_field_class = field.definitionFieldClass()
+        definition_field = self._definition_field_classes.get(definition_field_class)
+        if definition_field is None:
+            definition_field = field.definitionField()
+            self.field_toolbox.addField(definition_field, False)
+            self._definition_field_classes[definition_field_class] = definition_field
+            definition_field.fieldChanged.connect(self._on_analyses_changed)
+        else:
+            field.setDefinitionField(definition_field)
+
+        field.fieldChanged.connect(self._on_analyses_changed)
 
     def analyses(self):
         return self.field_analyses.selectedAnalyses()
 
 class ProgramWizardPage(NewSimulationWizardPage):
 
-    programsChanged = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
         self.setTitle('Select program(s)')
 
         # Widgets
@@ -312,32 +296,15 @@ class ProgramWizardPage(NewSimulationWizardPage):
         self.field_programs.fieldChanged.connect(self._on_selected_programs_changed)
 
     def _on_selected_programs_changed(self):
-        # Remove toolbox fields
-        for field in self.field_toolbox.fields():
-            self.field_toolbox.setFieldEnabled(field, False)
-            field.setEnabled(False)
-            field.titleWidget().setEnabled(True)
-
-        # Add toolbox fields
         fields = self.field_programs.selectedProgramFields()
-        for field in fields:
-            self.field_toolbox.setFieldEnabled(field, True)
-            field.setEnabled(True)
+        self.field_toolbox.setSelectedFields(fields)
 
-        self.programsChanged.emit()
+        self.model.setPrograms(self.programs())
         self.completeChanged.emit()
 
     def _on_program_changed(self):
-        self.programsChanged.emit()
+        self.model.setPrograms(self.programs())
         self.completeChanged.emit()
-
-    def _update_errors(self):
-        list_options, _estimated = self.wizard()._get_options_list(estimate=True)
-        self.field_programs.updateErrors(list_options)
-
-    def initializePage(self):
-        super().initializePage()
-        self._update_errors()
 
     def isComplete(self):
         return self.field_programs.isValid()
@@ -345,32 +312,142 @@ class ProgramWizardPage(NewSimulationWizardPage):
     def registerProgramField(self, field):
         self.field_programs.addProgramField(field)
 
-        self.field_toolbox.addField(field)
-        self.field_toolbox.setFieldEnabled(field, False)
-        field.setEnabled(False)
-        field.titleWidget().setEnabled(True)
+        self.field_toolbox.addField(field, False)
 
         field.fieldChanged.connect(self._on_program_changed)
 
     def programs(self):
         return self.field_programs.programs()
 
-#--- Wizard
+class ValidationThread(QtCore.QThread):
+
+    update = QtCore.Signal(int, int)
+
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+        self.model = model
+        self.erraccs = {}
+
+    @unsync
+    async def runasync(self):
+        options_count = self.model.optionsCount()
+        self.update.emit(0, options_count)
+
+        self.erraccs.clear()
+        for i, options in enumerate(self.model.iterOptions(), 1):
+            erracc = self.erraccs.setdefault(options.program.name, ErrorAccumulator())
+
+            with tempfile.TemporaryDirectory() as dirpath:
+                exporter = options.program.exporter
+                await exporter._export(options, dirpath, erracc, dry_run=True)
+
+            self.update.emit(i, options_count)
+
+    def run(self):
+        self.runasync().result()
+
+class ValidationWizardPage(NewSimulationWizardPage):
+
+    validateUpdate = QtCore.Signal(int, int)
+
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
+        self.setTitle('Check simulation(s)')
+
+        # Variables
+        self._thread = ValidationThread(model)
+
+        # Widgets
+        self._widget_errors = QtWidgets.QLabel()
+        self._widget_errors.setWordWrap(True)
+
+        self._progressbar = QtWidgets.QProgressBar()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._widget_errors)
+        layout.addStretch()
+        layout.addWidget(self._progressbar)
+        self.setLayout(layout)
+
+        # Signals
+        self._thread.update.connect(self._on_thread_update)
+        self._thread.finished.connect(self._on_thread_finished)
+
+    def _errors_to_html(self, erraccs):
+        html = ''
+
+        for program_name, erracc in erraccs.items():
+            html += '<h2>{}</h2>'.format(program_name)
+
+            html += '<ul>'
+
+            exceptions = set(str(exception) for exception in erracc.exceptions)
+            if exceptions:
+                for exception in sorted(exceptions):
+                    html += '<li>{}</li>'.format(exception)
+            else:
+                html += '<li>No error</li>'
+
+            html += '</ul>'
+
+        return html
+
+    def _on_thread_update(self, index, total):
+        if total != self._progressbar.maximum():
+            self._progressbar.setRange(0, total)
+
+        self._progressbar.setValue(index)
+
+        self.completeChanged.emit()
+
+    def _on_thread_finished(self):
+        self._widget_errors.setText(self._errors_to_html(self._thread.erraccs))
+        self.completeChanged.emit()
+
+    def _on_page_loaded(self):
+        self._widget_errors.setText('')
+        self._progressbar.setValue(0)
+        self._thread.start()
+
+    def initializePage(self):
+        super().initializePage()
+        QtCore.QTimer.singleShot(10, self._on_page_loaded)
+
+    def cleanupPage(self):
+        super().cleanupPage()
+        self._thread.terminate()
+        self._thread.wait()
+
+    def isComplete(self):
+        if self._thread.isRunning():
+            return False
+        if not self._thread.isFinished():
+            return False
+
+        for erracc in self._thread.erraccs.values():
+            if erracc.exceptions:
+                return False
+
+        return True
+
+#endregion
+
+#region Wizard
 
 class NewSimulationWizard(QtWidgets.QWizard):
 
-    optionsChanged = QtCore.Signal()
-
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
         self.setWindowTitle('New simulation(s)')
+        self.setWindowIcon(load_pixmap('logo_32x32.png'))
         self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
         self.setMinimumSize(1000, 700)
         self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                            QtWidgets.QSizePolicy.MinimumExpanding)
 
         # Variables
-        self.builder = OptionsBuilder()
+        self.model = OptionsModel(settings)
 
         # Buttons
         self.setOption(QtWidgets.QWizard.HaveCustomButton1)
@@ -386,30 +463,30 @@ class NewSimulationWizard(QtWidgets.QWizard):
 
         # Sample
         self.page_sample = self._create_sample_page()
-        self.page_sample.samplesChanged.connect(self._on_samples_changed)
         self.addPage(self.page_sample)
 
         # Beam
         self.page_beam = self._create_beam_page()
-        self.page_beam.beamsChanged.connect(self._on_beams_changed)
         self.addPage(self.page_beam)
 
         # Analysis
         self.page_analysis = self._create_analysis_page()
-        self.page_analysis.analysesChanged.connect(self._on_analyses_changed)
         self.addPage(self.page_analysis)
 
         # Programs
         self.page_program = self._create_program_page()
-        self.page_program.programsChanged.connect(self._on_programs_changed)
         self.addPage(self.page_program)
+
+        # Validation
+        self.page_validation = ValidationWizardPage(self.model)
+        self.addPage(self.page_validation)
 
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)
-        self.optionsChanged.connect(self._on_options_changed)
+        self.model.optionsChanged.connect(self._on_options_changed)
 
     def _create_sample_page(self):
-        page = SampleWizardPage()
+        page = SampleWizardPage(self.model)
 
         page.registerSampleField(SubstrateSampleField())
         page.registerSampleField(InclusionSampleField())
@@ -419,15 +496,16 @@ class NewSimulationWizard(QtWidgets.QWizard):
         return page
 
     def _create_beam_page(self):
-        page = BeamWizardPage()
+        page = BeamWizardPage(self.model)
 
+        page.registerBeamField(PencilBeamField())
         page.registerBeamField(GaussianBeamField())
         page.registerBeamField(CylindricalBeamField())
 
         return page
 
     def _create_analysis_page(self):
-        page = AnalysisWizardPage()
+        page = AnalysisWizardPage(self.model)
 
         page.registerAnalysisField(PhotonIntensityAnalysisField())
         page.registerAnalysisField(KRatioAnalysisField())
@@ -435,84 +513,19 @@ class NewSimulationWizard(QtWidgets.QWizard):
         return page
 
     def _create_program_page(self):
-        page = ProgramWizardPage()
+        page = ProgramWizardPage(self.model)
 
-        for ep in resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS).values():
-            field = ep.resolve()()
+        for clasz in ProgramFieldBase._subclasses:
+            field = clasz(self.model)
             page.registerProgramField(field)
 
         return page
 
-    def _on_samples_changed(self):
-        self.builder.samples = self.page_sample.samples()
-        self.optionsChanged.emit()
-
-    def _on_beams_changed(self):
-        self.builder.beams = self.page_beam.beams()
-        self.optionsChanged.emit()
-
-    def _on_analyses_changed(self):
-        self.builder.analyses = self.page_analysis.analyses()
-        self.optionsChanged.emit()
-
-    def _on_programs_changed(self):
-        self.builder.programs = self.page_program.programs()
-        self.optionsChanged.emit()
-
     def _on_options_changed(self):
-        list_options, estimated = self._get_options_list(estimate=True)
-        count = len(list_options)
-        self.btn_count.setCount(count, estimated)
-
-    def _get_options_list(self, estimate):
-        program_mock_added = False
-        if estimate and not self.builder.programs:
-            self.builder.add_program(ProgramMock())
-            program_mock_added = True
-
-        beam_mock_added = False
-        if estimate and not self.builder.beams:
-            self.builder.add_beam(BeamBase(0.0)) #TODO: Change back
-            beam_mock_added = True
-
-        sample_mock_added = False
-        if estimate and not self.builder.samples:
-            self.builder.add_sample(SampleMock())
-            sample_mock_added = True
-
-        if program_mock_added and beam_mock_added and sample_mock_added:
-            list_options = []
-        else:
-            list_options = self.builder.build()
-
-        if program_mock_added:
-            self.builder.programs.clear()
-        if beam_mock_added:
-            self.builder.beams.clear()
-        if sample_mock_added:
-            self.builder.samples.clear()
-
-        estimated = program_mock_added or beam_mock_added or sample_mock_added
-
-        return list_options, estimated
+        count = self.model.optionsCount()
+        self.btn_count.setCount(count, estimate=True)
 
     def optionsList(self):
-        list_options, _estimated = self._get_options_list(estimate=False)
-        return list_options
+        return self.model.optionsList()
 
-def run(): #pragma: no cover
-    import sys
-
-    from pymontecarlo_gui.testcase import TestCase
-    TestCase.setUpClass()
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    wizard = NewSimulationWizard()
-
-    wizard.exec_()
-
-    app.exec_()
-
-if __name__ == '__main__': #pragma: no cover
-    run()
+#endregion

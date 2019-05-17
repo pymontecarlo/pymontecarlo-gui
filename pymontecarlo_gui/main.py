@@ -4,59 +4,52 @@
 import os
 import functools
 import multiprocessing
+import asyncio
+import tempfile
+import logging
+logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
+from asyncqt import asyncClose, asyncSlot
 
 # Local modules.
 from pymontecarlo.settings import Settings
 from pymontecarlo.project import Project
-from pymontecarlo.formats.hdf5.reader import HDF5Reader
-from pymontecarlo.formats.hdf5.writer import HDF5Writer
 from pymontecarlo.runner.local import LocalSimulationRunner
-from pymontecarlo.util.entrypoint import resolve_entrypoints
+from pymontecarlo.util.token import TokenState
+from pymontecarlo.results.photonintensity import PhotonIntensityResultBase
+from pymontecarlo.results.kratio import KRatioResult
 
-from pymontecarlo_gui.project import \
-    (ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField,
-     SimulationsField, SimulationField, ResultsField)
+from pymontecarlo_gui.project import ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField, SimulationField
 from pymontecarlo_gui.options.options import OptionsField
+from pymontecarlo_gui.options.program.base import ProgramFieldBase
+from pymontecarlo_gui.results.base import ResultFieldBase
+from pymontecarlo_gui.results.photonintensity import PhotonIntensityResultField
+from pymontecarlo_gui.results.kratio import KRatioResultField
 from pymontecarlo_gui.widgets.field import FieldTree, FieldMdiArea, ExceptionField
-from pymontecarlo_gui.widgets.future import \
-    FutureThread, FutureTableWidget, ExecutorCancelThread
-from pymontecarlo_gui.widgets.icon import load_icon
+from pymontecarlo_gui.widgets.token import TokenTableWidget
+from pymontecarlo_gui.widgets.icon import load_icon, load_pixmap
+from pymontecarlo_gui.widgets.dialog import ExecutionProgressDialog
 from pymontecarlo_gui.newsimulation import NewSimulationWizard
 from pymontecarlo_gui.settings import SettingsDialog
-from pymontecarlo_gui.util.entrypoint import ENTRYPOINT_GUI_PROGRAMS
 
 # Globals and constants variables.
-
-def has_programs():
-    return bool(resolve_entrypoints(ENTRYPOINT_GUI_PROGRAMS))
 
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
+        self.setWindowIcon(load_pixmap('logo_32x32.png'))
 
         # Variables
-        self._dirpath_open = None
-        self._dirpath_save = None
         self._should_save = False
-
-        self._project = Project()
 
         self._settings = Settings.read()
 
-        self._reader = HDF5Reader()
-        self._reader.start()
-
-        self._writer = HDF5Writer()
-        self._writer.start()
-
-        maxworkers = multiprocessing.cpu_count() - 1
-        self._runner = LocalSimulationRunner(self._project, maxworkers)
-        self._runner.start()
+        max_workers = multiprocessing.cpu_count() - 1
+        self._runner = LocalSimulationRunner(max_workers=max_workers)
 
         # Actions
         self.action_new_project = QtWidgets.QAction('New project')
@@ -89,7 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.action_stop_simulations = QtWidgets.QAction('Stop all simulations')
         self.action_stop_simulations.setIcon(QtGui.QIcon.fromTheme('media-playback-stop'))
-        self.action_stop_simulations.triggered.connect(self._on_stop_all_simulations)
+        self.action_stop_simulations.triggered.connect(self._on_stop)
         self.action_stop_simulations.setEnabled(False)
 
         # Timers
@@ -148,8 +141,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dock_project.setWidget(self.tree)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_project)
 
-        self.table_runner = FutureTableWidget()
-        self.table_runner.act_clear.setText('Clear done simulation(s)')
+        self.table_runner = TokenTableWidget(self._runner.token)
 
         self.dock_runner = QtWidgets.QDockWidget("Run")
         self.dock_runner.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
@@ -167,13 +159,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mdiarea)
 
         # Dialogs
-        self.wizard_simulation = NewSimulationWizard()
+        self.wizard_simulation = NewSimulationWizard(self._settings)
 
         self.dialog_settings = SettingsDialog()
 
         # Signals
-        self._runner.submitted.connect(self._on_future_submitted)
-
         self.tree.doubleClicked.connect(self._on_tree_double_clicked)
 
         self.mdiarea.windowOpened.connect(self._on_mdiarea_window_opened)
@@ -181,11 +171,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
-        self.table_runner.doubleClicked.connect(self._on_table_runner_double_clicked)
-
-        # Defaults
-        self.setProject(self._project)
-
+        # Start
+        logger.debug('Before new project action')
+        self.action_new_project.trigger() # Required to setup project
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -207,14 +195,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.setFieldFont(field, font)
 
     def _on_timer_runner_timeout(self):
-        progress = int(self._runner.progress * 100)
+        token = self._runner.token
+        subtokens = token.get_subtokens(category='simulation')
+
+        progress = int(token.progress * 100)
         self.statusbar_progressbar.setValue(progress)
 
-        status = self._runner.status
+        status = token.status
         timeout = self.timer_runner.interval()
         self.statusBar().showMessage(status, timeout)
 
-        submitted_count = self._runner.submitted_count
+        submitted_count = len(subtokens)
         if submitted_count == 0:
             text = 'No simulation submitted'
         elif submitted_count == 1:
@@ -223,7 +214,8 @@ class MainWindow(QtWidgets.QMainWindow):
             text = '{} simulations submitted'.format(submitted_count)
         self.statusbar_submitted.setText(text)
 
-        done_count = self._runner.done_count
+        done_count = sum(subtoken.state == TokenState.DONE
+                         for subtoken in subtokens)
         if done_count == 0:
             text = 'No simulation done'
         elif done_count == 1:
@@ -232,26 +224,14 @@ class MainWindow(QtWidgets.QMainWindow):
             text = '{} simulations done'.format(done_count)
         self.statusbar_done.setText(text)
 
-        self.action_stop_simulations.setEnabled(self._runner.running())
+        is_running = token.state == TokenState.RUNNING
+        self.action_new_project.setEnabled(not is_running)
+        self.action_open_project.setEnabled(not is_running)
+        self.action_stop_simulations.setEnabled(is_running)
 
-    def _on_future_submitted(self, future):
-        self.table_runner.addFuture(future)
-
-    def _on_table_runner_double_clicked(self, future):
-        if not future.done():
-            return
-
-        if future.cancelled():
-            return
-
-        if not future.exception():
-            return
-
-        field = ExceptionField(future.exception())
-        self.mdiarea.addField(field)
-
-    def _on_create_new_simulations(self):
-        if not has_programs():
+    @asyncSlot()
+    async def _on_create_new_simulations(self):
+        if not ProgramFieldBase._subclasses:
             title = 'New simulations'
             message = 'No program is activated. ' + \
                 'Go to File > Settings to activate at least one program.'
@@ -263,47 +243,39 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         list_options = self.wizard_simulation.optionsList()
-        self._runner.submit(*list_options)
+        logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
+
+        # # Check save project
+        # if self.project().filepath is None:
+        #     caption = 'Save project'
+        #     message = 'Would you like to save the project before running the simulation(s)?'
+        #     buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        #     answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
+
+        #     if answer == QtWidgets.QMessageBox.Yes:
+        #         self.saveProject()
+
+        # Start runner (nothing happens if already running)
+        await self._runner.start()
+
+        # Submit simulation(s)
+        await self._runner.submit(*list_options)
+        logger.debug('Submitted simulation(s)')
 
         self.dock_runner.raise_()
 
-    def _on_stop_all_simulations(self):
-        dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle('Stop')
-        dialog.setLabelText('Stopping all simulations')
-        dialog.setMinimum(0)
-        dialog.setMaximum(0)
-        dialog.setValue(0)
-        dialog.setCancelButton(None)
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowCloseButtonHint)
-
-        thread = ExecutorCancelThread(self._runner)
-        thread.finished.connect(dialog.close)
-
-        thread.start()
-        dialog.exec_()
+    @asyncSlot()
+    async def _on_stop(self):
+        await self._runner.cancel()
 
     def _on_settings(self):
-        self.dialog_settings.setSettings(self._settings)
+        self.dialog_settings.setSettings(self.settings())
 
         if not self.dialog_settings.exec_():
             return
 
-        self.dialog_settings.updateSettings(self._settings)
-        self._settings.settings_changed.send()
-
-    def _run_future_in_thread(self, future, title):
-        dialog = QtWidgets.QProgressDialog()
-        dialog.setWindowTitle(title)
-        dialog.setRange(0, 100)
-
-        thread = FutureThread(future)
-        thread.progressChanged.connect(dialog.setValue)
-        thread.statusChanged.connect(dialog.setLabelText)
-        thread.finished.connect(dialog.close)
-
-        thread.start()
-        dialog.exec_()
+        self.dialog_settings.updateSettings(self.settings())
+        self.settings().settings_changed.send()
 
     def _check_save(self):
         if not self.shouldSave():
@@ -319,41 +291,46 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return True
 
-    def openPath(self):
-        if self._dirpath_open is None:
-            if self._dirpath_save is None:
-                self._dirpath_open = os.getcwd()
-            else:
-                self._dirpath_open = self._dirpath_save
-        return self._dirpath_open
+    @asyncClose
+    async def closeEvent(self, event):
+        state = self._runner.token.state
+        if state == TokenState.RUNNING:
+            caption = 'Quit'
+            message = 'One or more simulations are running. Do you really want to quit?'
+            buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
 
-    def savePath(self):
-        if self._dirpath_save is None:
-            if self._dirpath_save is None:
-                self._dirpath_open = os.getcwd()
-            else:
-                self._dirpath_save = self._dirpath_open
-        return self._dirpath_save
+            if answer == QtWidgets.QMessageBox.No:
+                event.reject()
+                return
+
+        self.settings().write()
+
+        await self._runner.cancel()
+        await self._runner.shutdown()
+
+        event.accept()
 
     def project(self):
-        return self._project
+        return self._runner.project
 
-    def setProject(self, project):
-        if self._project is not None:
-            self._project.simulation_added.disconnect(self.addSimulation)
+    async def setProject(self, project):
+        if self._runner.project is not None:
+            self._runner.project.simulation_added.disconnect(self.addSimulation)
+            self._runner.project.simulation_recalculated.disconnect(self._on_simulation_recalculated)
 
-        self._project = project
-        self._project.simulation_added.connect(self.addSimulation)
-        self._runner.project = project
+        await self._runner.set_project(project)
+
+        project.simulation_added.connect(self.addSimulation)
+        project.simulation_recalculated.connect(self._on_simulation_recalculated)
 
         if project.filepath:
-            self._dirpath_open = os.path.dirname(project.filepath)
+            self.settings().opendir = os.path.dirname(project.filepath)
 
         self.mdiarea.clear()
         self.tree.clear()
-        self._runner.submitted_options.clear()
 
-        field_project = ProjectField(self._settings, project)
+        field_project = ProjectField(self.settings(), project)
         self.tree.addField(field_project)
 
         for index, simulation in enumerate(project.simulations, 1):
@@ -363,31 +340,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setShouldSave(False)
 
-    def newProject(self):
+    @asyncSlot()
+    async def newProject(self):
+        logger.debug('new project')
         if not self._check_save():
             return False
 
-        self.setProject(Project())
+        await self.setProject(Project())
 
         self.dock_project.raise_()
         return True
 
     def openProject(self, filepath=None):
-#        if self._runner.running():
-#            caption = 'Open project'
-#            message = 'Simulations are running. New project cannot be opened.'
-#            QtWidgets.QMessageBox.critical(None, caption, message)
-#            return False
-
         if not self._check_save():
             return False
 
         if filepath is None:
             caption = 'Open project'
-            dirpath = self.openPath()
+            dirpath = self.settings().opendir
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
-                QtWidgets.QFileDialog.getOpenFileName(None, caption, dirpath, namefilters)
+                QtWidgets.QFileDialog.getOpenFileName(self, caption, dirpath, namefilters)
 
             if not namefilter:
                 return False
@@ -395,25 +368,34 @@ class MainWindow(QtWidgets.QMainWindow):
             if not filepath:
                 return False
 
-        future = self._reader.submit(filepath)
-        self._run_future_in_thread(future, 'Open project')
+        self.settings().opendir = os.path.dirname(filepath)
 
-        project = future.result()
-        self.setProject(project)
+        function = functools.partial(Project.read, filepath)
+        dialog = ExecutionProgressDialog('Open project', 'Opening project...', 'Opening project...', function)
+        dialog.exec_()
+
+        if dialog.result() != QtWidgets.QDialog.Accepted:
+            return False
+
+        project = dialog.functionResult()
+        if project is None:
+            return False
+
+        asyncio.ensure_future(self.setProject(project))
 
         self.dock_project.raise_()
         return True
 
     def saveProject(self, filepath=None):
         if filepath is None:
-            filepath = self._project.filepath
+            filepath = self._runner.project.filepath
 
         if filepath is None:
             caption = 'Save project'
-            dirpath = self.savePath()
+            dirpath = self.settings().savedir
             namefilters = 'Simulation project (*.mcsim)'
             filepath, namefilter = \
-                QtWidgets.QFileDialog.getSaveFileName(None, caption, dirpath, namefilters)
+                QtWidgets.QFileDialog.getSaveFileName(self, caption, dirpath, namefilters)
 
             if not namefilter:
                 return False
@@ -424,19 +406,29 @@ class MainWindow(QtWidgets.QMainWindow):
         if not filepath.endswith('.mcsim'):
             filepath += '.mcsim'
 
-        future = self._writer.submit(self._project, filepath)
-        self._run_future_in_thread(future, 'Save project')
+        function = functools.partial(self._runner.project.write, filepath)
+        dialog = ExecutionProgressDialog('Save project', 'Saving project...', 'Project saved', function)
+        dialog.exec_()
 
-        self._project.filepath = filepath
-        self._dirpath_save = os.path.dirname(filepath)
+        self._runner.project.filepath = filepath
+        self.settings().savedir = os.path.dirname(filepath)
 
-        caption = 'Save project'
-        message = 'Project saved'
-        QtWidgets.QMessageBox.information(None, caption, message)
+        for field in self.tree.topLevelFields():
+            self.tree.resetField(field)
 
         self.setShouldSave(False)
 
         return True
+
+    def _add_results_to_tree(self, field_simulation, simulation):
+        if simulation.results:
+            for result in simulation.find_result(PhotonIntensityResultBase):
+                field_result = PhotonIntensityResultField(result, self.settings())
+                self.tree.addField(field_result, field_simulation)
+
+            for result in simulation.find_result(KRatioResult):
+                field_result = KRatioResultField(result, self.settings())
+                self.tree.addField(field_result, field_simulation)
 
     def addSimulation(self, simulation, index=None):
         def _find_field(field_project, clasz):
@@ -452,13 +444,12 @@ class MainWindow(QtWidgets.QMainWindow):
         assert len(toplevelfields) == 1
 
         field_project = toplevelfields[0]
-        settings = self._settings
         project = field_project.project()
 
         # Summary table
         field_summary_table = _find_field(field_project, ProjectSummaryTableField)
         if not field_summary_table:
-            field_summary_table = ProjectSummaryTableField(settings, project)
+            field_summary_table = ProjectSummaryTableField(self.settings(), project)
             self.tree.addField(field_summary_table, field_project)
 
         field_summary_table.setProject(project)
@@ -466,37 +457,56 @@ class MainWindow(QtWidgets.QMainWindow):
         # Summary figure
         field_summary_figure = _find_field(field_project, ProjectSummaryFigureField)
         if not field_summary_figure:
-            field_summary_figure = ProjectSummaryFigureField(settings, project)
+            field_summary_figure = ProjectSummaryFigureField(self.settings(), project)
             self.tree.addField(field_summary_figure, field_project)
 
         field_summary_figure.setProject(project)
 
-        # Simulations
-        field_simulations = _find_field(field_project, SimulationsField)
-        if not field_simulations:
-            field_simulations = SimulationsField()
-            self.tree.addField(field_simulations, field_project)
-
         # Simulation
         if index is None:
-            index = project.simulations.index(simulation) + 1
+            index = field_project.project().simulations.index(simulation) + 1
         field_simulation = SimulationField(index, simulation)
-        self.tree.addField(field_simulation, field_simulations)
+        self.tree.addField(field_simulation, field_project)
 
-        field_options = OptionsField(simulation.options, self._settings)
+        field_options = OptionsField(simulation.options, self.settings())
         self.tree.addField(field_options, field_simulation)
+        self._add_results_to_tree(field_simulation, simulation)
 
-        if not simulation.results:
-            return
-
-        field_results = ResultsField()
-        self.tree.addField(field_results, field_simulation)
-
-        self.tree.tree.reset()
-        self.tree.expandField(field_project)
-        self.tree.expandField(field_simulations)
+        self.tree.reset()
+        self.tree.expand()
 
         self.setShouldSave(True)
+
+    def _on_simulation_recalculated(self, simulation):
+        # Find field
+        toplevelfields = self.tree.topLevelFields()
+        assert len(toplevelfields) == 1
+        field_project = toplevelfields[0]
+
+        field_simulation = None
+        for field in self.tree.childrenField(field_project):
+            if isinstance(field, SimulationField) and field.simulation() == simulation:
+                field_simulation = field
+                break
+
+        if field_simulation is None:
+            return
+
+        # Remove result fields
+        for field in self.tree.childrenField(field_simulation):
+            if isinstance(field, ResultFieldBase):
+                self.tree.removeField(field)
+
+        # Re-create result fields
+        self._add_results_to_tree(field_simulation, simulation)
+
+        self.tree.reset()
+        self.tree.expand()
+
+        self.setShouldSave(True)
+
+    def settings(self):
+        return self._settings
 
     def shouldSave(self):
         return self._should_save

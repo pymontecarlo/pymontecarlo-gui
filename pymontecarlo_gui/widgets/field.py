@@ -1,7 +1,6 @@
 """"""
 
 # Standard library modules.
-import abc
 import functools
 import traceback
 
@@ -14,7 +13,6 @@ from pygments.formatters.html import HtmlFormatter
 
 # Local modules.
 from pymontecarlo_gui.util.validate import ValidableBase
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.font import make_italic
 from pymontecarlo_gui.widgets.stacked import clear_stackedwidget
@@ -22,7 +20,7 @@ from pymontecarlo_gui.widgets.mdi import MdiSubWindow
 
 # Globals and constants variables.
 
-class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
+class FieldBase(QtCore.QObject, ValidableBase):
 
     fieldChanged = QtCore.Signal()
 
@@ -36,7 +34,6 @@ class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
         self.wdg_description.setWordWrap(True)
         make_italic(self.wdg_description)
 
-    @abc.abstractmethod
     def title(self):
         return ''
 
@@ -55,7 +52,6 @@ class FieldBase(QtCore.QObject, ValidableBase, metaclass=QABCMeta):
     def icon(self):
         return QtGui.QIcon()
 
-    @abc.abstractmethod
     def widget(self):
         return QtWidgets.QWidget()
 
@@ -91,6 +87,12 @@ class MultiValueFieldBase(FieldBase):
         label = super().titleWidget()
         label.setStyleSheet('color: blue')
         return label
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+
+        label = super().titleWidget()
+        label.setStyleSheet('color: blue' if enabled else 'color: #7e7d8d')
 
 class CheckFieldBase(FieldBase):
 
@@ -148,6 +150,12 @@ class WidgetFieldBase(FieldBase):
     def isValid(self):
         return super().isValid() and \
             all(field.isValid() for field in self._fields)
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+
+        for field in self._fields:
+            field.setEnabled(enabled)
 
     def fields(self):
         return tuple(self._fields)
@@ -290,34 +298,59 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
                 return False
         return super().isValid()
 
-    def addField(self, field):
+    def addField(self, field, enabled=True):
         if field in self._fields:
             raise ValueError('FieldBase "{}" already added'.format(field))
 
+        # Create layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+
         if field.hasDescription():
             layout.addWidget(field.descriptionWidget())
+
+            frame = QtWidgets.QFrame()
+            frame.setFrameShape(QtWidgets.QFrame.HLine)
+            frame.setFrameShadow(QtWidgets.QFrame.Sunken)
+            layout.addWidget(frame)
+
         if field.hasSuffix():
             layout.addWidget(field.suffixWidget())
+
         layout.addWidget(field.widget())
 
+        # Create and add widget
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
 
         index = self.addItem(widget, field.title())
         self._fields[field] = index
 
+        self.setItemEnabled(index, enabled)
+        field.setEnabled(enabled)
+
         field.fieldChanged.connect(self._on_field_changed)
 
         return index
 
-    def setFieldEnabled(self, field, enabled):
+    def removeField(self, field):
         if field not in self._fields:
-            return
+            raise ValueError('FieldBase "{}" unknown'.format(field))
 
-        index = self._fields[field]
-        self.setItemEnabled(index, enabled)
+        index = self._fields.pop(field)
+        self.removeItem(index)
+
+        field.fieldChanged.disconnect(self._on_field_changed)
+
+    def setSelectedFields(self, fields):
+        for field, index in self._fields.items():
+            if field not in fields:
+                self.setItemEnabled(index, False)
+                field.setEnabled(False)
+            elif not field.isEnabled():
+                self.setItemEnabled(index, True)
+                field.setEnabled(True)
+                self.setCurrentIndex(index)
 
     def fields(self):
         return tuple(self._fields.keys())
@@ -461,11 +494,17 @@ class FieldTree(QtWidgets.QWidget):
         item = self._field_items[field]
         self.tree.expandItem(item)
 
+    def expand(self):
+        self.tree.expandAll()
+
     def collapseField(self, field):
         if field not in self._field_items:
             raise ValueError('FieldBase {} is not part of the tree'.format(field))
         item = self._field_items[field]
         self.tree.collapseItem(item)
+
+    def collapse(self):
+        self.tree.collapseAll()
 
     def setFieldFont(self, field, font):
         if field not in self._field_items:
@@ -499,6 +538,22 @@ class FieldTree(QtWidgets.QWidget):
             children.append(childitem.data(0, QtCore.Qt.UserRole))
 
         return children
+
+    def reset(self):
+        for field, item in self._field_items.items():
+            item.setText(0, field.title())
+            item.setToolTip(0, field.description())
+            item.setIcon(0, field.icon())
+
+        self.tree.reset()
+
+    def resetField(self, field):
+        if field not in self._field_items:
+            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+        item = self._field_items[field]
+        item.setText(0, field.title())
+        item.setToolTip(0, field.description())
+        item.setIcon(0, field.icon())
 
 class FieldMdiArea(QtWidgets.QWidget):
 

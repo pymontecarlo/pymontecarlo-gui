@@ -2,7 +2,6 @@
 
 # Standard library modules.
 import functools
-import abc
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -11,7 +10,6 @@ from qtpy import QtCore, QtGui, QtWidgets
 from pymontecarlo.options.material import Material, VACUUM
 from pymontecarlo.options.composition import \
     generate_name, calculate_density_kg_per_m3, from_formula
-from pymontecarlo.mock import ValidatorMock
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.composition import CompositionTableWidget
@@ -21,12 +19,10 @@ from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import FieldBase, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.widgets.icon import load_icon
-from pymontecarlo_gui.util.metaclass import QABCMeta
 from pymontecarlo_gui.util.validate import \
     ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
 
 # Globals and constants variables.
-DEFAULT_VALIDATOR = ValidatorMock()
 
 #--- Mix-ins
 
@@ -34,12 +30,11 @@ class MaterialValidatorMixin:
 
     def validator(self):
         if not hasattr(self, '_validator'):
-            self._validator = DEFAULT_VALIDATOR
+            self._validator = None
         return self._validator
 
-class MaterialAbstractViewMixin(metaclass=QABCMeta):
+class MaterialAbstractViewMixin:
 
-    @abc.abstractmethod
     def _get_model(self):
         raise NotImplementedError
 
@@ -266,8 +261,7 @@ class MaterialColorField(FieldBase):
     def setColor(self, color):
         self._widget.setColor(color)
 
-class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
-                     metaclass=QABCMeta):
+class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin):
 
     materialsChanged = QtCore.Signal()
 
@@ -286,15 +280,8 @@ class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin,
         if not materials:
             return False
 
-        try:
-            for material in materials:
-                material = self.validator().validate_material(material, None)
-        except Exception:
-            return False
-
         return True
 
-    @abc.abstractmethod
     def materials(self):
         raise NotImplementedError
 
@@ -444,7 +431,6 @@ class MaterialDialog(QtWidgets.QDialog):
 
     def __init__(self, material_widget_class, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Material')
 
         # Variables
         self._materials = []
@@ -534,7 +520,6 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         return True
 
     def _add_material(self, material):
-        material = self.validator().validate_material(material, None)
         if material in self._materials:
             return False
         self._materials.append(material)
@@ -570,11 +555,16 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
     def materials(self):
         return tuple(self._materials)
 
-    def setMaterials(self, materials):
-        self.clearMaterials()
+    def setMaterials(self, materials, reset=True):
+        self._materials.clear()
+        self.addMaterials(materials, reset)
+
+    def addMaterials(self, materials, reset=True):
         for material in materials:
             self._add_material(material)
-        self.modelReset.emit()
+
+        if reset:
+            self.modelReset.emit()
 
 class MaterialToolbar(QtWidgets.QToolBar):
 
@@ -619,9 +609,9 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.listview.model().modelReset.connect(self._on_data_changed)
         self.listview.selectionModel().selectionChanged.connect(self._on_data_changed)
 
-        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget))
-        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget))
-        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget))
+        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget, 'Add pure material(s)'))
+        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget, 'Add material from chemical formula'))
+        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget, 'Add material(s)'))
         self.act_remove.triggered.connect(self._on_remove_material)
         self.act_clear.triggered.connect(self._on_clear_materials)
 
@@ -635,15 +625,14 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.act_remove.setEnabled(has_rows and has_selection)
         self.act_clear.setEnabled(has_rows)
 
-    def _on_add_material(self, material_widget_class):
+    def _on_add_material(self, material_widget_class, window_title):
         dialog = MaterialDialog(material_widget_class)
-        dialog.setWindowTitle('Add material')
+        dialog.setWindowTitle(window_title)
 
         if not dialog.exec_():
             return
 
-        for material in dialog.materials():
-            self.listview.model().addMaterial(material)
+        self.listview.model().addMaterials(dialog.materials())
 
     def _on_remove_material(self):
         selection_model = self.listview.selectionModel()
@@ -816,10 +805,17 @@ class CheckableMaterialModel(MaterialModel):
         self._selection.clear()
         super().clearMaterials()
 
-    def setMaterials(self, materials):
+    def setMaterials(self, materials, reset=True):
         selected_materials = self.selectedMaterials()
 
-        super().setMaterials(materials)
+        super().setMaterials(materials, reset=False)
+
+        self.setSelectedMaterials(selected_materials)
+
+    def addMaterials(self, materials, reset=True):
+        selected_materials = self.selectedMaterials()
+
+        super().addMaterials(materials, reset=False)
 
         self.setSelectedMaterials(selected_materials)
 
@@ -837,8 +833,7 @@ class CheckableMaterialModel(MaterialModel):
                 continue
             self._selection[row] = True
 
-        self.dataChanged.emit(self.createIndex(0, 0),
-                              self.createIndex(len(self._materials), 0))
+        self.modelReset.emit()
 
 class MaterialListWidget(QtWidgets.QWidget,
                          MaterialAbstractViewMixin,

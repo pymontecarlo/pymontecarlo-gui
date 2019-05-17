@@ -2,50 +2,39 @@
 """ """
 
 # Standard library modules.
-import unittest
-import logging
 
 # Third party modules.
-from qtpy import QtTest
+import pytest
 
 # Local modules.
-from pymontecarlo_gui.testcase import TestCase
 from pymontecarlo_gui.options.sample.inclusion import InclusionSampleField
 
 # Globals and constants variables.
 
-class TestInclusionSampleWidget(TestCase):
+@pytest.fixture
+def inclusion_sample_field():
+    return InclusionSampleField()
 
-    def setUp(self):
-        super().setUp()
+def test_inclusion_sample_field(qtbot , inclusion_sample_field, materials):
+    inclusion_sample_field.setAvailableMaterials(materials)
 
-        self.field = InclusionSampleField()
+    widget = inclusion_sample_field.field_substrate.field_material.widget()
+    widget.setSelectedMaterials(materials[:2])
 
-    def testsamples(self):
-        materials = self.create_materials()
-        self.field.setAvailableMaterials(materials)
+    widget = inclusion_sample_field.field_inclusion.field_material.widget()
+    widget.setSelectedMaterials(materials[-2:])
 
-        widget = self.field.field_substrate.field_material.widget()
-        widget.setSelectedMaterials(materials[:2])
+    widget = inclusion_sample_field.field_inclusion.field_diameter.widget()
+    widget.clear()
+    qtbot.keyClicks(widget.lineedit, '100.0;200.0')
 
-        widget = self.field.field_inclusion.field_material.widget()
-        widget.setSelectedMaterials(materials[-2:])
+    widget = inclusion_sample_field.field_angle.field_tilt.widget()
+    widget.clear()
+    qtbot.keyClicks(widget.lineedit, '1.1;2.2')
 
-        widget = self.field.field_inclusion.field_diameter.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, '100.0;200.0')
+    widget = inclusion_sample_field.field_angle.field_azimuth.widget()
+    widget.clear()
+    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
 
-        widget = self.field.field_angle.field_tilt.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget.lineedit, '1.1;2.2')
-
-        widget = self.field.field_angle.field_azimuth.widget()
-        widget.clear()
-        QtTest.QTest.keyClicks(widget, '3.3;4.4')
-
-        samples = self.field.samples()
-        self.assertEqual(2 ** 5, len(samples))
-
-if __name__ == '__main__': #pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
-    unittest.main()
+    samples = inclusion_sample_field.samples()
+    assert len(samples) == 2 ** 5
