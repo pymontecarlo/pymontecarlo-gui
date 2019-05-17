@@ -175,11 +175,11 @@ class LineScanPositionField(PositionField):
         super().__init__()
 
         self.field_start = CoordinateField('Start')
-        self.field_start.setCoordinateMeter(-1e-6)
+        self.field_start.setCoordinateMeter(-5e-6)
         self.addLabelField(self.field_start)
 
         self.field_stop = CoordinateField('Stop')
-        self.field_stop.setCoordinateMeter(1e-6)
+        self.field_stop.setCoordinateMeter(5e-6)
         self.addLabelField(self.field_stop)
 
         self.field_step = StepField()

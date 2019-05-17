@@ -1,18 +1,50 @@
 """"""
 
 # Standard library modules.
+import contextlib
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWebEngineWidgets
 
 # Local modules.
 from pymontecarlo.formats.document import publish_html, DocumentBuilder
-from pymontecarlo.options.options import OptionsBuilder
+from pymontecarlo.options.options import Options, OptionsBuilder
+from pymontecarlo.options.beam import PencilBeam
+from pymontecarlo.options.sample import SubstrateSample
+from pymontecarlo.options.material import Material
 from pymontecarlo.mock import ProgramMock
 
 from pymontecarlo_gui.project import SettingsBasedField
 
 # Globals and constants variables.
+
+@contextlib.contextmanager
+def estimated_builder(builder):
+    program_mock_added = False
+    if not builder.programs:
+        builder.add_program(ProgramMock())
+        program_mock_added = True
+
+    beam_mock_added = False
+    if not builder.beams:
+        builder.add_beam(PencilBeam(10e3))
+        beam_mock_added = True
+
+    sample_mock_added = False
+    if not builder.samples:
+        builder.add_sample(SubstrateSample(Material.pure(26)))
+        sample_mock_added = True
+
+    try:
+        yield builder
+
+    finally:
+        if program_mock_added:
+            builder.programs.clear()
+        if beam_mock_added:
+            builder.beams.clear()
+        if sample_mock_added:
+            builder.samples.clear()
 
 class OptionsModel(QtCore.QObject):
 
@@ -31,47 +63,13 @@ class OptionsModel(QtCore.QObject):
         self._list_options = []
         self._estimated = False
 
-    def _calculate(self):
-        program_mock_added = False
-        if not self.builder.programs:
-            self.builder.add_program(ProgramMock())
-            program_mock_added = True
-
-        beam_mock_added = False
-        if not self.builder.beams:
-            self.builder.add_beam(None) #TODO: Change back
-            beam_mock_added = True
-
-        sample_mock_added = False
-        if not self.builder.samples:
-            self.builder.add_sample(None)
-            sample_mock_added = True
-
-        if program_mock_added and beam_mock_added and sample_mock_added:
-            list_options = []
-        else:
-            try:
-                list_options = self.builder.build()
-            except:
-                list_options = []
-
-        if program_mock_added:
-            self.builder.programs.clear()
-        if beam_mock_added:
-            self.builder.beams.clear()
-        if sample_mock_added:
-            self.builder.samples.clear()
-
-        self._estimated = program_mock_added or beam_mock_added or sample_mock_added
-        self._list_options = tuple(list_options)
-
     def setSamples(self, samples):
         if self.builder.samples == samples:
             return
 
         self.builder.samples.clear()
         self.builder.samples.extend(samples)
-        self._calculate()
+        # self._calculate()
         self.samplesChanged.emit()
         self.optionsChanged.emit()
 
@@ -81,7 +79,7 @@ class OptionsModel(QtCore.QObject):
 
         self.builder.beams.clear()
         self.builder.beams.extend(beams)
-        self._calculate()
+        # self._calculate()
         self.beamsChanged.emit()
         self.optionsChanged.emit()
 
@@ -91,7 +89,7 @@ class OptionsModel(QtCore.QObject):
 
         self.builder.analyses.clear()
         self.builder.analyses.extend(analyses)
-        self._calculate()
+        # self._calculate()
         self.analysesChanged.emit()
         self.optionsChanged.emit()
 
@@ -101,17 +99,19 @@ class OptionsModel(QtCore.QObject):
 
         self.builder.programs.clear()
         self.builder.programs.extend(programs)
-        self._calculate()
+        # self._calculate()
         self.programsChanged.emit()
         self.optionsChanged.emit()
 
-    def isOptionListEstimated(self):
-        return self._estimated
+    def optionsList(self):
+        return self.builder.build()
 
-    def getOptionsList(self, estimate=False):
-        if self.isOptionListEstimated() and not estimate:
-            return []
-        return self._list_options
+    def iterOptions(self):
+        yield from self.builder.iterbuild()
+
+    def optionsCount(self):
+        with estimated_builder(self.builder):
+            return len(self.builder)
 
 class OptionsField(SettingsBasedField):
 

@@ -1,11 +1,15 @@
 """"""
 
 # Standard library modules.
+import tempfile
 
 # Third party modules.
 from qtpy import QtCore, QtWidgets
+from unsync import unsync
 
 # Local modules.
+from pymontecarlo.util.error import ErrorAccumulator
+
 from pymontecarlo_gui.widgets.icon import load_pixmap
 from pymontecarlo_gui.widgets.groupbox import create_group_box
 from pymontecarlo_gui.widgets.field import FieldChooser, FieldToolBox
@@ -91,14 +95,11 @@ class PreviewWidget(QtWidgets.QWidget):
     def _on_changed(self):
         self.wdg_figure.clear()
 
-        list_options = self.model.getOptionsList(estimate=True)
-        if not list_options:
+        if not self.model.builder.samples:
             return
 
-        self.wdg_figure.sample_figure.sample = list_options[0].sample
-
-        for options in list_options:
-            self.wdg_figure.sample_figure.beams.append(options.beam)
+        self.wdg_figure.sample_figure.sample = self.model.builder.samples[0]
+        self.wdg_figure.sample_figure.beams.extend(self.model.builder.beams)
 
         self.wdg_figure.draw()
 
@@ -293,7 +294,6 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
         # Signals
         self.field_programs.fieldChanged.connect(self._on_selected_programs_changed)
-        model.programsChanged.connect(self._update_errors)
 
     def _on_selected_programs_changed(self):
         fields = self.field_programs.selectedProgramFields()
@@ -305,14 +305,6 @@ class ProgramWizardPage(NewSimulationWizardPage):
     def _on_program_changed(self):
         self.model.setPrograms(self.programs())
         self.completeChanged.emit()
-
-    def _update_errors(self):
-        list_options = self.model.getOptionsList(estimate=True)
-        self.field_programs.updateErrors(list_options)
-
-    def initializePage(self):
-        super().initializePage()
-        self._update_errors()
 
     def isComplete(self):
         return self.field_programs.isValid()
@@ -326,6 +318,118 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
     def programs(self):
         return self.field_programs.programs()
+
+class ValidationThread(QtCore.QThread):
+
+    update = QtCore.Signal(int, int)
+
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+        self.model = model
+        self.erraccs = {}
+
+    @unsync
+    async def runasync(self):
+        options_count = self.model.optionsCount()
+        self.update.emit(0, options_count)
+
+        self.erraccs.clear()
+        for i, options in enumerate(self.model.iterOptions(), 1):
+            erracc = self.erraccs.setdefault(options.program.name, ErrorAccumulator())
+
+            with tempfile.TemporaryDirectory() as dirpath:
+                exporter = options.program.exporter
+                await exporter._export(options, dirpath, erracc, dry_run=True)
+
+            self.update.emit(i, options_count)
+
+    def run(self):
+        self.runasync().result()
+
+class ValidationWizardPage(NewSimulationWizardPage):
+
+    validateUpdate = QtCore.Signal(int, int)
+
+    def __init__(self, model, parent=None):
+        super().__init__(model, parent)
+        self.setTitle('Check simulation(s)')
+
+        # Variables
+        self._thread = ValidationThread(model)
+
+        # Widgets
+        self._widget_errors = QtWidgets.QLabel()
+        self._widget_errors.setWordWrap(True)
+
+        self._progressbar = QtWidgets.QProgressBar()
+
+        # Layouts
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._widget_errors)
+        layout.addStretch()
+        layout.addWidget(self._progressbar)
+        self.setLayout(layout)
+
+        # Signals
+        self._thread.update.connect(self._on_thread_update)
+        self._thread.finished.connect(self._on_thread_finished)
+
+    def _errors_to_html(self, erraccs):
+        html = ''
+
+        for program_name, erracc in erraccs.items():
+            html += '<h2>{}</h2>'.format(program_name)
+
+            html += '<ul>'
+
+            exceptions = set(str(exception) for exception in erracc.exceptions)
+            if exceptions:
+                for exception in sorted(exceptions):
+                    html += '<li>{}</li>'.format(exception)
+            else:
+                html += '<li>No error</li>'
+
+            html += '</ul>'
+
+        return html
+
+    def _on_thread_update(self, index, total):
+        if total != self._progressbar.maximum():
+            self._progressbar.setRange(0, total)
+
+        self._progressbar.setValue(index)
+
+        self.completeChanged.emit()
+
+    def _on_thread_finished(self):
+        self._widget_errors.setText(self._errors_to_html(self._thread.erraccs))
+        self.completeChanged.emit()
+
+    def _on_page_loaded(self):
+        self._widget_errors.setText('')
+        self._progressbar.setValue(0)
+        self._thread.start()
+
+    def initializePage(self):
+        super().initializePage()
+        QtCore.QTimer.singleShot(10, self._on_page_loaded)
+
+    def cleanupPage(self):
+        super().cleanupPage()
+        self._thread.terminate()
+        self._thread.wait()
+
+    def isComplete(self):
+        if self._thread.isRunning():
+            return False
+        if not self._thread.isFinished():
+            return False
+
+        for erracc in self._thread.erraccs.values():
+            if erracc.exceptions:
+                return False
+
+        return True
 
 #endregion
 
@@ -373,6 +477,10 @@ class NewSimulationWizard(QtWidgets.QWizard):
         self.page_program = self._create_program_page()
         self.addPage(self.page_program)
 
+        # Validation
+        self.page_validation = ValidationWizardPage(self.model)
+        self.addPage(self.page_validation)
+
         # Signals
         self.currentIdChanged.connect(self._on_options_changed)
         self.model.optionsChanged.connect(self._on_options_changed)
@@ -414,12 +522,10 @@ class NewSimulationWizard(QtWidgets.QWizard):
         return page
 
     def _on_options_changed(self):
-        estimated = self.model.isOptionListEstimated()
-        list_options = self.model.getOptionsList(estimated)
-        count = len(list_options)
-        self.btn_count.setCount(count, estimated)
+        count = self.model.optionsCount()
+        self.btn_count.setCount(count, estimate=True)
 
     def optionsList(self):
-        return self.model.getOptionsList()
+        return self.model.optionsList()
 
 #endregion

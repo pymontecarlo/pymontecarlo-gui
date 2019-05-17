@@ -25,7 +25,7 @@ class ProgramFieldBase(WidgetFieldBase):
         super().__init_subclass__(**kwargs)
         cls._subclasses.append(cls)
 
-    def __init__(self, model, default_program):
+    def __init__(self, model):
         """
         Base class for all programs.
 
@@ -34,7 +34,6 @@ class ProgramFieldBase(WidgetFieldBase):
         super().__init__()
 
         self.model = model
-        self._default_program = default_program
 
     def isValid(self):
         return super().isValid() and bool(self.programs())
@@ -46,76 +45,17 @@ class ProgramFieldBase(WidgetFieldBase):
         """
         return []
 
-    @unsync
-    async def validateOptions(self, options, erracc):
-        """
-        Returns a :class:`set` of :class:`Exception` and
-        a :class:`set` of :class:`Warning`.
-        """
-        oldprogram = options.program
-
-        try:
-            if not isinstance(options.program, self._default_program.__class__):
-                options.program = self._default_program
-
-            exporter = options.program.exporter
-
-            with tempfile.TemporaryDirectory() as dirpath:
-                await exporter._export(options, dirpath, erracc, dry_run=True)
-
-        except:
-            # Probably because the options are not well defined
-            pass
-
-        finally:
-            options.program = oldprogram
-
-        return erracc
-
 class CheckProgramField(CheckFieldBase):
 
     def __init__(self, program_field):
         self._program_field = program_field
-        self._errors = set()
         super().__init__()
-
-        self._widget = LabelIcon()
-        self._widget.setWordWrap(True)
-
-    def _errors_to_html(self, errors):
-        html = '<ul>'
-
-        errors = sorted(set(str(error) for error in errors))
-        for error in errors:
-            html += '<li>{}</li>'.format(error)
-
-        html += '</ul>'
-
-        return html
 
     def title(self):
         return self.programField().title()
 
-    def widget(self):
-        return self._widget
-
     def programField(self):
         return self._program_field
-
-    def errors(self):
-        return self._errors
-
-    def setErrors(self, errors):
-        self._errors = errors
-
-        text = self._errors_to_html(errors)
-        self._widget.setText(text)
-
-        icon = QtGui.QIcon.fromTheme('dialog-error') if errors else QtGui.QIcon()
-        self._widget.setIcon(icon)
-
-    def isValid(self):
-        return super().isValid() and not bool(self.errors())
 
 class ProgramsField(WidgetFieldBase):
 
@@ -133,8 +73,8 @@ class ProgramsField(WidgetFieldBase):
 
         # Check field and program field must be valid
         for field in selection:
-            if not field.isValid():
-                return False
+            # if not field.isValid():
+            #     return False
             if not field.programField().isValid():
                 return False
 
@@ -156,12 +96,3 @@ class ProgramsField(WidgetFieldBase):
             programs.extend(field.programs())
         return programs
 
-    def updateErrors(self, list_options):
-        for field in self.fields():
-            program_field = field.programField()
-            erracc = ErrorAccumulator()
-
-            for options in list_options:
-                program_field.validateOptions(options, erracc).result()
-
-            field.setErrors(erracc.exceptions)
