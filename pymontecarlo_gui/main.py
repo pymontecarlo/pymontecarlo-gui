@@ -308,7 +308,7 @@ class MainWindow(QtWidgets.QMainWindow):
             answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
 
             if answer == QtWidgets.QMessageBox.No:
-                event.reject()
+                event.ignore()
                 return
 
         self.settings().write()
