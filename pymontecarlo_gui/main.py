@@ -38,6 +38,8 @@ from pymontecarlo_gui.settings import SettingsDialog
 
 class MainWindow(QtWidgets.QMainWindow):
 
+    newSimulations = QtCore.Signal(list)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('pyMonteCarlo')
@@ -171,6 +173,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.timer_runner.timeout.connect(self._on_timer_runner_timeout)
 
+        self.newSimulations.connect(self._on_new_simulations)
+
         # Start
         logger.debug('Before new project action')
         self.action_new_project.trigger() # Required to setup project
@@ -229,8 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_open_project.setEnabled(not is_running)
         self.action_stop_simulations.setEnabled(is_running)
 
-    @asyncSlot()
-    async def _on_create_new_simulations(self):
+    def _on_create_new_simulations(self):
         if not ProgramFieldBase._subclasses:
             title = 'New simulations'
             message = 'No program is activated. ' + \
@@ -245,6 +248,10 @@ class MainWindow(QtWidgets.QMainWindow):
         list_options = self.wizard_simulation.optionsList()
         logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
 
+        self.newSimulations.emit(list_options)
+
+    @asyncSlot()
+    async def _on_new_simulations(self, list_options):
         # # Check save project
         # if self.project().filepath is None:
         #     caption = 'Save project'
