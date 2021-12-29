@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class PhotonScatteringCrossSectionModelField(ModelFieldBase):
 
+class PhotonScatteringCrossSectionModelField(ModelFieldBase):
     def title(self):
-        return 'Photon scattering cross section'
+        return "Photon scattering cross section"

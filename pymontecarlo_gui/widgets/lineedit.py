@@ -10,14 +10,17 @@ from qtpy import QtWidgets, QtGui, QtCore
 import numpy as np
 
 # Local modules.
-from pymontecarlo_gui.util.validate import \
-    ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
+from pymontecarlo_gui.util.validate import (
+    ValidableBase,
+    VALID_BACKGROUND_STYLESHEET,
+    INVALID_BACKGROUND_STYLESHEET,
+)
 
 # Globals and constants variables.
 
-class DoubleValidatorAdapterMixin:
 
-    def _get_double_validator(self): #pragma: no cover
+class DoubleValidatorAdapterMixin:
+    def _get_double_validator(self):  # pragma: no cover
         raise NotImplementedError
 
     def bottom(self):
@@ -44,9 +47,9 @@ class DoubleValidatorAdapterMixin:
     def setTop(self, top):
         self._get_double_validator().setTop(top)
 
-class LineEditAdapterMixin:
 
-    def _get_lineedit(self): #pragma: no cover
+class LineEditAdapterMixin:
+    def _get_lineedit(self):  # pragma: no cover
         raise NotImplementedError
 
     def keyPressEvent(self, event):
@@ -61,8 +64,8 @@ class LineEditAdapterMixin:
     def hasAcceptableInput(self):
         return self._get_lineedit().hasAcceptableInput()
 
-class ColoredLineEdit(QtWidgets.QLineEdit, ValidableBase):
 
+class ColoredLineEdit(QtWidgets.QLineEdit, ValidableBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -90,10 +93,10 @@ class ColoredLineEdit(QtWidgets.QLineEdit, ValidableBase):
         super().setValidator(validator)
         self._on_text_changed(self.text())
 
-class ColoredFloatLineEdit(QtWidgets.QWidget,
-                           LineEditAdapterMixin,
-                           DoubleValidatorAdapterMixin,
-                           ValidableBase):
+
+class ColoredFloatLineEdit(
+    QtWidgets.QWidget, LineEditAdapterMixin, DoubleValidatorAdapterMixin, ValidableBase
+):
 
     valueChanged = QtCore.Signal(float)
 
@@ -118,9 +121,10 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
     def _update_tooltip(self):
         locale = QtCore.QLocale.system()
         precision = self.decimals()
-        tooltip = 'Value must be between [{}, {}]' \
-            .format(locale.toString(self.bottom(), 'f', precision),
-                    locale.toString(self.top(), 'f', precision))
+        tooltip = "Value must be between [{}, {}]".format(
+            locale.toString(self.bottom(), "f", precision),
+            locale.toString(self.top(), "f", precision),
+        )
         self.lineedit.setToolTip(tooltip)
         self.setToolTip(tooltip)
 
@@ -155,7 +159,7 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
         locale = QtCore.QLocale.system()
         value, ok = locale.toDouble(self.lineedit.text())
         if not ok:
-            return float('nan')
+            return float("nan")
         else:
             return value
 
@@ -169,15 +173,17 @@ class ColoredFloatLineEdit(QtWidgets.QWidget,
             text = locale.toString(value)
         else:
             value = float(value)
-            text = locale.toString(value, 'f', precision)
+            text = locale.toString(value, "f", precision)
         self.lineedit.setText(text)
 
     def setEnabled(self, enabled):
         super().setEnabled(enabled)
         self.lineedit.setEnabled(enabled)
 
-MULTIFLOAT_SEPARATOR = ';'
-MULTIFLOAT_PATTERN = r'(?P<start>inf|[\de\.+\-\,]*)(?:\:(?P<stop>[\de\.+\-\,]*))?(?:\:(?P<step>[\de\.+\-\,]*))?'
+
+MULTIFLOAT_SEPARATOR = ";"
+MULTIFLOAT_PATTERN = r"(?P<start>inf|[\de\.+\-\,]*)(?:\:(?P<stop>[\de\.+\-\,]*))?(?:\:(?P<step>[\de\.+\-\,]*))?"
+
 
 def parse_multifloat_text(text):
     locale = QtCore.QLocale.system()
@@ -191,17 +197,17 @@ def parse_multifloat_text(text):
 
         match = re.match(MULTIFLOAT_PATTERN, part)
         if not match:
-            raise ValueError('Invalid part: %s' % part)
+            raise ValueError("Invalid part: %s" % part)
 
-        start, _ok = locale.toDouble(match.group('start'))
+        start, _ok = locale.toDouble(match.group("start"))
 
-        stop = match.group('stop')
+        stop = match.group("stop")
         if stop is None:
             stop = start + 1
         else:
             stop, _ok = locale.toDouble(stop)
 
-        step = match.group('step')
+        step = match.group("step")
         if step is None:
             step = 1
         else:
@@ -214,14 +220,14 @@ def parse_multifloat_text(text):
 
     return tuple(sorted(set(values)))
 
-class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
 
+class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
     def __init__(self):
         super().__init__()
 
         # Variables
-        expr = QtCore.QRegExp(r'^[\de\-.,+:;]+$')
-        self.validator_text = QtGui.QRegExpValidator(expr)
+        expr = QtCore.QRegularExpression(r"^[\de\-.,+:;]+$")
+        self.validator_text = QtGui.QRegularExpressionValidator(expr)
         self.validator_value = QtGui.QDoubleValidator()
 
         # Signals
@@ -246,7 +252,7 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
                 text = str(int(value))
             else:
                 locale = QtCore.QLocale.system()
-                text = locale.toString(value, 'g', self.decimals())
+                text = locale.toString(value, "g", self.decimals())
             state, _, _ = self.validator_value.validate(text, pos)
             if state != QtGui.QValidator.Acceptable:
                 return state, input, pos
@@ -256,10 +262,10 @@ class MultiFloatValidator(QtGui.QValidator, DoubleValidatorAdapterMixin):
     def _get_double_validator(self):
         return self.validator_value
 
-class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
-                                LineEditAdapterMixin,
-                                DoubleValidatorAdapterMixin,
-                                ValidableBase):
+
+class ColoredMultiFloatLineEdit(
+    QtWidgets.QWidget, LineEditAdapterMixin, DoubleValidatorAdapterMixin, ValidableBase
+):
 
     valuesChanged = QtCore.Signal(tuple)
 
@@ -284,9 +290,10 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
     def _update_tooltip(self):
         locale = QtCore.QLocale.system()
         precision = self.decimals()
-        tooltip = 'Value(s) must be between [{}, {}]' \
-            .format(locale.toString(self.bottom(), 'f', precision),
-                    locale.toString(self.top(), 'f', precision))
+        tooltip = "Value(s) must be between [{}, {}]".format(
+            locale.toString(self.bottom(), "f", precision),
+            locale.toString(self.top(), "f", precision),
+        )
         self.lineedit.setToolTip(tooltip)
         self.setToolTip(tooltip)
 
@@ -334,7 +341,7 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
                 text_values.append(locale.toString(value))
             else:
                 value = float(value)
-                text_values.append(locale.toString(value, 'f', precision))
+                text_values.append(locale.toString(value, "f", precision))
 
         text = MULTIFLOAT_SEPARATOR.join(text_values)
         self.lineedit.setText(text)
@@ -343,10 +350,11 @@ class ColoredMultiFloatLineEdit(QtWidgets.QWidget,
         super().setEnabled(enabled)
         self.lineedit.setEnabled(enabled)
 
-def run(): #pragma: no cover
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
 
+def run():  # pragma: no cover
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
 
     widget = ColoredMultiFloatLineEdit()
     widget.setRange(1.0, 5.0, 2)
@@ -358,5 +366,6 @@ def run(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run()

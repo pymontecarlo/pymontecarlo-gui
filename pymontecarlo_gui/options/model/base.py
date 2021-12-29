@@ -9,8 +9,8 @@ from pymontecarlo_gui.widgets.field import WidgetFieldBase, CheckFieldBase
 
 # Globals and constants variables.
 
-class ModelCheckField(CheckFieldBase):
 
+class ModelCheckField(CheckFieldBase):
     def __init__(self, model):
         self._model = model
         super().__init__()
@@ -24,8 +24,8 @@ class ModelCheckField(CheckFieldBase):
     def model(self):
         return self._model
 
-class ModelFieldBase(WidgetFieldBase):
 
+class ModelFieldBase(WidgetFieldBase):
     def addModel(self, model, checked=False):
         field = ModelCheckField(model)
         field.setChecked(checked)

@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class RandomNumberGeneratorModelField(ModelFieldBase):
 
+class RandomNumberGeneratorModelField(ModelFieldBase):
     def title(self):
-        return 'Random number generator'
+        return "Random number generator"

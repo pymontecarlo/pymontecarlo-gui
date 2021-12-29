@@ -9,6 +9,7 @@ from qtpy import QtCore, QtWidgets
 
 # Globals and constants variables.
 
+
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
     closed = QtCore.Signal()

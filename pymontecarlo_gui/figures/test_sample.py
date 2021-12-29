@@ -6,39 +6,56 @@ import math
 
 # Third party modules.
 import matplotlib
-matplotlib.use('qt5agg')
+
+matplotlib.use("qt5agg")
 from matplotlib import figure
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvasQTAgg as FigureCanvas,
+    NavigationToolbar2QT,
+)
 
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QDialog, QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, \
-    QComboBox, QSlider, QRadioButton, QButtonGroup, QLabel
+from qtpy.QtWidgets import (
+    QDialog,
+    QApplication,
+    QVBoxLayout,
+    QHBoxLayout,
+    QGridLayout,
+    QComboBox,
+    QSlider,
+    QRadioButton,
+    QButtonGroup,
+    QLabel,
+)
 
 from matplotlib_scalebar.scalebar import ScaleBar
 
 # Local modules.
 from pymontecarlo.options.material import Material
 from pymontecarlo.options.beam import GaussianBeam
-from pymontecarlo.options.sample import \
-    (SubstrateSample, InclusionSample, HorizontalLayerSample,
-     VerticalLayerSample, SphereSample)
+from pymontecarlo.options.sample import (
+    SubstrateSample,
+    InclusionSample,
+    HorizontalLayerSample,
+    VerticalLayerSample,
+    SphereSample,
+)
 from pymontecarlo.options.sample.base import Layer
 from pymontecarlo.figures.sample import SampleFigure, Perspective
 
 # Globals and constants variables.
-DS = Material('Ds', {110: 1.}, 1.)
-RG = Material('Rg', {111: 1.}, 1.)
-AU = Material('Au', {79: 1.}, 1.)
-RE = Material('Re', {75: 1.}, 1.)
-OS = Material('Os', {76: 1.}, 1.)
-IR = Material('Ir', {77: 1.}, 1.)
-PT = Material('Pt', {78: 1.}, 1.)
+DS = Material("Ds", {110: 1.0}, 1.0)
+RG = Material("Rg", {111: 1.0}, 1.0)
+AU = Material("Au", {79: 1.0}, 1.0)
+RE = Material("Re", {75: 1.0}, 1.0)
+OS = Material("Os", {76: 1.0}, 1.0)
+IR = Material("Ir", {77: 1.0}, 1.0)
+PT = Material("Pt", {78: 1.0}, 1.0)
 
-class QtPlt (QDialog):
 
-    def __init__ (self):
-        QDialog.__init__ (self)
+class QtPlt(QDialog):
+    def __init__(self):
+        QDialog.__init__(self)
 
         # matplotlib
         self._figure = figure.Figure()
@@ -47,21 +64,21 @@ class QtPlt (QDialog):
 
         # comboboxes
         self._combo_sample = QComboBox()
-        self._combo_sample.addItem('--- choose sample ---', None)
-        self._combo_sample.addItem('SubstrateSample', SubstrateSample)
-        self._combo_sample.addItem('InclusionSample', InclusionSample)
-        self._combo_sample.addItem('HLayerSample', HorizontalLayerSample)
-        self._combo_sample.addItem('VLayerSample', VerticalLayerSample)
-        self._combo_sample.addItem('SphereSample', SphereSample)
+        self._combo_sample.addItem("--- choose sample ---", None)
+        self._combo_sample.addItem("SubstrateSample", SubstrateSample)
+        self._combo_sample.addItem("InclusionSample", InclusionSample)
+        self._combo_sample.addItem("HLayerSample", HorizontalLayerSample)
+        self._combo_sample.addItem("VLayerSample", VerticalLayerSample)
+        self._combo_sample.addItem("SphereSample", SphereSample)
         self._combo_sample.currentIndexChanged.connect(self.plot)
 
         self._combo_beam = QComboBox()
-        self._combo_beam.addItem('--- choose beam ---', None)
-        self._combo_beam.addItem('GaussianBeam', GaussianBeam)
+        self._combo_beam.addItem("--- choose beam ---", None)
+        self._combo_beam.addItem("GaussianBeam", GaussianBeam)
         self._combo_beam.currentIndexChanged.connect(self.plot)
 
         self._combo_trajectory = QComboBox()
-        self._combo_trajectory.addItem('--- choose trajectory ---', None)
+        self._combo_trajectory.addItem("--- choose trajectory ---", None)
         self._combo_trajectory.currentIndexChanged.connect(self.plot)
 
         # slider
@@ -79,9 +96,9 @@ class QtPlt (QDialog):
         self._slider_rotation_deg.setDisabled(True)
 
         # radio buttons
-        self._radio_xz = QRadioButton('XZ')
-        self.radio_yz = QRadioButton('YZ')
-        self.radio_xy = QRadioButton('XY')
+        self._radio_xz = QRadioButton("XZ")
+        self.radio_yz = QRadioButton("YZ")
+        self.radio_xy = QRadioButton("XY")
         self._radio_xz.setChecked(True)
 
         self._radio_perspective = QButtonGroup()
@@ -100,8 +117,8 @@ class QtPlt (QDialog):
         sublayout_perspective.addWidget(self._radio_xz, 1, 1)
         sublayout_perspective.addWidget(self.radio_yz, 2, 1)
         sublayout_perspective.addWidget(self.radio_xy, 3, 1)
-        sublayout_perspective.addWidget(QLabel('tilt'), 1, 2)
-        sublayout_perspective.addWidget(QLabel('rotation'), 2, 2)
+        sublayout_perspective.addWidget(QLabel("tilt"), 1, 2)
+        sublayout_perspective.addWidget(QLabel("rotation"), 2, 2)
         sublayout_perspective.addWidget(self._slider_tilt_deg, 1, 3)
         sublayout_perspective.addWidget(self._slider_rotation_deg, 2, 3)
 
@@ -121,33 +138,39 @@ class QtPlt (QDialog):
         tilt_rad = math.radians(self._slider_tilt_deg.value())
         rotation_rad = math.radians(self._slider_rotation_deg.value())
 
-        layer = [Layer(RE, 10e-9), Layer(OS, 15e-9),
-                 Layer(IR, 20e-9), Layer(PT, 5e-9)]
+        layer = [Layer(RE, 10e-9), Layer(OS, 15e-9), Layer(IR, 20e-9), Layer(PT, 5e-9)]
 
         sample_cls = self._combo_sample.currentData()
 
         if sample_cls == SubstrateSample:
             sample = SubstrateSample(DS, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
         elif sample_cls == InclusionSample:
-            sample = InclusionSample(DS, AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
+            sample = InclusionSample(
+                DS, AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad
+            )
         elif sample_cls == HorizontalLayerSample:
-            sample = HorizontalLayerSample(DS, layer, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
+            sample = HorizontalLayerSample(
+                DS, layer, tilt_rad=tilt_rad, rotation_rad=rotation_rad
+            )
         elif sample_cls == VerticalLayerSample:
-            sample = VerticalLayerSample(DS, RG, layer, tilt_rad=tilt_rad,
-                                         rotation_rad=rotation_rad)
+            sample = VerticalLayerSample(
+                DS, RG, layer, tilt_rad=tilt_rad, rotation_rad=rotation_rad
+            )
         elif sample_cls == SphereSample:
-            sample = SphereSample(AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad)
+            sample = SphereSample(
+                AU, 0.5e-6, tilt_rad=tilt_rad, rotation_rad=rotation_rad
+            )
         else:
             sample = None
 
         beam_cls = self._combo_beam.currentData()
 
         if beam_cls == GaussianBeam:
-            beams = [GaussianBeam(42., 5e-9)]
+            beams = [GaussianBeam(42.0, 5e-9)]
         else:
             beams = []
 
-        #trajectory_cls = self._combo_trajectory.currentData()
+        # trajectory_cls = self._combo_trajectory.currentData()
 
         # TODO handle trajectories
         trajectories = []
@@ -170,7 +193,7 @@ class QtPlt (QDialog):
 
         sf.draw(ax)
 
-        scalebar = ScaleBar(1.0, location='lower left')
+        scalebar = ScaleBar(1.0, location="lower left")
         ax.add_artist(scalebar)
 
         self._canvas.draw_idle()

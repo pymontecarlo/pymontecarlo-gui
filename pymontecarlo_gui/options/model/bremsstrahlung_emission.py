@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class BremsstrahlungEmissionModelField(ModelFieldBase):
 
+class BremsstrahlungEmissionModelField(ModelFieldBase):
     def title(self):
-        return 'Bremsstrahlung emission'
+        return "Bremsstrahlung emission"

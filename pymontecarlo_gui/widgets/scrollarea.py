@@ -9,6 +9,7 @@ from qtpy import QtWidgets
 
 # Globals and constants variables.
 
+
 def create_scroll_area(*widgets_or_layouts, direction=None):
     if direction is None:
         direction = QtWidgets.QBoxLayout.TopToBottom

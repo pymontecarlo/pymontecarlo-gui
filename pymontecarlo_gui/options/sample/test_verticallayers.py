@@ -13,11 +13,13 @@ from pymontecarlo.options.sample.base import LayerBuilder
 
 # Globals and constants variables.
 
+
 @pytest.fixture
 def vertical_layer_sample_field():
     return VerticalLayerSampleField()
 
-def test_vertical_layer_sample_field(qtbot , vertical_layer_sample_field, materials):
+
+def test_vertical_layer_sample_field(qtbot, vertical_layer_sample_field, materials):
     vertical_layer_sample_field.setAvailableMaterials(materials)
 
     widget = vertical_layer_sample_field.field_left.field_material.widget()
@@ -38,16 +40,15 @@ def test_vertical_layer_sample_field(qtbot , vertical_layer_sample_field, materi
 
     widget = vertical_layer_sample_field.field_dimension.field_depth.widget()
     widget.clear()
-    qtbot.keyClicks(widget.lineedit, '1.1;2.2')
+    qtbot.keyClicks(widget.lineedit, "1.1;2.2")
 
     widget = vertical_layer_sample_field.field_angle.field_tilt.widget()
     widget.clear()
-    qtbot.keyClicks(widget.lineedit, '1.1;2.2')
+    qtbot.keyClicks(widget.lineedit, "1.1;2.2")
 
     widget = vertical_layer_sample_field.field_angle.field_azimuth.widget()
     widget.clear()
-    qtbot.keyClicks(widget.lineedit, '3.3;4.4')
+    qtbot.keyClicks(widget.lineedit, "3.3;4.4")
 
     samples = vertical_layer_sample_field.samples()
     assert len(samples) == 2 ** 6
-

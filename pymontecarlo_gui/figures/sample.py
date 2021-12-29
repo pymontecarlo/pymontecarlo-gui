@@ -6,7 +6,8 @@
 from qtpy import QtCore, QtWidgets
 
 import matplotlib
-matplotlib.use('qt5agg')
+
+matplotlib.use("qt5agg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -16,6 +17,7 @@ from matplotlib_scalebar.scalebar import ScaleBar
 from pymontecarlo.figures.sample import SampleFigure, Perspective
 
 # Globals and constants variables.
+
 
 class PerspectiveToolbar(QtWidgets.QToolBar):
 
@@ -47,8 +49,8 @@ class PerspectiveToolbar(QtWidgets.QToolBar):
                 action.setChecked(True)
                 return
 
-class SampleFigureWidget(QtWidgets.QWidget):
 
+class SampleFigureWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -88,7 +90,7 @@ class SampleFigureWidget(QtWidgets.QWidget):
 
         self.sample_figure.draw(self.ax)
 
-        scalebar = ScaleBar(1.0, location='lower left')
+        scalebar = ScaleBar(1.0, location="lower left")
         self.ax.add_artist(scalebar)
 
         self.canvas.draw()
@@ -114,7 +116,8 @@ class SampleFigureWidget(QtWidgets.QWidget):
         self.toolbar.setPerspective(perspective)
         self.draw()
 
-def run(): #pragma: no cover
+
+def run():  # pragma: no cover
     import sys
     from pymontecarlo.options.beam import GaussianBeam
     from pymontecarlo.options.sample import HorizontalLayerSample
@@ -137,5 +140,6 @@ def run(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run()

@@ -10,13 +10,13 @@ from pymontecarlo_gui.results.photon import PhotonSingleResultModel
 
 # Globals and constants variables.
 
-class PhotonIntensityResultWidget(ResultTableWidgetBase):
 
+class PhotonIntensityResultWidget(ResultTableWidgetBase):
     def _create_model(self, result, settings):
-        return PhotonSingleResultModel(result, settings, 'Intensity', '1/(sr.electron)')
+        return PhotonSingleResultModel(result, settings, "Intensity", "1/(sr.electron)")
+
 
 class PhotonIntensityResultField(ResultFieldBase):
-
     def __init__(self, result, settings):
         super().__init__(result, settings)
 

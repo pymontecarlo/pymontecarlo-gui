@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class IonizationCrossSectionModelField(ModelFieldBase):
 
+class IonizationCrossSectionModelField(ModelFieldBase):
     def title(self):
-        return 'Ionization cross section'
+        return "Ionization cross section"

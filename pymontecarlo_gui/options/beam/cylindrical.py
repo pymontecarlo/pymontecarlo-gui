@@ -8,18 +8,30 @@ from qtpy import QtWidgets
 import numpy as np
 
 # Local modules.
-from pymontecarlo.options.beam.cylindrical import CylindricalBeam, CylindricalBeamBuilder
+from pymontecarlo.options.beam.cylindrical import (
+    CylindricalBeam,
+    CylindricalBeamBuilder,
+)
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.options.beam.base import BeamFieldBase, EnergyField, ParticleField, PositionsField, SinglePositionField, LineScanXPositionField, LineScanYPositionField, GridPositionField
+from pymontecarlo_gui.options.beam.base import (
+    BeamFieldBase,
+    EnergyField,
+    ParticleField,
+    PositionsField,
+    SinglePositionField,
+    LineScanXPositionField,
+    LineScanYPositionField,
+    GridPositionField,
+)
 from pymontecarlo_gui.options.base import ToleranceMixin
 from pymontecarlo_gui.widgets.field import MultiValueFieldBase
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 
 # Globals and constants variables.
 
-class DiameterField(MultiValueFieldBase, ToleranceMixin):
 
+class DiameterField(MultiValueFieldBase, ToleranceMixin):
     def __init__(self):
         super().__init__()
 
@@ -31,10 +43,10 @@ class DiameterField(MultiValueFieldBase, ToleranceMixin):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Diameter(s) FWHM [nm]'
+        return "Diameter(s) FWHM [nm]"
 
     def description(self):
-        return 'The diameter corresponds to the full width at half maximum (FWHM) of a two dimensional Gaussian distribution'
+        return "The diameter corresponds to the full width at half maximum (FWHM) of a two dimensional Gaussian distribution"
 
     def widget(self):
         return self._widget
@@ -42,7 +54,7 @@ class DiameterField(MultiValueFieldBase, ToleranceMixin):
     def setToleranceMeter(self, tolerance_m):
         super().setToleranceMeter(tolerance_m)
         decimals = tolerance_to_decimals(tolerance_m * 1e9)
-        self._widget.setRange(tolerance_m, float('inf'), decimals)
+        self._widget.setRange(tolerance_m, float("inf"), decimals)
 
     def diametersMeter(self):
         return np.array(self._widget.values()) * 1e-9
@@ -51,8 +63,8 @@ class DiameterField(MultiValueFieldBase, ToleranceMixin):
         values = np.array(diameters_m) * 1e9
         self._widget.setValues(values)
 
-class CylindricalBeamField(BeamFieldBase):
 
+class CylindricalBeamField(BeamFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -77,10 +89,10 @@ class CylindricalBeamField(BeamFieldBase):
         self.addGroupField(self.field_position)
 
     def title(self):
-        return 'Cylindrical beam'
+        return "Cylindrical beam"
 
     def description(self):
-        return 'Incident particles distributed randomly within a circle'
+        return "Incident particles distributed randomly within a circle"
 
     def _create_builder(self):
         return CylindricalBeamBuilder()

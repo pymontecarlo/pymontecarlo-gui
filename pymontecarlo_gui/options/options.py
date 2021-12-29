@@ -18,6 +18,7 @@ from pymontecarlo_gui.project import SettingsBasedField
 
 # Globals and constants variables.
 
+
 @contextlib.contextmanager
 def estimated_builder(builder):
     program_mock_added = False
@@ -45,6 +46,7 @@ def estimated_builder(builder):
             builder.beams.clear()
         if sample_mock_added:
             builder.samples.clear()
+
 
 class OptionsModel(QtCore.QObject):
 
@@ -113,8 +115,8 @@ class OptionsModel(QtCore.QObject):
         with estimated_builder(self.builder):
             return len(self.builder)
 
-class OptionsField(SettingsBasedField):
 
+class OptionsField(SettingsBasedField):
     def __init__(self, options, settings):
         super().__init__(settings)
 
@@ -132,7 +134,7 @@ class OptionsField(SettingsBasedField):
         builder = DocumentBuilder(self.settings())
         self.options().convert_document(builder)
 
-        return publish_html(builder).decode('utf8')
+        return publish_html(builder).decode("utf8")
 
     def _create_widget(self):
         widget = QtWebEngineWidgets.QWebEngineView()
@@ -140,10 +142,10 @@ class OptionsField(SettingsBasedField):
         return widget
 
     def title(self):
-        return 'Options'
+        return "Options"
 
     def icon(self):
-        return QtGui.QIcon.fromTheme('document-properties')
+        return QtGui.QIcon.fromTheme("document-properties")
 
     def widget(self):
         if self._widget is None:

@@ -10,7 +10,7 @@ from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
-class PhotonAnalysisFieldBase(AnalysisFieldBase):
 
+class PhotonAnalysisFieldBase(AnalysisFieldBase):
     def definitionFieldClass(self):
         return PhotonDetectorField

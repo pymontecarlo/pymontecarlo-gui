@@ -12,8 +12,8 @@ from pymontecarlo.settings import XrayNotation
 
 # Globals and constants variables.
 
-class XrayLineField(FieldBase):
 
+class XrayLineField(FieldBase):
     def __init__(self, settings):
         super().__init__()
 
@@ -40,10 +40,10 @@ class XrayLineField(FieldBase):
         else:
             notation = xrayline.iupac
 
-        return '{} ({:.0f}eV)'.format(notation, xrayline.energy_eV)
+        return "{} ({:.0f}eV)".format(notation, xrayline.energy_eV)
 
     def title(self):
-        return 'X-ray line'
+        return "X-ray line"
 
     def widget(self):
         return self._widget

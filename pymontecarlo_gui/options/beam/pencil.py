@@ -8,12 +8,21 @@ from qtpy import QtCore, QtGui, QtWidgets
 # Local modules.
 from pymontecarlo.options.beam.pencil import PencilBeam, PencilBeamBuilder
 
-from pymontecarlo_gui.options.beam.base import BeamFieldBase, EnergyField, ParticleField, PositionsField, SinglePositionField, LineScanXPositionField, LineScanYPositionField, GridPositionField
+from pymontecarlo_gui.options.beam.base import (
+    BeamFieldBase,
+    EnergyField,
+    ParticleField,
+    PositionsField,
+    SinglePositionField,
+    LineScanXPositionField,
+    LineScanYPositionField,
+    GridPositionField,
+)
 
 # Globals and constants variables.
 
-class PencilBeamField(BeamFieldBase):
 
+class PencilBeamField(BeamFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -33,10 +42,10 @@ class PencilBeamField(BeamFieldBase):
         self.addGroupField(self.field_position)
 
     def title(self):
-        return 'Pencil beam'
+        return "Pencil beam"
 
     def description(self):
-        return 'Incident particles centered at the initial position'
+        return "Incident particles centered at the initial position"
 
     def beams(self):
         builder = PencilBeamBuilder()

@@ -8,6 +8,7 @@
 
 # Globals and constants variables.
 
+
 def make_italic(widget):
     font = widget.font()
     font.setItalic(True)

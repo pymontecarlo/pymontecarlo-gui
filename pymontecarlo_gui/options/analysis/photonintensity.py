@@ -11,13 +11,13 @@ from pymontecarlo.options.analysis.photonintensity import PhotonIntensityAnalysi
 
 # Globals and constants variables.
 
-class PhotonIntensityAnalysisField(PhotonAnalysisFieldBase):
 
+class PhotonIntensityAnalysisField(PhotonAnalysisFieldBase):
     def title(self):
-        return 'Photon intensity'
+        return "Photon intensity"
 
     def description(self):
-        return 'Simulates X-rays and records their generated and emitted intensities'
+        return "Simulates X-rays and records their generated and emitted intensities"
 
     def analyses(self):
         builder = PhotonIntensityAnalysisBuilder()

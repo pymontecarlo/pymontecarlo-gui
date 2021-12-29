@@ -24,16 +24,18 @@ from pymontecarlo_gui.options.beam.pencil import PencilBeamField
 from pymontecarlo_gui.options.beam.gaussian import GaussianBeamField
 from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 from pymontecarlo_gui.options.analysis.base import AnalysesField
-from pymontecarlo_gui.options.analysis.photonintensity import PhotonIntensityAnalysisField
+from pymontecarlo_gui.options.analysis.photonintensity import (
+    PhotonIntensityAnalysisField,
+)
 from pymontecarlo_gui.options.analysis.kratio import KRatioAnalysisField
 from pymontecarlo_gui.options.program.base import ProgramsField, ProgramFieldBase
 
 # Globals and constants variables.
 
-#region Widgets
+# region Widgets
+
 
 class SimulationCountMockButton(QtWidgets.QAbstractButton):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -41,7 +43,7 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
         self._count = 0
 
         # Widgets
-        self.label = QtWidgets.QLabel('No simulation defined')
+        self.label = QtWidgets.QLabel("No simulation defined")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
 
         # Layouts
@@ -55,14 +57,14 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
 
     def setCount(self, count, estimate=False):
         if count == 0:
-            text = 'No simulation defined'
+            text = "No simulation defined"
         elif count == 1:
-            text = '{:d} simulation defined'.format(count)
+            text = "{:d} simulation defined".format(count)
         else:
-            text = '{:d} simulations defined'.format(count)
+            text = "{:d} simulations defined".format(count)
 
         if estimate and count > 0:
-            text += ' (estimation)'
+            text += " (estimation)"
 
         self._count = count
         self.label.setText(text)
@@ -70,8 +72,8 @@ class SimulationCountMockButton(QtWidgets.QAbstractButton):
     def count(self):
         return self._count
 
-class PreviewWidget(QtWidgets.QWidget):
 
+class PreviewWidget(QtWidgets.QWidget):
     def __init__(self, model, parent=None):
         super().__init__(parent)
 
@@ -103,20 +105,21 @@ class PreviewWidget(QtWidgets.QWidget):
 
         self.wdg_figure.draw()
 
-#endregion
 
-#region Pages
+# endregion
+
+# region Pages
+
 
 class NewSimulationWizardPage(QtWidgets.QWizardPage):
-
     def __init__(self, model, parent=None):
         super().__init__(parent)
 
         # Variables
         self.model = model
 
-class SampleWizardPage(NewSimulationWizardPage):
 
+class SampleWizardPage(NewSimulationWizardPage):
     def __init__(self, model, parent=None):
         super().__init__(model, parent)
         self.setTitle("Define sample(s)")
@@ -130,9 +133,9 @@ class SampleWizardPage(NewSimulationWizardPage):
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Materials', self.wdg_materials), 1)
-        layout.addWidget(create_group_box('Definition', self.wdg_sample), 1)
-        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
+        layout.addWidget(create_group_box("Materials", self.wdg_materials), 1)
+        layout.addWidget(create_group_box("Definition", self.wdg_sample), 1)
+        layout.addWidget(create_group_box("Preview", self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
@@ -175,8 +178,8 @@ class SampleWizardPage(NewSimulationWizardPage):
             return []
         return field.samples()
 
-class BeamWizardPage(NewSimulationWizardPage):
 
+class BeamWizardPage(NewSimulationWizardPage):
     def __init__(self, model, parent=None):
         super().__init__(model, parent)
         self.setTitle("Define incident beam(s)")
@@ -188,8 +191,8 @@ class BeamWizardPage(NewSimulationWizardPage):
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box('Beams', self.wdg_beam), 1)
-        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
+        layout.addWidget(create_group_box("Beams", self.wdg_beam), 1)
+        layout.addWidget(create_group_box("Preview", self.widget_preview), 1)
         self.setLayout(layout)
 
         # Signals
@@ -219,11 +222,11 @@ class BeamWizardPage(NewSimulationWizardPage):
             return []
         return field.beams()
 
-class AnalysisWizardPage(NewSimulationWizardPage):
 
+class AnalysisWizardPage(NewSimulationWizardPage):
     def __init__(self, model, parent=None):
         super().__init__(model, parent)
-        self.setTitle('Select type(s) of analysis')
+        self.setTitle("Select type(s) of analysis")
 
         # Variables
         self._definition_field_classes = {}
@@ -237,9 +240,12 @@ class AnalysisWizardPage(NewSimulationWizardPage):
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box(self.field_analyses.title(), self.field_analyses.widget()), 1)
-        layout.addWidget(create_group_box('Definition', self.field_toolbox), 1)
-        layout.addWidget(create_group_box('Preview', self.widget_preview), 1)
+        layout.addWidget(
+            create_group_box(self.field_analyses.title(), self.field_analyses.widget()),
+            1,
+        )
+        layout.addWidget(create_group_box("Definition", self.field_toolbox), 1)
+        layout.addWidget(create_group_box("Preview", self.widget_preview), 1)
         self.setLayout(layout)
 
     def _on_analyses_changed(self):
@@ -275,11 +281,11 @@ class AnalysisWizardPage(NewSimulationWizardPage):
     def analyses(self):
         return self.field_analyses.selectedAnalyses()
 
-class ProgramWizardPage(NewSimulationWizardPage):
 
+class ProgramWizardPage(NewSimulationWizardPage):
     def __init__(self, model, parent=None):
         super().__init__(model, parent)
-        self.setTitle('Select program(s)')
+        self.setTitle("Select program(s)")
 
         # Widgets
         self.field_programs = ProgramsField()
@@ -288,8 +294,11 @@ class ProgramWizardPage(NewSimulationWizardPage):
 
         # Layouts
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(create_group_box(self.field_programs.title(), self.field_programs.widget()), 1)
-        layout.addWidget(create_group_box('Definition', self.field_toolbox), 1)
+        layout.addWidget(
+            create_group_box(self.field_programs.title(), self.field_programs.widget()),
+            1,
+        )
+        layout.addWidget(create_group_box("Definition", self.field_toolbox), 1)
         self.setLayout(layout)
 
         # Signals
@@ -319,6 +328,7 @@ class ProgramWizardPage(NewSimulationWizardPage):
     def programs(self):
         return self.field_programs.programs()
 
+
 class ValidationThread(QtCore.QThread):
 
     update = QtCore.Signal(int, int)
@@ -346,13 +356,14 @@ class ValidationThread(QtCore.QThread):
     def run(self):
         self.runasync().result()
 
+
 class ValidationWizardPage(NewSimulationWizardPage):
 
     validateUpdate = QtCore.Signal(int, int)
 
     def __init__(self, model, parent=None):
         super().__init__(model, parent)
-        self.setTitle('Check simulation(s)')
+        self.setTitle("Check simulation(s)")
 
         # Variables
         self._thread = ValidationThread(model)
@@ -375,21 +386,21 @@ class ValidationWizardPage(NewSimulationWizardPage):
         self._thread.finished.connect(self._on_thread_finished)
 
     def _errors_to_html(self, erraccs):
-        html = ''
+        html = ""
 
         for program_name, erracc in erraccs.items():
-            html += '<h2>{}</h2>'.format(program_name)
+            html += "<h2>{}</h2>".format(program_name)
 
-            html += '<ul>'
+            html += "<ul>"
 
             exceptions = set(str(exception) for exception in erracc.exceptions)
             if exceptions:
                 for exception in sorted(exceptions):
-                    html += '<li>{}</li>'.format(exception)
+                    html += "<li>{}</li>".format(exception)
             else:
-                html += '<li>No error</li>'
+                html += "<li>No error</li>"
 
-            html += '</ul>'
+            html += "</ul>"
 
         return html
 
@@ -406,7 +417,7 @@ class ValidationWizardPage(NewSimulationWizardPage):
         self.completeChanged.emit()
 
     def _on_page_loaded(self):
-        self._widget_errors.setText('')
+        self._widget_errors.setText("")
         self._progressbar.setValue(0)
         self._thread.start()
 
@@ -431,32 +442,39 @@ class ValidationWizardPage(NewSimulationWizardPage):
 
         return True
 
-#endregion
 
-#region Wizard
+# endregion
+
+# region Wizard
+
 
 class NewSimulationWizard(QtWidgets.QWizard):
-
     def __init__(self, settings, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('New simulation(s)')
-        self.setWindowIcon(load_pixmap('logo_32x32.png'))
+        self.setWindowTitle("New simulation(s)")
+        self.setWindowIcon(load_pixmap("logo_32x32.png"))
         self.setWizardStyle(QtWidgets.QWizard.ClassicStyle)
         self.setMinimumSize(1000, 700)
-        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                           QtWidgets.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding,
+            QtWidgets.QSizePolicy.MinimumExpanding,
+        )
 
         # Variables
         self.model = OptionsModel(settings)
 
         # Buttons
         self.setOption(QtWidgets.QWizard.HaveCustomButton1)
-        self.setButtonLayout([QtWidgets.QWizard.CustomButton1,
-                              QtWidgets.QWizard.Stretch,
-                              QtWidgets.QWizard.BackButton,
-                              QtWidgets.QWizard.NextButton,
-                              QtWidgets.QWizard.FinishButton,
-                              QtWidgets.QWizard.CancelButton])
+        self.setButtonLayout(
+            [
+                QtWidgets.QWizard.CustomButton1,
+                QtWidgets.QWizard.Stretch,
+                QtWidgets.QWizard.BackButton,
+                QtWidgets.QWizard.NextButton,
+                QtWidgets.QWizard.FinishButton,
+                QtWidgets.QWizard.CancelButton,
+            ]
+        )
 
         self.btn_count = SimulationCountMockButton()
         self.setButton(QtWidgets.QWizard.CustomButton1, self.btn_count)
@@ -528,4 +546,5 @@ class NewSimulationWizard(QtWidgets.QWizard):
     def optionsList(self):
         return self.model.optionsList()
 
-#endregion
+
+# endregion

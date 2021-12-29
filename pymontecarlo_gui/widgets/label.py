@@ -9,9 +9,9 @@ from qtpy import QtCore, QtWidgets
 
 # Globals and constants variables.
 
-class LabelIcon(QtWidgets.QWidget):
 
-    def __init__(self, text='', icon=None, parent=None):
+class LabelIcon(QtWidgets.QWidget):
+    def __init__(self, text="", icon=None, parent=None):
         super().__init__(parent)
 
         # Widgets

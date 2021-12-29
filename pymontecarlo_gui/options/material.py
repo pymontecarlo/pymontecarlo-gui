@@ -8,33 +8,38 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 # Local modules.
 from pymontecarlo.options.material import Material, VACUUM
-from pymontecarlo.options.composition import \
-    generate_name, calculate_density_kg_per_m3, from_formula
+from pymontecarlo.options.composition import (
+    generate_name,
+    calculate_density_kg_per_m3,
+    from_formula,
+)
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
 from pymontecarlo_gui.options.composition import CompositionTableWidget
-from pymontecarlo_gui.widgets.lineedit import \
-    ColoredLineEdit, ColoredFloatLineEdit
+from pymontecarlo_gui.widgets.lineedit import ColoredLineEdit, ColoredFloatLineEdit
 from pymontecarlo_gui.widgets.periodictable import PeriodicTableWidget
 from pymontecarlo_gui.widgets.field import FieldBase, FieldLayout
 from pymontecarlo_gui.widgets.color import ColorDialogButton, check_color
 from pymontecarlo_gui.widgets.icon import load_icon
-from pymontecarlo_gui.util.validate import \
-    ValidableBase, VALID_BACKGROUND_STYLESHEET, INVALID_BACKGROUND_STYLESHEET
+from pymontecarlo_gui.util.validate import (
+    ValidableBase,
+    VALID_BACKGROUND_STYLESHEET,
+    INVALID_BACKGROUND_STYLESHEET,
+)
 
 # Globals and constants variables.
 
-#--- Mix-ins
+# --- Mix-ins
+
 
 class MaterialValidatorMixin:
-
     def validator(self):
-        if not hasattr(self, '_validator'):
+        if not hasattr(self, "_validator"):
             self._validator = None
         return self._validator
 
-class MaterialAbstractViewMixin:
 
+class MaterialAbstractViewMixin:
     def _get_model(self):
         raise NotImplementedError
 
@@ -60,8 +65,8 @@ class MaterialAbstractViewMixin:
     def material(self, row):
         return self._get_model().material(row)
 
-class MaterialVacuumMixin:
 
+class MaterialVacuumMixin:
     def allowVacuum(self):
         return VACUUM in self.materials()
 
@@ -71,12 +76,13 @@ class MaterialVacuumMixin:
         else:
             self.removeMaterial(VACUUM)
 
-#--- Validators
 
-class FormulaValidator(QtGui.QRegExpValidator):
+# --- Validators
 
+
+class FormulaValidator(QtGui.QRegularExpressionValidator):
     def __init__(self):
-        super().__init__(QtCore.QRegExp(r'^[\w ]+$'))
+        super().__init__(QtCore.QRegularExpression(r"^[\w ]+$"))
 
     def validate(self, input, pos):
         state, input, pos = super().validate(input, pos)
@@ -90,10 +96,11 @@ class FormulaValidator(QtGui.QRegExpValidator):
 
         return QtGui.QValidator.Acceptable, input, pos
 
-#--- Widgets
+
+# --- Widgets
+
 
 class MaterialNameField(FieldBase):
-
     def __init__(self):
         super().__init__()
 
@@ -103,9 +110,11 @@ class MaterialNameField(FieldBase):
         # Widgets
         self._widget = ColoredLineEdit()
         self._widget.setEnabled(False)
-        self._widget.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"^(?!\s*$).+")))
+        self._widget.setValidator(
+            QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^(?!\s*$).+"))
+        )
 
-        self._suffix = QtWidgets.QCheckBox('auto')
+        self._suffix = QtWidgets.QCheckBox("auto")
         self._suffix.setChecked(True)
 
         # Signals
@@ -123,12 +132,12 @@ class MaterialNameField(FieldBase):
         try:
             name = generate_name(self._composition)
         except:
-            name = ''
+            name = ""
 
         self.setName(name, user_modified=False)
 
     def title(self):
-        return 'Name'
+        return "Name"
 
     def widget(self):
         return self._widget
@@ -151,21 +160,21 @@ class MaterialNameField(FieldBase):
         self._composition = composition.copy()
         self._update_name()
 
-class MaterialFormulaField(FieldBase):
 
+class MaterialFormulaField(FieldBase):
     def __init__(self):
         super().__init__()
 
         # Widgets
         self._widget = ColoredLineEdit()
         self._widget.setValidator(FormulaValidator())
-        self._widget.textChanged.emit('')
+        self._widget.textChanged.emit("")
 
         # Signals
         self._widget.textChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Formula'
+        return "Formula"
 
     def widget(self):
         return self._widget
@@ -176,8 +185,8 @@ class MaterialFormulaField(FieldBase):
     def setFormula(self, formula):
         self._widget.setText(formula)
 
-class MaterialDensityField(FieldBase):
 
+class MaterialDensityField(FieldBase):
     def __init__(self):
         super().__init__()
 
@@ -187,11 +196,11 @@ class MaterialDensityField(FieldBase):
         # Widgets
         self._widget = ColoredFloatLineEdit()
         decimals = tolerance_to_decimals(Material.DENSITY_TOLERANCE_kg_per_m3) + 3
-        self._widget.setRange(0.0, float('inf'), decimals)
+        self._widget.setRange(0.0, float("inf"), decimals)
         self._widget.setValue(0.0)
         self._widget.setEnabled(False)
 
-        self._suffix = QtWidgets.QCheckBox('user defined')
+        self._suffix = QtWidgets.QCheckBox("user defined")
         self._suffix.setChecked(False)
 
         # Signals
@@ -214,7 +223,7 @@ class MaterialDensityField(FieldBase):
         self.setDensity_kg_per_m3(density_kg_per_m3, user_modified=False)
 
     def title(self):
-        return 'Density [g/cm<sup>3</sup>]'
+        return "Density [g/cm<sup>3</sup>]"
 
     def widget(self):
         return self._widget
@@ -237,8 +246,8 @@ class MaterialDensityField(FieldBase):
         self._composition = composition.copy()
         self._update_density()
 
-class MaterialColorField(FieldBase):
 
+class MaterialColorField(FieldBase):
     def __init__(self):
         super().__init__()
 
@@ -250,7 +259,7 @@ class MaterialColorField(FieldBase):
         self._widget.colorChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Color'
+        return "Color"
 
     def widget(self):
         return self._widget
@@ -260,6 +269,7 @@ class MaterialColorField(FieldBase):
 
     def setColor(self, color):
         self._widget.setColor(color)
+
 
 class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin):
 
@@ -285,8 +295,8 @@ class MaterialWidget(QtWidgets.QWidget, ValidableBase, MaterialValidatorMixin):
     def materials(self):
         raise NotImplementedError
 
-class MaterialPureWidget(MaterialWidget):
 
+class MaterialPureWidget(MaterialWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -312,8 +322,8 @@ class MaterialPureWidget(MaterialWidget):
             materials.append(Material.pure(z))
         return tuple(materials)
 
-class MaterialFormulaWidget(MaterialWidget):
 
+class MaterialFormulaWidget(MaterialWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -346,10 +356,12 @@ class MaterialFormulaWidget(MaterialWidget):
         self.field_density.setComposition(composition)
 
     def isValid(self):
-        return super().isValid() and \
-            self.field_formula.isValid() and \
-            self.field_density.isValid() and \
-            self.field_color.isValid()
+        return (
+            super().isValid()
+            and self.field_formula.isValid()
+            and self.field_density.isValid()
+            and self.field_color.isValid()
+        )
 
     def materials(self):
         try:
@@ -360,8 +372,8 @@ class MaterialFormulaWidget(MaterialWidget):
         except:
             return ()
 
-class MaterialAdvancedWidget(MaterialWidget):
 
+class MaterialAdvancedWidget(MaterialWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -399,11 +411,13 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.field_density.setComposition(composition)
 
     def isValid(self):
-        return super().isValid() and \
-            self.field_name.isValid() and \
-            self.field_density.isValid() and \
-            self.field_color.isValid() and \
-            self.tbl_composition.isValid()
+        return (
+            super().isValid()
+            and self.field_name.isValid()
+            and self.field_density.isValid()
+            and self.field_color.isValid()
+            and self.tbl_composition.isValid()
+        )
 
     def materials(self):
         try:
@@ -427,8 +441,8 @@ class MaterialAdvancedWidget(MaterialWidget):
         self.field_density.setDensity_kg_per_m3(material.density_kg_per_m3)
         self.field_color.setColor(material.color)
 
-class MaterialDialog(QtWidgets.QDialog):
 
+class MaterialDialog(QtWidgets.QDialog):
     def __init__(self, material_widget_class, parent=None):
         super().__init__(parent)
 
@@ -439,8 +453,9 @@ class MaterialDialog(QtWidgets.QDialog):
         self.wdg_material = material_widget_class()
 
         self.buttons = QtWidgets.QDialogButtonBox()
-        self.buttons.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | \
-                                        QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
         self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
         # Layouts
@@ -471,8 +486,8 @@ class MaterialDialog(QtWidgets.QDialog):
     def materials(self):
         return self._materials
 
-class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
 
+class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
     def __init__(self):
         super().__init__()
 
@@ -566,8 +581,8 @@ class MaterialModel(QtCore.QAbstractListModel, MaterialValidatorMixin):
         if reset:
             self.modelReset.emit()
 
-class MaterialToolbar(QtWidgets.QToolBar):
 
+class MaterialToolbar(QtWidgets.QToolBar):
     def __init__(self, listview, parent=None):
         super().__init__(parent)
 
@@ -576,24 +591,28 @@ class MaterialToolbar(QtWidgets.QToolBar):
 
         # Actions
         self.act_add_pure = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Pure")
-        self.act_add_pure.setToolTip('Add pure material')
+        self.act_add_pure.setToolTip("Add pure material")
 
-        self.act_add_formula = self.addAction(load_icon('material-add-formula.svg'), "Formula")
-        self.act_add_formula.setToolTip('Add material from a formula')
+        self.act_add_formula = self.addAction(
+            load_icon("material-add-formula.svg"), "Formula"
+        )
+        self.act_add_formula.setToolTip("Add material from a formula")
 
-        self.act_add_material = self.addAction(load_icon('material-add-advanced.svg'), "Advanced")
-        self.act_add_material.setToolTip('Add material from composition')
+        self.act_add_material = self.addAction(
+            load_icon("material-add-advanced.svg"), "Advanced"
+        )
+        self.act_add_material.setToolTip("Add material from composition")
 
         self.act_remove = QtWidgets.QAction()
         self.act_remove.setIcon(QtGui.QIcon.fromTheme("list-remove"))
-        self.act_remove.setToolTip('Remove')
+        self.act_remove.setToolTip("Remove")
         self.act_remove.setEnabled(False)
         self.act_remove.setShortcutContext(QtCore.Qt.WindowShortcut)
         self.act_remove.setShortcut(QtGui.QKeySequence.Delete)
 
         self.act_clear = QtWidgets.QAction()
         self.act_clear.setIcon(QtGui.QIcon.fromTheme("edit-clear"))
-        self.act_clear.setToolTip('Clear')
+        self.act_clear.setToolTip("Clear")
         self.act_clear.setEnabled(False)
 
         # Widgets
@@ -609,9 +628,23 @@ class MaterialToolbar(QtWidgets.QToolBar):
         self.listview.model().modelReset.connect(self._on_data_changed)
         self.listview.selectionModel().selectionChanged.connect(self._on_data_changed)
 
-        self.act_add_pure.triggered.connect(functools.partial(self._on_add_material, MaterialPureWidget, 'Add pure material(s)'))
-        self.act_add_formula.triggered.connect(functools.partial(self._on_add_material, MaterialFormulaWidget, 'Add material from chemical formula'))
-        self.act_add_material.triggered.connect(functools.partial(self._on_add_material, MaterialAdvancedWidget, 'Add material(s)'))
+        self.act_add_pure.triggered.connect(
+            functools.partial(
+                self._on_add_material, MaterialPureWidget, "Add pure material(s)"
+            )
+        )
+        self.act_add_formula.triggered.connect(
+            functools.partial(
+                self._on_add_material,
+                MaterialFormulaWidget,
+                "Add material from chemical formula",
+            )
+        )
+        self.act_add_material.triggered.connect(
+            functools.partial(
+                self._on_add_material, MaterialAdvancedWidget, "Add material(s)"
+            )
+        )
         self.act_remove.triggered.connect(self._on_remove_material)
         self.act_clear.triggered.connect(self._on_clear_materials)
 
@@ -642,11 +675,14 @@ class MaterialToolbar(QtWidgets.QToolBar):
         indexes = selection_model.selectedIndexes()
         model = self.listview.model()
         for row in reversed([index.row() for index in indexes]):
-            model.removeMaterial(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
+            model.removeMaterial(
+                model.data(model.createIndex(row, 0), QtCore.Qt.UserRole)
+            )
 
     def _on_clear_materials(self):
         model = self.listview.model()
         model.clearMaterials()
+
 
 class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
 
@@ -684,7 +720,7 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
         material = self.material(row)
 
         dialog = MaterialDialog(MaterialAdvancedWidget)
-        dialog.setWindowTitle('Edit material')
+        dialog.setWindowTitle("Edit material")
         dialog.wdg_material.setMaterial(material)
 
         if not dialog.exec_():
@@ -700,9 +736,10 @@ class MaterialsWidget(QtWidgets.QWidget, MaterialAbstractViewMixin):
     def _on_data_changed(self):
         self.materialsChanged.emit()
 
-class MaterialComboBox(QtWidgets.QWidget,
-                       MaterialAbstractViewMixin,
-                       MaterialVacuumMixin):
+
+class MaterialComboBox(
+    QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin
+):
 
     currentMaterialChanged = QtCore.Signal(Material)
 
@@ -750,8 +787,8 @@ class MaterialComboBox(QtWidgets.QWidget,
             row = -1
         self.combobox.setCurrentIndex(row)
 
-class CheckableMaterialModel(MaterialModel):
 
+class CheckableMaterialModel(MaterialModel):
     def __init__(self):
         super().__init__()
 
@@ -835,10 +872,10 @@ class CheckableMaterialModel(MaterialModel):
 
         self.modelReset.emit()
 
-class MaterialListWidget(QtWidgets.QWidget,
-                         MaterialAbstractViewMixin,
-                         MaterialVacuumMixin,
-                         ValidableBase):
+
+class MaterialListWidget(
+    QtWidgets.QWidget, MaterialAbstractViewMixin, MaterialVacuumMixin, ValidableBase
+):
 
     selectionChanged = QtCore.Signal()
 
@@ -898,8 +935,10 @@ class MaterialListWidget(QtWidgets.QWidget,
         self._requires_selection = answer
         self._on_data_changed()
 
-def run(): #pragma: no cover
+
+def run():  # pragma: no cover
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     widget = MaterialsWidget()
@@ -910,8 +949,10 @@ def run(): #pragma: no cover
 
     app.exec_()
 
-def run2(): #pragma: no cover
+
+def run2():  # pragma: no cover
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     material = Material.pure(14)
@@ -930,8 +971,10 @@ def run2(): #pragma: no cover
 
     app.exec_()
 
-def run3(): #pragma: no cover
+
+def run3():  # pragma: no cover
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     material = Material.pure(14)
@@ -950,5 +993,6 @@ def run3(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run()

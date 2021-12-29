@@ -453,7 +453,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
         # Plot
         fig = self.canvas.figure
-        ax = fig.add_subplot("111")
+        ax = fig.add_subplot(111)
 
         # Lines
         if series_x is not None and list_series_y:
@@ -491,36 +491,3 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
             ax.legend(loc="best")
 
         self.canvas.draw()
-
-
-def run():
-    import sys
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    from pymontecarlo.testcase import TestCase
-
-    TestCase.setUpClass()
-    testcase = TestCase()
-    testcase.setUp()
-    project = testcase.create_basic_project()
-
-    from pymontecarlo.settings import Settings, XrayNotation
-
-    settings = Settings()
-    settings.set_preferred_unit("eV")
-    settings.set_preferred_unit("nm")
-    settings.preferred_xray_notation = XrayNotation.SIEGBAHN
-
-    widget = ResultSummaryFigureWidget(settings)
-    widget.setProject(project)
-
-    mainwindow = QtWidgets.QMainWindow()
-    mainwindow.setCentralWidget(widget)
-    mainwindow.show()
-
-    app.exec_()
-
-
-if __name__ == "__main__":
-    run()

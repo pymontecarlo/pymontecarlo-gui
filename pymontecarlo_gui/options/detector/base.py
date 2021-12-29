@@ -10,8 +10,8 @@ from pymontecarlo_gui.widgets.field import WidgetFieldBase
 
 # Globals and constants variables.
 
-class DetectorFieldBase(WidgetFieldBase):
 
+class DetectorFieldBase(WidgetFieldBase):
     def isValid(self):
         return super().isValid() and bool(self.detectors())
 

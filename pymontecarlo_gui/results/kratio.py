@@ -10,13 +10,15 @@ from pymontecarlo_gui.results.photon import PhotonSingleResultModel
 
 # Globals and constants variables.
 
-class KRatioResultWidget(ResultTableWidgetBase):
 
+class KRatioResultWidget(ResultTableWidgetBase):
     def _create_model(self, result, settings):
-        return PhotonSingleResultModel(result, settings, 'k-ratio', value_format='{:.5f}')
+        return PhotonSingleResultModel(
+            result, settings, "k-ratio", value_format="{:.5f}"
+        )
+
 
 class KRatioResultField(ResultFieldBase):
-
     def __init__(self, result, settings):
         super().__init__(result, settings)
 

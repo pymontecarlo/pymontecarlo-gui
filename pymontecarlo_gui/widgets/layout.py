@@ -11,6 +11,7 @@ from qtpy.QtWidgets import QFormLayout
 
 # Globals and constants variables.
 
+
 def merge_formlayout(layout1, layout2):
     """
     Merge *layout2* in *layout1*.

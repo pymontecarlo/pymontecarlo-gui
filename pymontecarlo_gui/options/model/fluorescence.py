@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class FluorescenceModelField(ModelFieldBase):
 
+class FluorescenceModelField(ModelFieldBase):
     def title(self):
-        return 'Fluorescence'
+        return "Fluorescence"

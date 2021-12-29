@@ -21,6 +21,7 @@ from pymontecarlo_gui.util.validate import ValidableBase, INVALID_COLOR
 # Globals and constants variables.
 MAX_Z = 99
 
+
 class _ElementComboBox(QtWidgets.QWidget):
 
     elementChanged = QtCore.Signal(int)
@@ -58,7 +59,7 @@ class _ElementComboBox(QtWidgets.QWidget):
     def setAtomicNumber(self, atomic_number):
         index = self.combobox.findData(atomic_number)
         if index < 0:
-            raise ValueError('Unknown atomic number')
+            raise ValueError("Unknown atomic number")
         self.combobox.setCurrentIndex(index)
 
     def availableAtomicNumbers(self):
@@ -74,15 +75,16 @@ class _ElementComboBox(QtWidgets.QWidget):
             text = self._get_item_text(atomic_number)
             self.combobox.addItem(text, atomic_number)
 
-class ElementSymbolComboBox(_ElementComboBox):
 
+class ElementSymbolComboBox(_ElementComboBox):
     def _get_item_text(self, atomic_number):
         return pyxray.element_symbol(atomic_number)
 
-class ElementNameComboBox(_ElementComboBox):
 
+class ElementNameComboBox(_ElementComboBox):
     def _get_item_text(self, atomic_number):
         return pyxray.element_name(atomic_number)
+
 
 class FractionValidator(QtGui.QDoubleValidator):
     """
@@ -93,12 +95,12 @@ class FractionValidator(QtGui.QDoubleValidator):
         super().__init__(0.0, 100.0, Material.WEIGHT_FRACTION_TOLERANCE)
 
     def validate(self, input, pos):
-        if input.strip() == '?':
+        if input.strip() == "?":
             return QtGui.QValidator.Acceptable, input, pos
         return super().validate(input, pos)
 
-class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
 
+class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
     def __init__(self, composition=None):
         super().__init__()
 
@@ -128,7 +130,7 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
         row = index.row()
         column = index.column()
         tolerance = Material.WEIGHT_FRACTION_TOLERANCE
-        fmt = '{{:.{:d}f}}'.format(max(0, tolerance_to_decimals(tolerance) - 2))
+        fmt = "{{:.{:d}f}}".format(max(0, tolerance_to_decimals(tolerance) - 2))
 
         if row < len(self._composition):
             z = list(self._composition.keys())[row]
@@ -139,7 +141,7 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
                 if column == 0:
                     return pyxray.element_symbol(z)
                 elif column == 1:
-                    if wf == '?':
+                    if wf == "?":
                         return wf
                     else:
                         return fmt.format(wf * 100.0)
@@ -159,11 +161,11 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
 
         else:
             total_wf = sum(self.composition().values())
-            total_af = 1.0 # Always 100%
+            total_af = 1.0  # Always 100%
 
             if role == QtCore.Qt.DisplayRole:
                 if column == 0:
-                    return 'Total'
+                    return "Total"
                 elif column == 1:
                     return fmt.format(total_wf * 100.0)
                 elif column == 2:
@@ -199,11 +201,11 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
 
         if orientation == QtCore.Qt.Horizontal:
             if section == 0:
-                return 'Element'
+                return "Element"
             elif section == 1:
-                return 'Weight fraction (%)'
+                return "Weight fraction (%)"
             elif section == 2:
-                return 'Atomic fraction (%)'
+                return "Atomic fraction (%)"
 
         elif orientation == QtCore.Qt.Vertical:
             if section != len(self._composition):
@@ -225,8 +227,7 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
         return QtCore.Qt.ItemFlags(super().flags(index) | QtCore.Qt.ItemIsEditable)
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if not index.isValid() or \
-                not (0 <= index.row() < len(self._composition)):
+        if not index.isValid() or not (0 <= index.row() < len(self._composition)):
             return False
 
         row = index.row()
@@ -248,8 +249,9 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
         return process_wildcard(self._composition)
 
     def setComposition(self, composition):
-        self._composition = \
-            OrderedDict(sorted([z, wf] for z, wf in composition.items()))
+        self._composition = OrderedDict(
+            sorted([z, wf] for z, wf in composition.items())
+        )
         self._update_composition_atomic()
         self.modelReset.emit()
 
@@ -259,11 +261,12 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
         if z is None:
             available_zs = set(range(1, MAX_Z + 1)) - zs
             if not available_zs:
-                raise ValueError('No more element can be added')
+                raise ValueError("No more element can be added")
             z = sorted(available_zs)[0]
         elif z in zs:
-            raise ValueError('Element "{0}" already added'
-                             .format(pyxray.element_symbol(z)))
+            raise ValueError(
+                'Element "{0}" already added'.format(pyxray.element_symbol(z))
+            )
 
         self._composition[z] = fraction
 
@@ -285,8 +288,8 @@ class CompositionModel(QtCore.QAbstractTableModel, ValidableBase):
     def hasElements(self):
         return bool(self._composition)
 
-class CompositionDelegate(QtWidgets.QItemDelegate):
 
+class CompositionDelegate(QtWidgets.QItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -318,8 +321,8 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
 
         elif column == 1:
             decimals = tolerance_to_decimals(Material.WEIGHT_FRACTION_TOLERANCE) - 2
-            fmt = '{{:.{}f}}'.format(decimals)
-            if value == '?':
+            fmt = "{{:.{}f}}".format(decimals)
+            if value == "?":
                 editor.setText(value)
             else:
                 editor.setText(fmt.format(value * 100.0))
@@ -333,7 +336,7 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
             model.setData(index, editor.currentAtomicNumber())
         elif column == 1:
             value = editor.text().strip()
-            if value != '?':
+            if value != "?":
                 locale = QtCore.QLocale.system()
                 value, _ok = locale.toDouble(value)
                 value /= 100.0
@@ -341,8 +344,8 @@ class CompositionDelegate(QtWidgets.QItemDelegate):
         else:
             return super().setModelData(editor, model, index)
 
-class CompositionToolBar(QtWidgets.QToolBar):
 
+class CompositionToolBar(QtWidgets.QToolBar):
     def __init__(self, table, parent=None):
         super().__init__(parent)
 
@@ -363,7 +366,7 @@ class CompositionToolBar(QtWidgets.QToolBar):
         # Signals
         self.table.model().modelReset.connect(self._on_data_changed)
         self.table.selectionModel().selectionChanged.connect(self._on_data_changed)
-#
+        #
         self.act_add.triggered.connect(self._on_add_element)
         self.act_remove.triggered.connect(self._on_remove_element)
         self.act_clear.triggered.connect(self._on_clear_elements)
@@ -389,11 +392,14 @@ class CompositionToolBar(QtWidgets.QToolBar):
         indexes = selection_model.selectedIndexes()
         model = self.table.model()
         for row in reversed([index.row() for index in indexes]):
-            model.removeElement(model.data(model.createIndex(row, 0), QtCore.Qt.UserRole))
+            model.removeElement(
+                model.data(model.createIndex(row, 0), QtCore.Qt.UserRole)
+            )
 
     def _on_clear_elements(self):
         model = self.table.model()
         model.clearElements()
+
 
 class CompositionTableWidget(QtWidgets.QWidget, ValidableBase):
 
@@ -417,8 +423,10 @@ class CompositionTableWidget(QtWidgets.QWidget, ValidableBase):
 
         self.toolbar = CompositionToolBar(self.table)
 
-        self.lbl_info = LabelIcon('Use "?" to balance composition',
-                                  QtGui.QIcon.fromTheme("dialog-information"))
+        self.lbl_info = LabelIcon(
+            'Use "?" to balance composition',
+            QtGui.QIcon.fromTheme("dialog-information"),
+        )
         self.lbl_info.setVerticalAlignment(QtCore.Qt.AlignCenter)
 
         # Layouts
@@ -449,23 +457,26 @@ class CompositionTableWidget(QtWidgets.QWidget, ValidableBase):
     def setComposition(self, composition):
         self.table.model().setComposition(composition)
 
+
 def run():
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     composition = {5: 0.2, 14: 0.5, 29: 0.3}
 
     table = CompositionTableWidget()
     table.setComposition(composition)
-#
+    #
     mainwindow = QtWidgets.QMainWindow()
     mainwindow.setCentralWidget(table)
     mainwindow.show()
 
-#    table.model().addElement(3, 0.6)
-#    table.model().removeElement(14)
+    #    table.model().addElement(3, 0.6)
+    #    table.model().removeElement(14)
 
     app.exec_()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()

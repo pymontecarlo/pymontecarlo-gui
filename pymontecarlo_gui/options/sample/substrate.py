@@ -7,13 +7,16 @@
 # Local modules.
 from pymontecarlo.options.sample.substrate import SubstrateSampleBuilder
 
-from pymontecarlo_gui.options.sample.base import \
-    SampleFieldBase, AngleField, MaterialField
+from pymontecarlo_gui.options.sample.base import (
+    SampleFieldBase,
+    AngleField,
+    MaterialField,
+)
 
 # Globals and constants variables.
 
-class SubstrateSampleField(SampleFieldBase):
 
+class SubstrateSampleField(SampleFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -47,7 +50,8 @@ class SubstrateSampleField(SampleFieldBase):
 
         return super().samples() + builder.build()
 
-def run(): #pragma: no cover
+
+def run():  # pragma: no cover
     import sys
     from qtpy import QtWidgets
 
@@ -61,5 +65,6 @@ def run(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run()

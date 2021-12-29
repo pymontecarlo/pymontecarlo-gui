@@ -5,13 +5,13 @@ import os
 import functools
 import multiprocessing
 import asyncio
-import tempfile
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
-from asyncqt import asyncClose, asyncSlot
+from qasync import asyncClose, asyncSlot
 
 # Local modules.
 from pymontecarlo.settings import Settings
@@ -21,7 +21,12 @@ from pymontecarlo.util.token import TokenState
 from pymontecarlo.results.photonintensity import PhotonIntensityResultBase
 from pymontecarlo.results.kratio import KRatioResult
 
-from pymontecarlo_gui.project import ProjectField, ProjectSummaryTableField, ProjectSummaryFigureField, SimulationField
+from pymontecarlo_gui.project import (
+    ProjectField,
+    ProjectSummaryTableField,
+    ProjectSummaryFigureField,
+    SimulationField,
+)
 from pymontecarlo_gui.options.options import OptionsField
 from pymontecarlo_gui.options.program.base import ProgramFieldBase
 from pymontecarlo_gui.results.base import ResultFieldBase
@@ -36,14 +41,15 @@ from pymontecarlo_gui.settings import SettingsDialog
 
 # Globals and constants variables.
 
+
 class MainWindow(QtWidgets.QMainWindow):
 
     newSimulations = QtCore.Signal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('pyMonteCarlo')
-        self.setWindowIcon(load_pixmap('logo_32x32.png'))
+        self.setWindowTitle("pyMonteCarlo")
+        self.setWindowIcon(load_pixmap("logo_32x32.png"))
 
         # Variables
         self._should_save = False
@@ -54,36 +60,44 @@ class MainWindow(QtWidgets.QMainWindow):
         self._runner = LocalSimulationRunner(max_workers=max_workers)
 
         # Actions
-        self.action_new_project = QtWidgets.QAction('New project')
-        self.action_new_project.setIcon(QtGui.QIcon.fromTheme('document-new'))
+        self.action_new_project = QtWidgets.QAction("New project")
+        self.action_new_project.setIcon(QtGui.QIcon.fromTheme("document-new"))
         self.action_new_project.setShortcut(QtGui.QKeySequence.New)
         self.action_new_project.triggered.connect(self.newProject)
 
-        self.action_open_project = QtWidgets.QAction('Open project')
-        self.action_open_project.setIcon(QtGui.QIcon.fromTheme('document-open'))
+        self.action_open_project = QtWidgets.QAction("Open project")
+        self.action_open_project.setIcon(QtGui.QIcon.fromTheme("document-open"))
         self.action_open_project.setShortcut(QtGui.QKeySequence.Open)
-        self.action_open_project.triggered.connect(functools.partial(self.openProject, None))
+        self.action_open_project.triggered.connect(
+            functools.partial(self.openProject, None)
+        )
 
-        self.action_save_project = QtWidgets.QAction('Save project')
-        self.action_save_project.setIcon(QtGui.QIcon.fromTheme('document-save'))
+        self.action_save_project = QtWidgets.QAction("Save project")
+        self.action_save_project.setIcon(QtGui.QIcon.fromTheme("document-save"))
         self.action_save_project.setShortcut(QtGui.QKeySequence.Save)
-        self.action_save_project.triggered.connect(functools.partial(self.saveProject, None))
+        self.action_save_project.triggered.connect(
+            functools.partial(self.saveProject, None)
+        )
 
-        self.action_settings = QtWidgets.QAction('Settings')
-        self.action_settings.setIcon(QtGui.QIcon.fromTheme('preferences-system'))
+        self.action_settings = QtWidgets.QAction("Settings")
+        self.action_settings.setIcon(QtGui.QIcon.fromTheme("preferences-system"))
         self.action_settings.setShortcut(QtGui.QKeySequence.Preferences)
         self.action_settings.triggered.connect(self._on_settings)
 
-        self.action_quit = QtWidgets.QAction('Quit')
+        self.action_quit = QtWidgets.QAction("Quit")
         self.action_quit.setShortcut(QtGui.QKeySequence.Quit)
         self.action_quit.triggered.connect(self.close)
 
-        self.action_create_simulations = QtWidgets.QAction('Create new simulations')
-        self.action_create_simulations.setIcon(load_icon('newsimulation.svg'))
-        self.action_create_simulations.triggered.connect(self._on_create_new_simulations)
+        self.action_create_simulations = QtWidgets.QAction("Create new simulations")
+        self.action_create_simulations.setIcon(load_icon("newsimulation.svg"))
+        self.action_create_simulations.triggered.connect(
+            self._on_create_new_simulations
+        )
 
-        self.action_stop_simulations = QtWidgets.QAction('Stop all simulations')
-        self.action_stop_simulations.setIcon(QtGui.QIcon.fromTheme('media-playback-stop'))
+        self.action_stop_simulations = QtWidgets.QAction("Stop all simulations")
+        self.action_stop_simulations.setIcon(
+            QtGui.QIcon.fromTheme("media-playback-stop")
+        )
         self.action_stop_simulations.triggered.connect(self._on_stop)
         self.action_stop_simulations.setEnabled(False)
 
@@ -94,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Menus
         menu = self.menuBar()
-        menu_file = menu.addMenu('File')
+        menu_file = menu.addMenu("File")
         menu_file.addAction(self.action_new_project)
         menu_file.addAction(self.action_open_project)
         menu_file.addAction(self.action_save_project)
@@ -103,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addSeparator()
         menu_file.addAction(self.action_quit)
 
-        menu_simulation = menu.addMenu('Simulation')
+        menu_simulation = menu.addMenu("Simulation")
         menu_simulation.addAction(self.action_create_simulations)
         menu_simulation.addAction(self.action_stop_simulations)
 
@@ -119,10 +133,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Status bar
         self.statusbar_submitted = QtWidgets.QLabel()
-        self.statusbar_submitted.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
+        self.statusbar_submitted.setFrameStyle(
+            QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken
+        )
 
         self.statusbar_done = QtWidgets.QLabel()
-        self.statusbar_done.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
+        self.statusbar_done.setFrameStyle(
+            QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken
+        )
 
         self.statusbar_progressbar = QtWidgets.QProgressBar()
         self.statusbar_progressbar.setRange(0, 100)
@@ -136,20 +154,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree = FieldTree()
 
         self.dock_project = QtWidgets.QDockWidget("Project")
-        self.dock_project.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
-                                          QtCore.Qt.RightDockWidgetArea)
-        self.dock_project.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
-                                      QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_project.setAllowedAreas(
+            QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea
+        )
+        self.dock_project.setFeatures(
+            QtWidgets.QDockWidget.NoDockWidgetFeatures
+            | QtWidgets.QDockWidget.DockWidgetMovable
+        )
         self.dock_project.setWidget(self.tree)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_project)
 
         self.table_runner = TokenTableWidget(self._runner.token)
 
         self.dock_runner = QtWidgets.QDockWidget("Run")
-        self.dock_runner.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea |
-                                         QtCore.Qt.RightDockWidgetArea)
-        self.dock_runner.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures |
-                                     QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_runner.setAllowedAreas(
+            QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea
+        )
+        self.dock_runner.setFeatures(
+            QtWidgets.QDockWidget.NoDockWidgetFeatures
+            | QtWidgets.QDockWidget.DockWidgetMovable
+        )
         self.dock_runner.setWidget(self.table_runner)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_runner)
 
@@ -176,8 +200,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.newSimulations.connect(self._on_new_simulations)
 
         # Start
-        logger.debug('Before new project action')
-        self.action_new_project.trigger() # Required to setup project
+        logger.debug("Before new project action")
+        self.action_new_project.trigger()  # Required to setup project
         self.timer_runner.start()
 
     def _on_tree_double_clicked(self, field):
@@ -200,7 +224,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_timer_runner_timeout(self):
         token = self._runner.token
-        subtokens = token.get_subtokens(category='simulation')
+        subtokens = token.get_subtokens(category="simulation")
 
         progress = int(token.progress * 100)
         self.statusbar_progressbar.setValue(progress)
@@ -211,21 +235,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         submitted_count = len(subtokens)
         if submitted_count == 0:
-            text = 'No simulation submitted'
+            text = "No simulation submitted"
         elif submitted_count == 1:
-            text = '1 simulation submitted'
+            text = "1 simulation submitted"
         else:
-            text = '{} simulations submitted'.format(submitted_count)
+            text = "{} simulations submitted".format(submitted_count)
         self.statusbar_submitted.setText(text)
 
-        done_count = sum(subtoken.state == TokenState.DONE
-                         for subtoken in subtokens)
+        done_count = sum(subtoken.state == TokenState.DONE for subtoken in subtokens)
         if done_count == 0:
-            text = 'No simulation done'
+            text = "No simulation done"
         elif done_count == 1:
-            text = '1 simulation done'
+            text = "1 simulation done"
         else:
-            text = '{} simulations done'.format(done_count)
+            text = "{} simulations done".format(done_count)
         self.statusbar_done.setText(text)
 
         is_running = token.state == TokenState.RUNNING
@@ -235,9 +258,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_create_new_simulations(self):
         if not ProgramFieldBase._subclasses:
-            title = 'New simulations'
-            message = 'No program is activated. ' + \
-                'Go to File > Settings to activate at least one program.'
+            title = "New simulations"
+            message = (
+                "No program is activated. "
+                + "Go to File > Settings to activate at least one program."
+            )
             QtWidgets.QMessageBox.critical(self, title, message)
             return
 
@@ -246,7 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         list_options = self.wizard_simulation.optionsList()
-        logger.debug('Wizard defined {} simulation(s)'.format(len(list_options)))
+        logger.debug("Wizard defined {} simulation(s)".format(len(list_options)))
 
         self.newSimulations.emit(list_options)
 
@@ -267,7 +292,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Submit simulation(s)
         await self._runner.submit(*list_options)
-        logger.debug('Submitted simulation(s)')
+        logger.debug("Submitted simulation(s)")
 
         self.dock_runner.raise_()
 
@@ -288,8 +313,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.shouldSave():
             return True
 
-        caption = 'Save current project'
-        message = 'Would you like to save the current project?'
+        caption = "Save current project"
+        message = "Would you like to save the current project?"
         buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
 
@@ -302,8 +327,8 @@ class MainWindow(QtWidgets.QMainWindow):
     async def closeEvent(self, event):
         state = self._runner.token.state
         if state == TokenState.RUNNING:
-            caption = 'Quit'
-            message = 'One or more simulations are running. Do you really want to quit?'
+            caption = "Quit"
+            message = "One or more simulations are running. Do you really want to quit?"
             buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
             answer = QtWidgets.QMessageBox.question(None, caption, message, buttons)
 
@@ -324,7 +349,9 @@ class MainWindow(QtWidgets.QMainWindow):
     async def setProject(self, project):
         if self._runner.project is not None:
             self._runner.project.simulation_added.disconnect(self.addSimulation)
-            self._runner.project.simulation_recalculated.disconnect(self._on_simulation_recalculated)
+            self._runner.project.simulation_recalculated.disconnect(
+                self._on_simulation_recalculated
+            )
 
         await self._runner.set_project(project)
 
@@ -349,7 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @asyncSlot()
     async def newProject(self):
-        logger.debug('new project')
+        logger.debug("new project")
         if not self._check_save():
             return False
 
@@ -363,11 +390,12 @@ class MainWindow(QtWidgets.QMainWindow):
             return False
 
         if filepath is None:
-            caption = 'Open project'
+            caption = "Open project"
             dirpath = self.settings().opendir
-            namefilters = 'Simulation project (*.mcsim)'
-            filepath, namefilter = \
-                QtWidgets.QFileDialog.getOpenFileName(self, caption, dirpath, namefilters)
+            namefilters = "Simulation project (*.mcsim)"
+            filepath, namefilter = QtWidgets.QFileDialog.getOpenFileName(
+                self, caption, dirpath, namefilters
+            )
 
             if not namefilter:
                 return False
@@ -378,7 +406,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings().opendir = os.path.dirname(filepath)
 
         function = functools.partial(Project.read, filepath)
-        dialog = ExecutionProgressDialog('Open project', 'Opening project...', 'Opening project...', function)
+        dialog = ExecutionProgressDialog(
+            "Open project", "Opening project...", "Opening project...", function
+        )
         dialog.exec_()
 
         if dialog.result() != QtWidgets.QDialog.Accepted:
@@ -398,11 +428,12 @@ class MainWindow(QtWidgets.QMainWindow):
             filepath = self._runner.project.filepath
 
         if filepath is None:
-            caption = 'Save project'
+            caption = "Save project"
             dirpath = self.settings().savedir
-            namefilters = 'Simulation project (*.mcsim)'
-            filepath, namefilter = \
-                QtWidgets.QFileDialog.getSaveFileName(self, caption, dirpath, namefilters)
+            namefilters = "Simulation project (*.mcsim)"
+            filepath, namefilter = QtWidgets.QFileDialog.getSaveFileName(
+                self, caption, dirpath, namefilters
+            )
 
             if not namefilter:
                 return False
@@ -410,11 +441,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if not filepath:
                 return False
 
-        if not filepath.endswith('.mcsim'):
-            filepath += '.mcsim'
+        if not filepath.endswith(".mcsim"):
+            filepath += ".mcsim"
 
         function = functools.partial(self._runner.project.write, filepath)
-        dialog = ExecutionProgressDialog('Save project', 'Saving project...', 'Project saved', function)
+        dialog = ExecutionProgressDialog(
+            "Save project", "Saving project...", "Project saved", function
+        )
         dialog.exec_()
 
         self._runner.project.filepath = filepath
@@ -528,5 +561,3 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.setFieldFont(field_project, font)
 
         self._should_save = should_save
-
-
