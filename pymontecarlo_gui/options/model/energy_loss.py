@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class EnergyLossModelField(ModelFieldBase):
 
+class EnergyLossModelField(ModelFieldBase):
     def title(self):
-        return 'Energy loss'
+        return "Energy loss"

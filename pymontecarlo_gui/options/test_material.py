@@ -8,40 +8,50 @@ import pytest
 from qtpy import QtCore, QtGui
 
 # Local modules.
-from pymontecarlo_gui.options.material import \
-    (FormulaValidator, MaterialPureWidget, MaterialFormulaWidget,
-     MaterialAdvancedWidget, MaterialListWidget)
+from pymontecarlo_gui.options.material import (
+    FormulaValidator,
+    MaterialPureWidget,
+    MaterialFormulaWidget,
+    MaterialAdvancedWidget,
+    MaterialListWidget,
+)
 from pymontecarlo_gui.util.testutil import checkbox_click
 from pymontecarlo.options.material import Material
 from pymontecarlo.options.composition import generate_name, calculate_density_kg_per_m3
 
 # Globals and constants variables.
 
+
 @pytest.fixture
 def formula_validator(qtbot):
     return FormulaValidator()
 
+
 def test_formula_validate_acceptable(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("Al2O3", 5)
     assert state == QtGui.QValidator.Acceptable
-    assert text == 'Al2O3'
+    assert text == "Al2O3"
     assert pos == 5
+
 
 def test_formula_validate_intermediate(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("A", 1)
     assert state == QtGui.QValidator.Intermediate
-    assert text == 'A'
+    assert text == "A"
     assert pos == 1
+
 
 def test_formula_validate_invalid(qtbot, formula_validator):
     state, text, pos = formula_validator.validate("-", 1)
     assert state == QtGui.QValidator.Invalid
-    assert text == '-'
+    assert text == "-"
     assert pos == 1
+
 
 @pytest.fixture
 def material_pure_widget(qtbot):
     return MaterialPureWidget()
+
 
 def test_material_pure_widget(qtbot, material_pure_widget):
     button = material_pure_widget.wdg_periodic_table._group.button(13)
@@ -56,6 +66,7 @@ def test_material_pure_widget(qtbot, material_pure_widget):
     assert Material.pure(13) in materials
     assert Material.pure(29) in materials
 
+
 def test_material_pure_widget2(qtbot, material_pure_widget):
     button = material_pure_widget.wdg_periodic_table._group.button(13)
     qtbot.mouseClick(button, QtCore.Qt.LeftButton)
@@ -66,9 +77,11 @@ def test_material_pure_widget2(qtbot, material_pure_widget):
     materials = material_pure_widget.materials()
     assert not materials
 
+
 @pytest.fixture
 def material_formula_widget(qtbot):
     return MaterialFormulaWidget()
+
 
 def test_material_formula_widget_nomaterials(qtbot, material_formula_widget):
     widget = material_formula_widget.field_formula.widget()
@@ -78,6 +91,7 @@ def test_material_formula_widget_nomaterials(qtbot, material_formula_widget):
 
     assert not materials
 
+
 def test_material_formula_widget_auto_density(qtbot, material_formula_widget):
     widget = material_formula_widget.field_formula.widget()
     qtbot.keyClicks(widget, "Al")
@@ -85,7 +99,10 @@ def test_material_formula_widget_auto_density(qtbot, material_formula_widget):
     materials = material_formula_widget.materials()
 
     assert len(materials) == 1
-    assert materials[0].density_kg_per_m3 == pytest.approx(Material.pure(13).density_kg_per_m3, abs=1e-4)
+    assert materials[0].density_kg_per_m3 == pytest.approx(
+        Material.pure(13).density_kg_per_m3, abs=1e-4
+    )
+
 
 def test_material_formula_widget_user_density(qtbot, material_formula_widget):
     widget = material_formula_widget.field_formula.widget()
@@ -103,14 +120,17 @@ def test_material_formula_widget_user_density(qtbot, material_formula_widget):
     assert len(materials) == 1
     assert materials[0].density_kg_per_m3 == pytest.approx(9000, abs=1e-4)
 
+
 @pytest.fixture
 def material_advanced_widget(qtbot):
     return MaterialAdvancedWidget()
+
 
 def test_material_advanced_widget_nomaterials(qtbot, material_advanced_widget):
     materials = material_advanced_widget.materials()
 
     assert not materials
+
 
 def test_material_advanced_widget_auto(qtbot, material_advanced_widget):
     material_advanced_widget.tbl_composition.setComposition({13: 1.0})
@@ -123,7 +143,10 @@ def test_material_advanced_widget_auto(qtbot, material_advanced_widget):
 
     assert material.name == generate_name({13: 1.0})
     assert material.composition == {13: 1.0}
-    assert material.density_kg_per_m3 == pytest.approx(calculate_density_kg_per_m3({13: 1.0}), abs=1e-4)
+    assert material.density_kg_per_m3 == pytest.approx(
+        calculate_density_kg_per_m3({13: 1.0}), abs=1e-4
+    )
+
 
 def test_material_advanced_widget_user(qtbot, material_advanced_widget):
     widget = material_advanced_widget.field_name.suffixWidget()
@@ -148,12 +171,13 @@ def test_material_advanced_widget_user(qtbot, material_advanced_widget):
 
     material = materials[0]
 
-    assert material.name == 'foo'
+    assert material.name == "foo"
     assert material.composition == {13: 1.0}
     assert material.density_kg_per_m3 == pytest.approx(9000, abs=1e-4)
 
+
 def test_material_advanced_widget_setMaterial(qtbot, material_advanced_widget):
-    material = Material('foo', {13: 1.0}, 9000)
+    material = Material("foo", {13: 1.0}, 9000)
     material_advanced_widget.setMaterial(material)
 
     widget = material_advanced_widget.field_name.suffixWidget()
@@ -176,14 +200,17 @@ def test_material_advanced_widget_setMaterial(qtbot, material_advanced_widget):
     assert len(materials) == 1
     assert materials[0] == material
 
+
 @pytest.fixture
 def material_list_widget(qtbot, materials):
     widget = MaterialListWidget()
     widget.setMaterials(materials)
     return widget
 
+
 def test_material_list_widget_selectedMaterials(qtbot, material_list_widget):
     assert not material_list_widget.selectedMaterials()
+
 
 def test_material_list_widget_selectedMaterials_single(qtbot, material_list_widget):
     material = material_list_widget.material(0)
@@ -193,6 +220,7 @@ def test_material_list_widget_selectedMaterials_single(qtbot, material_list_widg
     assert len(selected_materials) == 1
     assert material in selected_materials
 
+
 def test_material_list_widget_selectedMaterials_remove(qtbot, material_list_widget):
     material = material_list_widget.material(0)
     material_list_widget.setSelectedMaterials([material])
@@ -200,6 +228,7 @@ def test_material_list_widget_selectedMaterials_remove(qtbot, material_list_widg
     material_list_widget.removeMaterial(material)
     assert len(material_list_widget.materials()) == 2
     assert not material_list_widget.selectedMaterials()
+
 
 def test_material_list_widget_selectedMaterials_add(qtbot, material_list_widget):
     material = material_list_widget.material(0)

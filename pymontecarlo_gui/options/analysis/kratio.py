@@ -11,10 +11,10 @@ from pymontecarlo.options.analysis.kratio import KRatioAnalysisBuilder
 
 # Globals and constants variables.
 
-class KRatioAnalysisField(PhotonAnalysisFieldBase):
 
+class KRatioAnalysisField(PhotonAnalysisFieldBase):
     def title(self):
-        return 'k-ratio'
+        return "k-ratio"
 
     def description(self):
         return 'Calculates k-ratios from X-ray intensities emitted from "unknown" and reference materials'

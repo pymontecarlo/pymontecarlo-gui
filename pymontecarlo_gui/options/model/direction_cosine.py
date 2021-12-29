@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class DirectionCosineModelField(ModelFieldBase):
 
+class DirectionCosineModelField(ModelFieldBase):
     def title(self):
-        return 'Direction cosine'
+        return "Direction cosine"

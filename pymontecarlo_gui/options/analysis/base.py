@@ -8,13 +8,17 @@ import itertools
 from qtpy import QtWidgets
 
 # Local modules.
-from pymontecarlo_gui.widgets.field import CheckFieldBase, WidgetFieldBase, ToolBoxFieldBase
+from pymontecarlo_gui.widgets.field import (
+    CheckFieldBase,
+    WidgetFieldBase,
+    ToolBoxFieldBase,
+)
 from pymontecarlo_gui.options.detector.photon import PhotonDetectorField
 
 # Globals and constants variables.
 
-class AnalysisFieldBase(CheckFieldBase):
 
+class AnalysisFieldBase(CheckFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -36,10 +40,10 @@ class AnalysisFieldBase(CheckFieldBase):
     def analyses(self):
         return []
 
-class AnalysesField(WidgetFieldBase):
 
+class AnalysesField(WidgetFieldBase):
     def title(self):
-        return 'Analyses'
+        return "Analyses"
 
     def isValid(self):
         selection = [field for field in self.fields() if field.isChecked()]

@@ -20,6 +20,7 @@ from pymontecarlo_gui.widgets.mdi import MdiSubWindow
 
 # Globals and constants variables.
 
+
 class FieldBase(QtCore.QObject, ValidableBase):
 
     fieldChanged = QtCore.Signal()
@@ -35,13 +36,13 @@ class FieldBase(QtCore.QObject, ValidableBase):
         make_italic(self.wdg_description)
 
     def title(self):
-        return ''
+        return ""
 
     def titleWidget(self):
         return self.wdg_title
 
     def description(self):
-        return ''
+        return ""
 
     def descriptionWidget(self):
         return self.wdg_description
@@ -81,21 +82,21 @@ class FieldBase(QtCore.QObject, ValidableBase):
         if self.hasSuffix():
             self.suffixWidget().setEnabled(enabled)
 
-class MultiValueFieldBase(FieldBase):
 
+class MultiValueFieldBase(FieldBase):
     def titleWidget(self):
         label = super().titleWidget()
-        label.setStyleSheet('color: blue')
+        label.setStyleSheet("color: blue")
         return label
 
     def setEnabled(self, enabled):
         super().setEnabled(enabled)
 
         label = super().titleWidget()
-        label.setStyleSheet('color: blue' if enabled else 'color: #7e7d8d')
+        label.setStyleSheet("color: blue" if enabled else "color: #7e7d8d")
+
 
 class CheckFieldBase(FieldBase):
-
     def __init__(self):
         super().__init__()
 
@@ -112,8 +113,8 @@ class CheckFieldBase(FieldBase):
     def widget(self):
         return QtWidgets.QWidget()
 
-class WidgetFieldBase(FieldBase):
 
+class WidgetFieldBase(FieldBase):
     def __init__(self):
         super().__init__()
 
@@ -148,8 +149,7 @@ class WidgetFieldBase(FieldBase):
         return self._widget
 
     def isValid(self):
-        return super().isValid() and \
-            all(field.isValid() for field in self._fields)
+        return super().isValid() and all(field.isValid() for field in self._fields)
 
     def setEnabled(self, enabled):
         super().setEnabled(enabled)
@@ -160,8 +160,8 @@ class WidgetFieldBase(FieldBase):
     def fields(self):
         return tuple(self._fields)
 
-class ToolBoxFieldBase(FieldBase):
 
+class ToolBoxFieldBase(FieldBase):
     def __init__(self):
         super().__init__()
 
@@ -179,8 +179,8 @@ class ToolBoxFieldBase(FieldBase):
     def widget(self):
         return self._widget
 
-class ExceptionField(FieldBase):
 
+class ExceptionField(FieldBase):
     def __init__(self, exception):
         self._exception = exception
         super().__init__()
@@ -188,7 +188,7 @@ class ExceptionField(FieldBase):
         stack = traceback.extract_tb(exception.__traceback__)
         summary = traceback.StackSummary.from_list(stack)
         lines = summary.format()
-        code = ''.join(lines)
+        code = "".join(lines)
 
         lexer = Python3Lexer()
         formatter = HtmlFormatter(full=True)
@@ -197,14 +197,16 @@ class ExceptionField(FieldBase):
         # Widgets
         self._widget = QtWidgets.QTextEdit()
         self._widget.setReadOnly(True)
-        self._widget.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
+        self._widget.setFont(
+            QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
+        )
         self._widget.setHtml(text)
 
     def title(self):
         return str(self.exception())
 
     def icon(self):
-        return QtGui.QIcon.fromTheme('dialog-error')
+        return QtGui.QIcon.fromTheme("dialog-error")
 
     def widget(self):
         return self._widget
@@ -212,8 +214,8 @@ class ExceptionField(FieldBase):
     def exception(self):
         return self._exception
 
-class FieldLayout(QtWidgets.QVBoxLayout):
 
+class FieldLayout(QtWidgets.QVBoxLayout):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -271,8 +273,8 @@ class FieldLayout(QtWidgets.QVBoxLayout):
         if has_suffix:
             self.lyt_field.addWidget(field.suffixWidget(), row, 0, 1, 3)
 
-class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
 
+class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -355,6 +357,7 @@ class FieldToolBox(QtWidgets.QToolBox, ValidableBase):
     def fields(self):
         return tuple(self._fields.keys())
 
+
 class FieldChooser(QtWidgets.QWidget):
 
     currentFieldChanged = QtCore.Signal(FieldBase)
@@ -430,6 +433,7 @@ class FieldChooser(QtWidgets.QWidget):
     def fields(self):
         return tuple(self._fields)
 
+
 class FieldTree(QtWidgets.QWidget):
 
     doubleClicked = QtCore.Signal(FieldBase)
@@ -459,7 +463,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def addField(self, field, parent_field=None):
         if field in self._field_items:
-            raise ValueError('FieldBase {} already in tree'.format(field))
+            raise ValueError("FieldBase {} already in tree".format(field))
 
         if parent_field is None:
             parent_field = self.tree
@@ -476,7 +480,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def removeField(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
 
         item = self._field_items.pop(field)
         item.parent().removeChild(item)
@@ -490,7 +494,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def expandField(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
         self.tree.expandItem(item)
 
@@ -499,7 +503,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def collapseField(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
         self.tree.collapseItem(item)
 
@@ -508,13 +512,13 @@ class FieldTree(QtWidgets.QWidget):
 
     def setFieldFont(self, field, font):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
         item.setFont(0, font)
 
     def fieldFont(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
         return item.font(0)
 
@@ -529,7 +533,7 @@ class FieldTree(QtWidgets.QWidget):
 
     def childrenField(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
 
         children = []
@@ -549,11 +553,12 @@ class FieldTree(QtWidgets.QWidget):
 
     def resetField(self, field):
         if field not in self._field_items:
-            raise ValueError('FieldBase {} is not part of the tree'.format(field))
+            raise ValueError("FieldBase {} is not part of the tree".format(field))
         item = self._field_items[field]
         item.setText(0, field.title())
         item.setToolTip(0, field.description())
         item.setIcon(0, field.icon())
+
 
 class FieldMdiArea(QtWidgets.QWidget):
 

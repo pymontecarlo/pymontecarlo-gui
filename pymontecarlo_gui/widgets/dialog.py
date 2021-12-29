@@ -9,8 +9,8 @@ from qtpy import QtCore, QtWidgets
 
 # Globals and constants variables.
 
-class ExecutionThread(QtCore.QThread):
 
+class ExecutionThread(QtCore.QThread):
     def __init__(self, function, parent=None):
         super().__init__(parent)
         self.function = function
@@ -19,10 +19,14 @@ class ExecutionThread(QtCore.QThread):
     def run(self):
         self.result = self.function()
 
-class ExecutionProgressDialog(QtWidgets.QDialog):
 
-    def __init__(self, title, running_message, success_message, function, timeout=1, parent=None):
-        super().__init__(parent, QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint)
+class ExecutionProgressDialog(QtWidgets.QDialog):
+    def __init__(
+        self, title, running_message, success_message, function, timeout=1, parent=None
+    ):
+        super().__init__(
+            parent, QtCore.Qt.WindowTitleHint | QtCore.Qt.CustomizeWindowHint
+        )
         self.setWindowTitle(title)
 
         # Variables

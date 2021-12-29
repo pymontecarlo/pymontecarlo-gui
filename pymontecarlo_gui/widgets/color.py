@@ -11,6 +11,7 @@ import matplotlib.colors
 
 # Globals and constants variables.
 
+
 def check_color(color):
     try:
         color = QtGui.QColor(color)
@@ -19,6 +20,7 @@ def check_color(color):
         color = QtGui.QColor()
         color.setRgbF(r, g, b, a)
     return color
+
 
 class ColorButton(QtWidgets.QPushButton):
 
@@ -35,7 +37,12 @@ class ColorButton(QtWidgets.QPushButton):
         return self._color
 
     def rgba(self):
-        return (self._color.redF(), self._color.greenF(), self._color.blueF(), self._color.alphaF())
+        return (
+            self._color.redF(),
+            self._color.greenF(),
+            self._color.blueF(),
+            self._color.alphaF(),
+        )
 
     def setColor(self, color):
         color = check_color(color)
@@ -63,6 +70,7 @@ class ColorButton(QtWidgets.QPushButton):
         painter.drawRect(rect)
         painter.end()
 
+
 class ColorDialogButton(QtWidgets.QWidget):
 
     colorChanged = QtCore.Signal(QtGui.QColor)
@@ -73,7 +81,9 @@ class ColorDialogButton(QtWidgets.QWidget):
         # Widgets
         self.button = ColorButton()
         self.button.setFixedSize(QtCore.QSize(25, 25))
-        self.button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.button.setSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
 
         # Layouts
         layout = QtWidgets.QVBoxLayout()
@@ -103,8 +113,10 @@ class ColorDialogButton(QtWidgets.QWidget):
     def setColor(self, color):
         self.button.setColor(color)
 
+
 def run():
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     widget = ColorDialogButton()
@@ -115,6 +127,6 @@ def run():
 
     app.exec_()
 
-if __name__ == '__main__':
-    run()
 
+if __name__ == "__main__":
+    run()

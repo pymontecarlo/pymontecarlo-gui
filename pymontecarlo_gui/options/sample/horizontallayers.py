@@ -8,13 +8,17 @@ from qtpy import QtWidgets
 # Local modules.
 from pymontecarlo.options.sample.horizontallayers import HorizontalLayerSampleBuilder
 
-from pymontecarlo_gui.options.sample.base import \
-    AngleField, MaterialWidgetField, LayerBuilderField, SampleFieldBase
+from pymontecarlo_gui.options.sample.base import (
+    AngleField,
+    MaterialWidgetField,
+    LayerBuilderField,
+    SampleFieldBase,
+)
 
 # Globals and constants variables.
 
-class SubstrateField(MaterialWidgetField):
 
+class SubstrateField(MaterialWidgetField):
     def __init__(self):
         super().__init__()
         self.field_material._widget.setRequiresSelection(False)
@@ -22,8 +26,8 @@ class SubstrateField(MaterialWidgetField):
     def title(self):
         return "Substrate (optional)"
 
-class HorizontalLayerSampleField(SampleFieldBase):
 
+class HorizontalLayerSampleField(SampleFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -37,10 +41,10 @@ class HorizontalLayerSampleField(SampleFieldBase):
         self.addField(self.field_angle)
 
     def title(self):
-        return 'Horizontal layered sample'
+        return "Horizontal layered sample"
 
     def description(self):
-        return 'A multi-layer sample'
+        return "A multi-layer sample"
 
     def setAvailableMaterials(self, materials):
         self.field_layers.setAvailableMaterials(materials)
@@ -63,7 +67,8 @@ class HorizontalLayerSampleField(SampleFieldBase):
 
         return super().samples() + builder.build()
 
-def run(): #pragma: no cover
+
+def run():  # pragma: no cover
     import sys
 
     app = QtWidgets.QApplication(sys.argv)
@@ -76,5 +81,6 @@ def run(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run()

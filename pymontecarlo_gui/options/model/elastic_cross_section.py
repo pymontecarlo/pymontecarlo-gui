@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class ElasticCrossSectionModelField(ModelFieldBase):
 
+class ElasticCrossSectionModelField(ModelFieldBase):
     def title(self):
-        return 'Elastic cross section'
+        return "Elastic cross section"

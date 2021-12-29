@@ -9,8 +9,8 @@ from qtpy import QtCore, QtWidgets
 
 # Globals and constants variables.
 
-class ListToolBar(QtWidgets.QWidget):
 
+class ListToolBar(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -18,10 +18,10 @@ class ListToolBar(QtWidgets.QWidget):
         self._listwidget = None
 
         # Actions
-        self.action_selectall = QtWidgets.QAction('Select all')
+        self.action_selectall = QtWidgets.QAction("Select all")
         self.action_selectall.setEnabled(False)
 
-        self.action_unselectall = QtWidgets.QAction('Unselect all')
+        self.action_unselectall = QtWidgets.QAction("Unselect all")
         self.action_unselectall.setEnabled(False)
 
         # Widgets
@@ -65,8 +65,10 @@ class ListToolBar(QtWidgets.QWidget):
 
         rows = self.listWidget().count()
         has_rows = rows > 0
-        checked = sum(self._is_item_selected(self.listWidget().item(index))
-                      for index in range(self.listWidget().count()))
+        checked = sum(
+            self._is_item_selected(self.listWidget().item(index))
+            for index in range(self.listWidget().count())
+        )
 
         self.action_selectall.setEnabled(has_rows and checked < rows)
         self.action_unselectall.setEnabled(has_rows and checked > 0)
@@ -96,8 +98,8 @@ class ListToolBar(QtWidgets.QWidget):
         self._listwidget = widget
         self._update_toolbar()
 
-class CheckListToolBar(ListToolBar):
 
+class CheckListToolBar(ListToolBar):
     def _select_item(self, item):
         item.setCheckState(QtCore.Qt.Checked)
 
@@ -107,8 +109,8 @@ class CheckListToolBar(ListToolBar):
     def _is_item_selected(self, item):
         return item.checkState() == QtCore.Qt.Checked
 
-class SelectionListToolBar(ListToolBar):
 
+class SelectionListToolBar(ListToolBar):
     def _select_item(self, item):
         item.setSelected(True)
 

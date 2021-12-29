@@ -1,10 +1,10 @@
+matplotlib_scalebar
+pandas
+pygments
 pymontecarlo
+pyqttango
 pyside6
+qasync
 qtpy
 unsync
-pyqttango
-pygments
-pandas
-matplotlib_scalebar
-qasync
 xlsxwriter

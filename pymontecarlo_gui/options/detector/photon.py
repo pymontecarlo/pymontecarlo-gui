@@ -15,14 +15,16 @@ from pymontecarlo_gui.options.detector.base import DetectorFieldBase
 
 # Globals and constants variables.
 
-class ElevationField(MultiValueFieldBase):
 
+class ElevationField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(math.degrees(PhotonDetector.ELEVATION_TOLERANCE_rad))
+        decimals = tolerance_to_decimals(
+            math.degrees(PhotonDetector.ELEVATION_TOLERANCE_rad)
+        )
         self._widget.setRange(-90.0, 90.0, decimals)
         self._widget.setValues([40.0])
 
@@ -30,7 +32,7 @@ class ElevationField(MultiValueFieldBase):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Elevations [\u00b0]'
+        return "Elevations [\u00b0]"
 
     def widget(self):
         return self._widget
@@ -41,14 +43,16 @@ class ElevationField(MultiValueFieldBase):
     def setElevationsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class AzimuthField(MultiValueFieldBase):
 
+class AzimuthField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
         # Widgets
         self._widget = ColoredMultiFloatLineEdit()
-        decimals = tolerance_to_decimals(math.degrees(PhotonDetector.AZIMUTH_TOLERANCE_rad))
+        decimals = tolerance_to_decimals(
+            math.degrees(PhotonDetector.AZIMUTH_TOLERANCE_rad)
+        )
         self._widget.setRange(0.0, 360.0, decimals)
         self._widget.setValues([0.0])
 
@@ -56,7 +60,7 @@ class AzimuthField(MultiValueFieldBase):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Azimuths [\u00b0]'
+        return "Azimuths [\u00b0]"
 
     def widget(self):
         return self._widget
@@ -67,8 +71,8 @@ class AzimuthField(MultiValueFieldBase):
     def setAzimuthsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class PhotonDetectorField(DetectorFieldBase):
 
+class PhotonDetectorField(DetectorFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -79,10 +83,10 @@ class PhotonDetectorField(DetectorFieldBase):
         self.addLabelField(self.field_azimuth)
 
     def title(self):
-        return 'Photon detector'
+        return "Photon detector"
 
     def description(self):
-        return 'Detector to collect emitted X-rays'
+        return "Detector to collect emitted X-rays"
 
     def detectors(self):
         builder = PhotonDetectorBuilder()

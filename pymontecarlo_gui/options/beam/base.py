@@ -15,14 +15,22 @@ from pymontecarlo.options.beam.base import BeamBase
 from pymontecarlo.options.particle import Particle
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.widgets.field import MultiValueFieldBase, FieldBase, WidgetFieldBase, FieldChooser
-from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit, ColoredFloatLineEdit
+from pymontecarlo_gui.widgets.field import (
+    MultiValueFieldBase,
+    FieldBase,
+    WidgetFieldBase,
+    FieldChooser,
+)
+from pymontecarlo_gui.widgets.lineedit import (
+    ColoredMultiFloatLineEdit,
+    ColoredFloatLineEdit,
+)
 from pymontecarlo_gui.options.base import ToleranceMixin
 
 # Globals and constants variables.
 
-class EnergyField(MultiValueFieldBase):
 
+class EnergyField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -36,7 +44,7 @@ class EnergyField(MultiValueFieldBase):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Energies [keV]'
+        return "Energies [keV]"
 
     def widget(self):
         return self._widget
@@ -48,8 +56,8 @@ class EnergyField(MultiValueFieldBase):
         energies_eV = np.array(energies_eV) / 1e3
         self._widget.setValues(energies_eV)
 
-class ParticleField(FieldBase):
 
+class ParticleField(FieldBase):
     def __init__(self):
         super().__init__()
 
@@ -66,7 +74,7 @@ class ParticleField(FieldBase):
         self._widget.currentIndexChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Particle'
+        return "Particle"
 
     def widget(self):
         return self._widget
@@ -78,12 +86,13 @@ class ParticleField(FieldBase):
         index = self._widget.findData(particle)
         self._widget.setCurrentIndex(index)
 
-Position = namedtuple('Position', ('x_m', 'y_m'))
+
+Position = namedtuple("Position", ("x_m", "y_m"))
+
 
 class CoordinateField(FieldBase, ToleranceMixin):
-
     def __init__(self, title):
-        self._title = title + ' [nm]'
+        self._title = title + " [nm]"
         super().__init__()
 
         # Widgets
@@ -102,7 +111,7 @@ class CoordinateField(FieldBase, ToleranceMixin):
     def setToleranceMeter(self, tolerance_m):
         super().setToleranceMeter(tolerance_m)
         decimals = tolerance_to_decimals(tolerance_m * 1e9)
-        self._widget.setRange(float('-inf'), float('inf'), decimals)
+        self._widget.setRange(float("-inf"), float("inf"), decimals)
 
     def coordinateMeter(self):
         return self._widget.value() / 1e9
@@ -110,9 +119,9 @@ class CoordinateField(FieldBase, ToleranceMixin):
     def setCoordinateMeter(self, value_m):
         self._widget.setValue(value_m * 1e9)
 
-class StepField(FieldBase):
 
-    def __init__(self, title='Number of steps'):
+class StepField(FieldBase):
+    def __init__(self, title="Number of steps"):
         self._title = title
         super().__init__()
 
@@ -136,108 +145,112 @@ class StepField(FieldBase):
     def setStep(self, step):
         self._widget.setValue(step)
 
-class PositionField(WidgetFieldBase, ToleranceMixin):
 
+class PositionField(WidgetFieldBase, ToleranceMixin):
     def __init__(self):
         super().__init__()
 
     def setToleranceMeter(self, tolerance_m):
         for field in self.fields():
-            if hasattr(field, 'setToleranceMeter'):
+            if hasattr(field, "setToleranceMeter"):
                 field.setToleranceMeter(tolerance_m)
 
     @abc.abstractmethod
     def positions(self):
         return []
 
-class SinglePositionField(PositionField):
 
+class SinglePositionField(PositionField):
     def __init__(self):
         super().__init__()
 
-        self.field_x = CoordinateField('x')
+        self.field_x = CoordinateField("x")
         self.addLabelField(self.field_x)
 
-        self.field_y = CoordinateField('y')
+        self.field_y = CoordinateField("y")
         self.addLabelField(self.field_y)
 
     def title(self):
-        return 'Single position'
+        return "Single position"
 
     def positions(self):
         x_m = self.field_x.coordinateMeter()
         y_m = self.field_y.coordinateMeter()
         return [Position(x_m, y_m)]
 
-class LineScanPositionField(PositionField):
 
+class LineScanPositionField(PositionField):
     def __init__(self):
         super().__init__()
 
-        self.field_start = CoordinateField('Start')
+        self.field_start = CoordinateField("Start")
         self.field_start.setCoordinateMeter(-5e-6)
         self.addLabelField(self.field_start)
 
-        self.field_stop = CoordinateField('Stop')
+        self.field_stop = CoordinateField("Stop")
         self.field_stop.setCoordinateMeter(5e-6)
         self.addLabelField(self.field_stop)
 
         self.field_step = StepField()
         self.addLabelField(self.field_step)
 
-class LineScanXPositionField(LineScanPositionField):
 
+class LineScanXPositionField(LineScanPositionField):
     def title(self):
-        return 'Line scan along X axis'
+        return "Line scan along X axis"
 
     def positions(self):
         start_m = self.field_start.coordinateMeter()
         stop_m = self.field_stop.coordinateMeter()
         num = self.field_step.step()
-        return [Position(x_m, 0.0)
-                for x_m in np.linspace(start_m, stop_m, num, endpoint=True)]
+        return [
+            Position(x_m, 0.0)
+            for x_m in np.linspace(start_m, stop_m, num, endpoint=True)
+        ]
+
 
 class LineScanYPositionField(LineScanPositionField):
-
     def title(self):
-        return 'Line scan along Y axis'
+        return "Line scan along Y axis"
 
     def positions(self):
         start_m = self.field_start.coordinateMeter()
         stop_m = self.field_stop.coordinateMeter()
         num = self.field_step.step()
-        return [Position(0.0, y_m)
-                for y_m in np.linspace(start_m, stop_m, num, endpoint=True)]
+        return [
+            Position(0.0, y_m)
+            for y_m in np.linspace(start_m, stop_m, num, endpoint=True)
+        ]
+
 
 class GridPositionField(PositionField):
-
     def __init__(self):
         super().__init__()
 
-        self.field_x_start = CoordinateField('Start X')
+        self.field_x_start = CoordinateField("Start X")
         self.field_x_start.setCoordinateMeter(-1e-6)
         self.addLabelField(self.field_x_start)
 
-        self.field_x_stop = CoordinateField('Stop X')
+        self.field_x_stop = CoordinateField("Stop X")
         self.field_x_stop.setCoordinateMeter(1e-6)
         self.addLabelField(self.field_x_stop)
 
-        self.field_x_step = StepField('Number of steps X')
+        self.field_x_step = StepField("Number of steps X")
         self.addLabelField(self.field_x_step)
 
-        self.field_y_start = CoordinateField('Start Y')
+        self.field_y_start = CoordinateField("Start Y")
         self.field_y_start.setCoordinateMeter(-1e-6)
         self.addLabelField(self.field_y_start)
 
-        self.field_y_stop = CoordinateField('Stop Y')
+        self.field_y_stop = CoordinateField("Stop Y")
         self.field_y_stop.setCoordinateMeter(1e-6)
         self.addLabelField(self.field_y_stop)
 
-        self.field_y_step = StepField('Number of steps Y')
+        self.field_y_step = StepField("Number of steps Y")
         self.addLabelField(self.field_y_step)
 
     def title(self):
-        return 'Grid'
+        return "Grid"
 
     def positions(self):
         x_start_m = self.field_x_start.coordinateMeter()
@@ -252,8 +265,8 @@ class GridPositionField(PositionField):
 
         return [Position(x_m, y_m) for x_m, y_m in itertools.product(xs_m, ys_m)]
 
-class PositionsModel(QtCore.QAbstractTableModel, ToleranceMixin):
 
+class PositionsModel(QtCore.QAbstractTableModel, ToleranceMixin):
     def __init__(self):
         super().__init__()
 
@@ -276,9 +289,9 @@ class PositionsModel(QtCore.QAbstractTableModel, ToleranceMixin):
         if role == QtCore.Qt.DisplayRole:
             if self.toleranceMeter() is not None:
                 precision = tolerance_to_decimals(self.toleranceMeter()) - 9
-                fmt = '{0:.{precision}f}'
+                fmt = "{0:.{precision}f}"
             else:
-                fmt = '{0:g}'
+                fmt = "{0:g}"
 
             if column == 0:
                 return fmt.format(position.x_m * 1e9, precision=precision)
@@ -291,13 +304,13 @@ class PositionsModel(QtCore.QAbstractTableModel, ToleranceMixin):
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
 
-    def headerData(self, section , orientation, role):
+    def headerData(self, section, orientation, role):
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
                 if section == 0:
-                    return 'X [nm]'
+                    return "X [nm]"
                 elif section == 1:
-                    return 'Y [nm]'
+                    return "Y [nm]"
 
             elif orientation == QtCore.Qt.Vertical:
                 return str(section + 1)
@@ -360,6 +373,7 @@ class PositionsModel(QtCore.QAbstractTableModel, ToleranceMixin):
         super().setToleranceMeter(tolerance_m)
         self.modelReset.emit()
 
+
 class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
 
     positionsChanged = QtCore.Signal()
@@ -372,21 +386,21 @@ class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
         model.addPosition(Position(0.0, 0.0))
 
         # Actions
-        self.action_remove = QtWidgets.QAction('Remove')
-        self.action_remove.setIcon(QtGui.QIcon.fromTheme('list-remove'))
-        self.action_remove.setToolTip('Remove position')
+        self.action_remove = QtWidgets.QAction("Remove")
+        self.action_remove.setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.action_remove.setToolTip("Remove position")
         self.action_remove.setEnabled(False)
 
-        self.action_clear = QtWidgets.QAction('Clear')
-        self.action_clear.setIcon(QtGui.QIcon.fromTheme('edit-clear'))
-        self.action_clear.setToolTip('Remove all positions')
+        self.action_clear = QtWidgets.QAction("Clear")
+        self.action_clear.setIcon(QtGui.QIcon.fromTheme("edit-clear"))
+        self.action_clear.setToolTip("Remove all positions")
         self.action_clear.setEnabled(False)
 
         # Widgets
         self.chooser = FieldChooser()
 
-        self.button_add = QtWidgets.QPushButton('Add position(s)')
-        self.button_add.setIcon(QtGui.QIcon.fromTheme('list-add'))
+        self.button_add = QtWidgets.QPushButton("Add position(s)")
+        self.button_add.setIcon(QtGui.QIcon.fromTheme("list-add"))
         self.button_add.setMaximumWidth(self.button_add.sizeHint().width())
 
         self.table_positions = QtWidgets.QTableView()
@@ -420,7 +434,9 @@ class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
         model.dataChanged.connect(self.positionsChanged)
         model.modelReset.connect(self._on_positions_changed)
         model.modelReset.connect(self.positionsChanged)
-        self.table_positions.selectionModel().selectionChanged.connect(self._on_positions_changed)
+        self.table_positions.selectionModel().selectionChanged.connect(
+            self._on_positions_changed
+        )
 
     def _on_remove_triggered(self):
         selection_model = self.table_positions.selectionModel()
@@ -475,8 +491,8 @@ class PositionsWidget(QtWidgets.QWidget, ToleranceMixin):
     def positions(self):
         return self.table_positions.model().positions()
 
-class PositionsField(FieldBase, ToleranceMixin):
 
+class PositionsField(FieldBase, ToleranceMixin):
     def __init__(self):
         super().__init__()
 
@@ -487,7 +503,7 @@ class PositionsField(FieldBase, ToleranceMixin):
         self._widget.positionsChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Positions'
+        return "Positions"
 
     def widget(self):
         return self._widget
@@ -503,8 +519,8 @@ class PositionsField(FieldBase, ToleranceMixin):
         super().setToleranceMeter(tolerance_m)
         self._widget.setToleranceMeter(tolerance_m)
 
-class BeamFieldBase(WidgetFieldBase):
 
+class BeamFieldBase(WidgetFieldBase):
     def isValid(self):
         return super().isValid() and bool(self.beams())
 
@@ -514,4 +530,3 @@ class BeamFieldBase(WidgetFieldBase):
         Returns a :class:`list` of :class:`BeamBase`.
         """
         return []
-

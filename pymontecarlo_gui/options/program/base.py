@@ -16,6 +16,7 @@ from pymontecarlo_gui.widgets.label import LabelIcon
 
 # Globals and constants variables.
 
+
 class ProgramFieldBase(WidgetFieldBase):
 
     _subclasses = []
@@ -45,8 +46,8 @@ class ProgramFieldBase(WidgetFieldBase):
         """
         return []
 
-class CheckProgramField(CheckFieldBase):
 
+class CheckProgramField(CheckFieldBase):
     def __init__(self, program_field):
         self._program_field = program_field
         super().__init__()
@@ -57,13 +58,13 @@ class CheckProgramField(CheckFieldBase):
     def programField(self):
         return self._program_field
 
-class ProgramsField(WidgetFieldBase):
 
+class ProgramsField(WidgetFieldBase):
     def __init__(self):
         super().__init__()
 
     def title(self):
-        return 'Program(s)'
+        return "Program(s)"
 
     def isValid(self):
         # Selected fields
@@ -95,4 +96,3 @@ class ProgramsField(WidgetFieldBase):
         for field in self.selectedProgramFields():
             programs.extend(field.programs())
         return programs
-

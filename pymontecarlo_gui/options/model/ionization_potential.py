@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class IonizationPotentialModelField(ModelFieldBase):
 
+class IonizationPotentialModelField(ModelFieldBase):
     def title(self):
-        return 'Ionization potential'
+        return "Ionization potential"

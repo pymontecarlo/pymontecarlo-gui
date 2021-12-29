@@ -11,13 +11,13 @@ from pymontecarlo_gui.options.beam.cylindrical import CylindricalBeamField
 
 # Globals and constants variables.
 
-class GaussianBeamField(CylindricalBeamField):
 
+class GaussianBeamField(CylindricalBeamField):
     def title(self):
-        return 'Gaussian beam'
+        return "Gaussian beam"
 
     def description(self):
-        return 'Incident particles distributed following a 2D-Gaussian distribution'
+        return "Incident particles distributed following a 2D-Gaussian distribution"
 
     def _create_builder(self):
         return GaussianBeamBuilder()

@@ -11,7 +11,7 @@ from pymontecarlo_gui.options.model.base import ModelFieldBase
 
 # Globals and constants variables.
 
-class MassAbsorptionCoefficientModelField(ModelFieldBase):
 
+class MassAbsorptionCoefficientModelField(ModelFieldBase):
     def title(self):
-        return 'Mass absorption coefficient'
+        return "Mass absorption coefficient"

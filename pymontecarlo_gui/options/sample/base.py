@@ -14,7 +14,11 @@ import numpy as np
 from pymontecarlo.options.sample.base import SampleBase, Layer, LayerBuilder
 from pymontecarlo.util.tolerance import tolerance_to_decimals
 
-from pymontecarlo_gui.widgets.field import ToolBoxFieldBase, MultiValueFieldBase, WidgetFieldBase
+from pymontecarlo_gui.widgets.field import (
+    ToolBoxFieldBase,
+    MultiValueFieldBase,
+    WidgetFieldBase,
+)
 from pymontecarlo_gui.widgets.lineedit import ColoredMultiFloatLineEdit
 from pymontecarlo_gui.widgets.label import LabelIcon
 from pymontecarlo_gui.util.validate import ValidableBase, INVALID_COLOR
@@ -22,10 +26,10 @@ from pymontecarlo_gui.options.material import MaterialListWidget
 
 # Globals and constants variables.
 
-#--- Fields
+# --- Fields
+
 
 class TiltField(MultiValueFieldBase):
-
     def __init__(self):
         super().__init__()
 
@@ -39,10 +43,10 @@ class TiltField(MultiValueFieldBase):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Tilt(s) [\u00b0]'
+        return "Tilt(s) [\u00b0]"
 
     def description(self):
-        return 'Tilt around the x-axis'
+        return "Tilt around the x-axis"
 
     def widget(self):
         return self._widget
@@ -53,8 +57,8 @@ class TiltField(MultiValueFieldBase):
     def setTiltsDegree(self, tilts_deg):
         self._widget.setValues(tilts_deg)
 
-class AzimuthField(MultiValueFieldBase):
 
+class AzimuthField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -68,7 +72,7 @@ class AzimuthField(MultiValueFieldBase):
         self._widget.valuesChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Azimuth(s) [\u00b0]'
+        return "Azimuth(s) [\u00b0]"
 
     def widget(self):
         return self._widget
@@ -79,8 +83,8 @@ class AzimuthField(MultiValueFieldBase):
     def setAzimuthsDegree(self, azimuths_deg):
         self._widget.setValues(azimuths_deg)
 
-class AngleField(WidgetFieldBase):
 
+class AngleField(WidgetFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -91,7 +95,7 @@ class AngleField(WidgetFieldBase):
         self.addLabelField(self.field_azimuth)
 
     def title(self):
-        return 'Angles'
+        return "Angles"
 
     def tiltsDegree(self):
         return self.field_tilt.tiltsDegree()
@@ -105,8 +109,8 @@ class AngleField(WidgetFieldBase):
     def setAzimuthsDegree(self, azimuths_deg):
         self.field_azimuth.setAzimuthsDegree(azimuths_deg)
 
-class MaterialField(MultiValueFieldBase):
 
+class MaterialField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -117,7 +121,7 @@ class MaterialField(MultiValueFieldBase):
         self._widget.selectionChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Material(s)'
+        return "Material(s)"
 
     def widget(self):
         return self._widget
@@ -134,8 +138,8 @@ class MaterialField(MultiValueFieldBase):
     def setAvailableMaterials(self, materials):
         self._widget.setMaterials(materials)
 
-class MaterialWidgetField(WidgetFieldBase):
 
+class MaterialWidgetField(WidgetFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -154,8 +158,8 @@ class MaterialWidgetField(WidgetFieldBase):
     def setAvailableMaterials(self, materials):
         self.field_material.setAvailableMaterials(materials)
 
-class LayerBuilderField(MultiValueFieldBase):
 
+class LayerBuilderField(MultiValueFieldBase):
     def __init__(self):
         super().__init__()
 
@@ -166,7 +170,7 @@ class LayerBuilderField(MultiValueFieldBase):
         self._widget.layerBuildersChanged.connect(self.fieldChanged)
 
     def title(self):
-        return 'Layer(s)'
+        return "Layer(s)"
 
     def widget(self):
         return self._widget
@@ -183,11 +187,13 @@ class LayerBuilderField(MultiValueFieldBase):
     def setAvailableMaterials(self, materials):
         self._widget.setAvailableMaterials(materials)
 
-#--- Layers
+
+# --- Layers
+
 
 class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
 
-    MIMETYPE = 'pymontecarlo/layerbuilder'
+    MIMETYPE = "pymontecarlo/layerbuilder"
 
     def __init__(self):
         super().__init__()
@@ -201,8 +207,7 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
         return 2
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid() or \
-                not (0 <= index.row() < len(self._builders)):
+        if not index.isValid() or not (0 <= index.row() < len(self._builders)):
             return None
 
         row = index.row()
@@ -212,15 +217,17 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
         if role == QtCore.Qt.DisplayRole:
             if column == 0:
                 if not builder.materials:
-                    return 'none'
+                    return "none"
                 else:
-                    return ', '.join(map(operator.attrgetter('name'), builder.materials))
+                    return ", ".join(
+                        map(operator.attrgetter("name"), builder.materials)
+                    )
             elif column == 1:
                 if len(builder.thicknesses_m) > 0:
                     values = np.array(sorted(builder.thicknesses_m)) * 1e9
                     locale = QtCore.QLocale.system()
                     precision = tolerance_to_decimals(Layer.THICKNESS_TOLERANCE_m * 1e9)
-                    return ', '.join(locale.toString(v, 'f', precision) for v in values)
+                    return ", ".join(locale.toString(v, "f", precision) for v in values)
 
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
@@ -235,13 +242,13 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
                 brush.setStyle(QtCore.Qt.SolidPattern)
                 return brush
 
-    def headerData(self, section , orientation, role):
+    def headerData(self, section, orientation, role):
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
                 if section == 0:
-                    return 'Material(s)'
+                    return "Material(s)"
                 elif section == 1:
-                    return 'Thickness(es) [nm]'
+                    return "Thickness(es) [nm]"
 
             elif orientation == QtCore.Qt.Vertical:
                 return str(section + 1)
@@ -250,7 +257,12 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
         flags = super().flags(index)
 
         if index.isValid():
-            return flags | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+            return (
+                flags
+                | QtCore.Qt.ItemIsEditable
+                | QtCore.Qt.ItemIsDragEnabled
+                | QtCore.Qt.ItemIsDropEnabled
+            )
         else:
             return flags | QtCore.Qt.ItemIsDropEnabled
 
@@ -285,7 +297,7 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
             return QtCore.QMimeData()
 
         mimedata = QtCore.QMimeData()
-        mimedata.setData(self.MIMETYPE, str(rows[0]).encode('ascii'))
+        mimedata.setData(self.MIMETYPE, str(rows[0]).encode("ascii"))
 
         return mimedata
 
@@ -312,7 +324,7 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
         else:
             newrow = self.rowCount()
 
-        oldrow = int(mimedata.data(self.MIMETYPE).data().decode('ascii'))
+        oldrow = int(mimedata.data(self.MIMETYPE).data().decode("ascii"))
 
         builder = self._builders.pop(oldrow)
         self._builders.insert(newrow, builder)
@@ -374,8 +386,8 @@ class LayerBuilderModel(QtCore.QAbstractTableModel, ValidableBase):
 
         self.modelReset.emit()
 
-class LayerBuilderDelegate(QtWidgets.QItemDelegate):
 
+class LayerBuilderDelegate(QtWidgets.QItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._available_materials = []
@@ -395,7 +407,7 @@ class LayerBuilderDelegate(QtWidgets.QItemDelegate):
 
             tolerance = Layer.THICKNESS_TOLERANCE_m * 1e9
             decimals = tolerance_to_decimals(tolerance)
-            editor.setRange(tolerance, float('inf'), decimals)
+            editor.setRange(tolerance, float("inf"), decimals)
 
             return editor
 
@@ -433,8 +445,8 @@ class LayerBuilderDelegate(QtWidgets.QItemDelegate):
         self._available_materials.clear()
         self._available_materials.extend(materials)
 
-class LayerBuilderToolbar(QtWidgets.QToolBar):
 
+class LayerBuilderToolbar(QtWidgets.QToolBar):
     def __init__(self, table, parent=None):
         super().__init__(parent)
 
@@ -443,16 +455,16 @@ class LayerBuilderToolbar(QtWidgets.QToolBar):
 
         # Actions
         self.act_add = self.addAction(QtGui.QIcon.fromTheme("list-add"), "Add")
-        self.act_add.setToolTip('Add layer')
+        self.act_add.setToolTip("Add layer")
 
-        self.act_remove = self.addAction(QtGui.QIcon.fromTheme("list-remove"), 'Remove')
-        self.act_remove.setToolTip('Remove layer')
+        self.act_remove = self.addAction(QtGui.QIcon.fromTheme("list-remove"), "Remove")
+        self.act_remove.setToolTip("Remove layer")
         self.act_remove.setEnabled(False)
         self.act_remove.setShortcutContext(QtCore.Qt.WindowShortcut)
         self.act_remove.setShortcut(QtGui.QKeySequence.Delete)
 
-        self.act_clear = self.addAction(QtGui.QIcon.fromTheme("edit-clear"), 'Clear')
-        self.act_clear.setToolTip('Clear')
+        self.act_clear = self.addAction(QtGui.QIcon.fromTheme("edit-clear"), "Clear")
+        self.act_clear.setToolTip("Clear")
         self.act_clear.setEnabled(False)
 
         # Signals
@@ -492,6 +504,7 @@ class LayerBuilderToolbar(QtWidgets.QToolBar):
         model = self.table.model()
         model.clearLayerBuilders()
 
+
 class LayerBuilderWidget(QtWidgets.QWidget, ValidableBase):
 
     layerBuildersChanged = QtCore.Signal()
@@ -518,12 +531,14 @@ class LayerBuilderWidget(QtWidgets.QWidget, ValidableBase):
         for column in range(model.columnCount()):
             header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)
 
-        header.setStyleSheet('color: blue')
+        header.setStyleSheet("color: blue")
 
         self.toolbar = LayerBuilderToolbar(self.table)
 
-        self.lbl_info = LabelIcon('Double-click to modify\nDrag and drop to move layer',
-                                  QtGui.QIcon.fromTheme("dialog-information"))
+        self.lbl_info = LabelIcon(
+            "Double-click to modify\nDrag and drop to move layer",
+            QtGui.QIcon.fromTheme("dialog-information"),
+        )
         self.lbl_info.setVerticalAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignTop)
 
         # Layouts
@@ -558,10 +573,11 @@ class LayerBuilderWidget(QtWidgets.QWidget, ValidableBase):
     def setLayerBuilders(self, builders):
         self.table.model().setLayerBuilders(builders)
 
-#--- Base widgets
+
+# --- Base widgets
+
 
 class SampleFieldBase(ToolBoxFieldBase):
-
     def isValid(self):
         return super().isValid() and bool(self.samples())
 
@@ -576,8 +592,10 @@ class SampleFieldBase(ToolBoxFieldBase):
     def setAvailableMaterials(self, materials):
         raise NotImplementedError
 
-def run_layerswidget(): #pragma: no cover
+
+def run_layerswidget():  # pragma: no cover
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     from pymontecarlo.options.material import Material
@@ -595,5 +613,6 @@ def run_layerswidget(): #pragma: no cover
 
     app.exec_()
 
-if __name__ == '__main__': #pragma: no cover
+
+if __name__ == "__main__":  # pragma: no cover
     run_layerswidget()

@@ -11,6 +11,7 @@ import pymontecarlo_gui.widgets.messagebox as messagebox
 
 # Globals and constants variables.
 
+
 class BrowseWidgetBase(QtWidgets.QWidget):
 
     pathChanged = QtCore.Signal(str)
@@ -67,7 +68,7 @@ class BrowseWidgetBase(QtWidgets.QWidget):
             path = os.path.dirname(path)
 
         if not os.path.isdir(path):
-            raise ValueError('%s is not a directory' % path)
+            raise ValueError("%s is not a directory" % path)
 
         self._basedir = path
 
@@ -76,7 +77,7 @@ class BrowseWidgetBase(QtWidgets.QWidget):
 
     def setPath(self, path, update_basedir=True):
         if not path:
-            self._txt_path.setText('')
+            self._txt_path.setText("")
             self.pathChanged.emit(None)
             return
 
@@ -101,8 +102,8 @@ class BrowseWidgetBase(QtWidgets.QWidget):
         path = self._txt_path.text()
         return path if path else None
 
-class FileBrowseWidget(BrowseWidgetBase):
 
+class FileBrowseWidget(BrowseWidgetBase):
     def __init__(self, parent=None):
         BrowseWidgetBase.__init__(self, parent=parent)
 
@@ -111,12 +112,12 @@ class FileBrowseWidget(BrowseWidgetBase):
 
     def _show_dialog(self, basedir):
         title = "Browse file"
-        filter = ';;'.join(self.nameFilters())
+        filter = ";;".join(self.nameFilters())
         return QtWidgets.QFileDialog.getOpenFileName(self, title, basedir, filter)[0]
 
     def _validate_path(self, path):
-        if os.path.splitext(path)[1] != '.app' and not os.path.isfile(path):
-            raise ValueError('%s is not a file' % path)
+        if os.path.splitext(path)[1] != ".app" and not os.path.isfile(path):
+            raise ValueError("%s is not a file" % path)
 
     def setNameFilter(self, filter):
         self._namefilters.clear()
@@ -129,12 +130,12 @@ class FileBrowseWidget(BrowseWidgetBase):
     def nameFilters(self):
         return list(self._namefilters)
 
-class DirectoryBrowseWidget(BrowseWidgetBase):
 
+class DirectoryBrowseWidget(BrowseWidgetBase):
     def _show_dialog(self, basedir):
         title = "Browse directory"
         return QtWidgets.QFileDialog.getExistingDirectory(self, title, basedir)
 
     def _validate_path(self, path):
         if not os.path.isdir(path):
-            raise ValueError('%s is not a directory' % path)
+            raise ValueError("%s is not a directory" % path)
