@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         # ubuntu-latest does not work
-        os: [macosx-latest]
+        os: [macos-latest]
         python-version: [3.x]
 
     steps:
