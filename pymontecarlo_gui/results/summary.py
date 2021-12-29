@@ -3,6 +3,7 @@
 # Standard library modules.
 import textwrap
 import operator
+from numbers import Number
 
 # Third party modules.
 from qtpy import QtCore, QtGui, QtWidgets
@@ -12,9 +13,10 @@ import pandas as pd
 import numpy as np
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT
-from matplotlib.cbook import is_numlike
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvasQTAgg as FigureCanvas,
+    NavigationToolbar2QT,
+)
 
 # Local modules.
 from pymontecarlo.util.human import camelcase_to_words
@@ -25,8 +27,8 @@ from pymontecarlo_gui.widgets.list import CheckListToolBar, SelectionListToolBar
 
 # Globals and constants variables.
 
-class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
+class ResultSummaryTableModel(QtCore.QAbstractTableModel):
     def __init__(self, settings, textwidth, project=None):
         super().__init__()
 
@@ -54,13 +56,19 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
             self._df = pd.DataFrame()
             return
 
-        df_options = self._project.create_options_dataframe(self._settings, False, format_number=True)
+        df_options = self._project.create_options_dataframe(
+            self._settings, False, format_number=True
+        )
 
         if self._only_different_options:
-            columns = self._project.create_options_dataframe(self._settings, True).columns
+            columns = self._project.create_options_dataframe(
+                self._settings, True
+            ).columns
             df_options = df_options[columns]
 
-        df_results = self._project.create_results_dataframe(self._settings, self._result_classes, format_number=True)
+        df_results = self._project.create_results_dataframe(
+            self._settings, self._result_classes, format_number=True
+        )
 
         self._df = pd.concat([df_options, df_results], axis=1)
 
@@ -95,7 +103,7 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
 
         if orientation == QtCore.Qt.Horizontal:
             text = self._df.columns[section]
-            return '\n'.join(textwrap.wrap(text, self._textwidth))
+            return "\n".join(textwrap.wrap(text, self._textwidth))
 
         elif orientation == QtCore.Qt.Vertical:
             return str(section + 1)
@@ -143,6 +151,7 @@ class ResultSummaryTableModel(QtCore.QAbstractTableModel):
             out.append(row)
 
         return out
+
 
 class ResultClassListWidget(QtWidgets.QWidget):
 
@@ -193,6 +202,7 @@ class ResultClassListWidget(QtWidgets.QWidget):
             item.setCheckState(QtCore.Qt.Unchecked)
             self.listwidget.addItem(item)
 
+
 class ResultSummaryTableWidget(ResultSummaryWidgetBase):
 
     COLUMN_WIDTH = 125
@@ -210,7 +220,7 @@ class ResultSummaryTableWidget(ResultSummaryWidgetBase):
         header.setDefaultSectionSize(self.COLUMN_WIDTH)
         header.setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
-        textwidth = int(self.COLUMN_WIDTH / header.fontMetrics().width('a'))
+        textwidth = int(self.COLUMN_WIDTH / header.fontMetrics().width("a"))
         model = ResultSummaryTableModel(settings, textwidth)
         self.wdg_table.setModel(model)
 
@@ -220,14 +230,16 @@ class ResultSummaryTableWidget(ResultSummaryWidgetBase):
 
         self.tlb_export = QtWidgets.QToolBar()
         self.tlb_export.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.act_copy = self.tlb_export.addAction(QtGui.QIcon.fromTheme('edit-copy'), 'Copy')
-        #self.act_save = self.tlb_export.addAction(QtGui.QIcon.fromTheme('document-save'), 'CSV')
+        self.act_copy = self.tlb_export.addAction(
+            QtGui.QIcon.fromTheme("edit-copy"), "Copy"
+        )
+        # self.act_save = self.tlb_export.addAction(QtGui.QIcon.fromTheme('document-save'), 'CSV')
 
         # Layouts
         lyt_right = QtWidgets.QVBoxLayout()
-        lyt_right.addWidget(create_group_box('Options', self.chk_diff_options))
-        lyt_right.addWidget(create_group_box('Results', self.lst_results))
-        lyt_right.addWidget(create_group_box('Export', self.tlb_export))
+        lyt_right.addWidget(create_group_box("Options", self.chk_diff_options))
+        lyt_right.addWidget(create_group_box("Results", self.lst_results))
+        lyt_right.addWidget(create_group_box("Export", self.tlb_export))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.wdg_table, 3)
@@ -240,7 +252,7 @@ class ResultSummaryTableWidget(ResultSummaryWidgetBase):
         self.lst_results.selectionChanged.connect(self._on_result_class_changed)
 
         self.act_copy.triggered.connect(self._on_copy)
-        #self.act_save.triggered.connect(self._on_save)
+        # self.act_save.triggered.connect(self._on_save)
 
     def _on_diff_options_changed(self, state):
         answer = state == QtCore.Qt.Checked
@@ -252,20 +264,20 @@ class ResultSummaryTableWidget(ResultSummaryWidgetBase):
 
     def _on_copy(self):
         rows = self.wdg_table.model().toList()
-        text = '\n'.join('\t'.join(map(str, row)) for row in rows)
+        text = "\n".join("\t".join(map(str, row)) for row in rows)
 
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setText(text)
 
-#    def _on_save(self):
-#        pass
+    #    def _on_save(self):
+    #        pass
 
     def setProject(self, project):
         self.wdg_table.model().setProject(project)
         self.lst_results.setProject(project)
 
-class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
+class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
 
@@ -288,7 +300,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
         self.toolbar_columns = CheckListToolBar()
         self.toolbar_columns.setListWidget(self.list_columns)
 
-        self.checkbox_error = QtWidgets.QCheckBox('Show error columns')
+        self.checkbox_error = QtWidgets.QCheckBox("Show error columns")
 
         self.list_simulations = QtWidgets.QListWidget()
         self.list_simulations.setSelectionBehavior(QtWidgets.QListWidget.SelectRows)
@@ -310,12 +322,14 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
         layout_simulations = QtWidgets.QVBoxLayout()
         layout_simulations.addWidget(self.list_simulations)
-        layout_simulations.addWidget(self.toolbar_simulations, alignment=QtCore.Qt.AlignRight)
+        layout_simulations.addWidget(
+            self.toolbar_simulations, alignment=QtCore.Qt.AlignRight
+        )
 
         layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(create_group_box('X axis', self.combobox_xaxis))
-        layout_right.addWidget(create_group_box('Y axis', layout_yaxis))
-        layout_right.addWidget(create_group_box('Simulations', layout_simulations))
+        layout_right.addWidget(create_group_box("X axis", self.combobox_xaxis))
+        layout_right.addWidget(create_group_box("Y axis", layout_yaxis))
+        layout_right.addWidget(create_group_box("Simulations", layout_simulations))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_left)
@@ -364,7 +378,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
         self.list_columns.clear()
 
         for column in df.columns:
-            if column.startswith('\u03C3(') and not self.checkbox_error.isChecked():
+            if column.startswith("\u03C3(") and not self.checkbox_error.isChecked():
                 continue
 
             item = QtWidgets.QListWidgetItem(column)
@@ -388,7 +402,9 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
             return
 
         # X axis
-        df = project.create_options_dataframe(self._settings, only_different_columns=True)
+        df = project.create_options_dataframe(
+            self._settings, only_different_columns=True
+        )
         for column in df.columns:
             self.combobox_xaxis.addItem(column, df[column])
 
@@ -400,7 +416,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
         # Simulations
         for index in range(len(project.simulations)):
-            item = QtWidgets.QListWidgetItem('Simulation #{:d}'.format(index))
+            item = QtWidgets.QListWidgetItem("Simulation #{:d}".format(index))
             item.setTextAlignment(QtCore.Qt.AlignLeft)
             self.list_simulations.addItem(item)
 
@@ -446,7 +462,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
                 for index, (x, y) in enumerate(zip(series_x.values, series_y.values)):
                     if index not in indexes:
                         continue
-                    if not is_numlike(x) or not is_numlike(y):
+                    if not isinstance(x, Number) or not isinstance(y, Number):
                         continue
                     if np.isnan(x) or np.isnan(y):
                         continue
@@ -457,7 +473,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
                 ys = list(map(operator.itemgetter(1), data))
 
                 label = series_y.name
-                ax.plot(xs, ys, 'o-', label=label)
+                ax.plot(xs, ys, "o-", label=label)
 
         # Axes label
         if series_x is not None:
@@ -466,30 +482,34 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
         if len(list_series_y) == 1:
             resultname = self.combobox_yaxis.currentText()
             series_y = list_series_y[0]
-            ax.set_ylabel('{} {}'.format(resultname, series_y.name))
+            ax.set_ylabel("{} {}".format(resultname, series_y.name))
         elif len(list_series_y) > 1:
             resultname = self.combobox_yaxis.currentText()
-            ax.set_ylabel('{}'.format(resultname))
+            ax.set_ylabel("{}".format(resultname))
 
         if len(list_series_y) > 1:
-            ax.legend(loc='best')
+            ax.legend(loc="best")
 
         self.canvas.draw()
 
+
 def run():
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     from pymontecarlo.testcase import TestCase
+
     TestCase.setUpClass()
     testcase = TestCase()
     testcase.setUp()
     project = testcase.create_basic_project()
 
     from pymontecarlo.settings import Settings, XrayNotation
+
     settings = Settings()
-    settings.set_preferred_unit('eV')
-    settings.set_preferred_unit('nm')
+    settings.set_preferred_unit("eV")
+    settings.set_preferred_unit("nm")
     settings.preferred_xray_notation = XrayNotation.SIEGBAHN
 
     widget = ResultSummaryFigureWidget(settings)
@@ -501,5 +521,6 @@ def run():
 
     app.exec_()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
