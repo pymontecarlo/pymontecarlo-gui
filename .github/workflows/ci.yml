@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macosx-latest]
+        os: [windows-latest]
         python-version: [3.x]
 
     steps:
@@ -36,6 +36,7 @@ jobs:
           pip install --upgrade git+https://github.com/pymontecarlo/pymontecarlo.git
           pip install --upgrade -r requirements-test.txt
           pip install --upgrade -e .
+          pip list
       - name: Test with pytest
         run: pytest
       - name: Upload coverage to Codecov
