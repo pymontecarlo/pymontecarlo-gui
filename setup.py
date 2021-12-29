@@ -35,7 +35,7 @@ setup(
     url="https://github.com/pymontecarlo",
     description="Python interface for Monte Carlo simulation programs",
     long_description=LONG_DESCRIPTION,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     author="Hendrix Demers and Philippe T. Pinard",
     author_email="hendrix.demers@mail.mcgill.ca and philippe.pinard@gmail.com",
     license="GPL v3",
