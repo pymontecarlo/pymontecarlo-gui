@@ -13,17 +13,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        # ubuntu-latest does not work
+        os: [macosx-latest]
         python-version: [3.x]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Install ubuntu dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libegl1
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
