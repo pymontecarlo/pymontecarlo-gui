@@ -1,10 +1,10 @@
 pymontecarlo
-PySide2
+pyside6
 qtpy
 unsync
 pyqttango
 pygments
 pandas
 matplotlib_scalebar
-asyncqt
+qasync
 xlsxwriter

@@ -453,7 +453,7 @@ class ResultSummaryFigureWidget(ResultSummaryWidgetBase):
 
         # Plot
         fig = self.canvas.figure
-        ax = fig.add_subplot("111")
+        ax = fig.add_subplot(111)
 
         # Lines
         if series_x is not None and list_series_y:

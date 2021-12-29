@@ -11,8 +11,8 @@ from pymontecarlo_gui.widgets.color import check_color
 
 # Globals and constants variables.
 
-class TokenModel(QtCore.QAbstractTableModel):
 
+class TokenModel(QtCore.QAbstractTableModel):
     def __init__(self, token):
         super().__init__()
         self.token = token
@@ -39,17 +39,17 @@ class TokenModel(QtCore.QAbstractTableModel):
     def flags(self, index):
         return super().flags(index)
 
+
 class TokenItemDelegate(QtWidgets.QItemDelegate):
+    """
+    From https://doc.qt.io/qt-6.2/qabstractitemdelegate.html
+    """
 
     def _create_progressbar_option(self, token, option):
         progressbaroption = QtWidgets.QStyleOptionProgressBar()
-        progressbaroption.state = QtWidgets.QStyle.State_Enabled
-        progressbaroption.direction = QtCore.Qt.LeftToRight
         progressbaroption.rect = option.rect
-        progressbaroption.fontMetrics = QtWidgets.QApplication.fontMetrics()
         progressbaroption.minimum = 0
         progressbaroption.maximum = 100
-        progressbaroption.textAlignment = QtCore.Qt.AlignCenter
         progressbaroption.textVisible = True
         progressbaroption.progress = int(token.progress * 100)
         progressbaroption.text = token.status
@@ -59,7 +59,7 @@ class TokenItemDelegate(QtWidgets.QItemDelegate):
         if state == TokenState.RUNNING:
             color_highlight = QtGui.QColor(QtCore.Qt.green)
         elif state == TokenState.CANCELLED:
-            color_highlight = check_color("#ff9600") # orange
+            color_highlight = check_color("#ff9600")  # orange
         elif state == TokenState.ERROR:
             color_highlight = QtGui.QColor(QtCore.Qt.red)
         elif state == TokenState.DONE:
@@ -74,19 +74,14 @@ class TokenItemDelegate(QtWidgets.QItemDelegate):
         return progressbaroption
 
     def paint(self, painter, option, index):
-        column = index.column()
         token = index.data(QtCore.Qt.UserRole)
         style = QtWidgets.QApplication.style()
 
-        if column == 0:
-            progressbaroption = self._create_progressbar_option(token, option)
-            style.drawControl(QtWidgets.QStyle.CE_ProgressBar, progressbaroption, painter)
+        progressbaroption = self._create_progressbar_option(token, option)
+        style.drawControl(QtWidgets.QStyle.CE_ProgressBar, progressbaroption, painter)
 
-        else:
-            super().paint(painter, option, index)
 
 class TokenTableWidget(QtWidgets.QWidget):
-
     def __init__(self, token, parent=None):
         super().__init__(parent)
 
@@ -98,7 +93,7 @@ class TokenTableWidget(QtWidgets.QWidget):
         # Widgets
         self.tableview = QtWidgets.QTableView()
         self.tableview.setModel(TokenModel(token))
-        self.tableview.setItemDelegate(TokenItemDelegate())
+        self.tableview.setItemDelegateForColumn(0, TokenItemDelegate())
 
         header = self.tableview.horizontalHeader()
         header.close()
@@ -125,4 +120,3 @@ class TokenTableWidget(QtWidgets.QWidget):
         model = self.tableview.model()
         future = model.future(index.row())
         self.doubleClicked.emit(future)
-
