@@ -37,7 +37,9 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     author="Hendrix Demers and Philippe T. Pinard",
-    author_email="hendrix.demers@mail.mcgill.ca and philippe.pinard@gmail.com",
+    author_email="philippe.pinard@gmail.com",
+    maintainer="Philippe T. Pinard",
+    maintainer_email="philippe.pinard@gmail.com",
     license="GPL v3",
     classifiers=[
         "Development Status :: 4 - Beta",
